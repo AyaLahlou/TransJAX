@@ -1,0 +1,281 @@
+{
+  "function_name": "get_clump_bounds_and_create_bounds",
+  "test_cases": [
+    {
+      "name": "test_get_clump_bounds_default_single_cell",
+      "function": "get_clump_bounds",
+      "inputs": {
+        "n": 0
+      },
+      "expected_output": {
+        "begg": 1,
+        "endg": 1,
+        "begl": 1,
+        "endl": 1,
+        "begc": 1,
+        "endc": 1,
+        "begp": 1,
+        "endp": 1
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Tests default behavior with processor index 0, expecting single cell bounds",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_get_clump_bounds_arbitrary_processor",
+      "function": "get_clump_bounds",
+      "inputs": {
+        "n": 42
+      },
+      "expected_output": {
+        "begg": 1,
+        "endg": 1,
+        "begl": 1,
+        "endl": 1,
+        "begc": 1,
+        "endc": 1,
+        "begp": 1,
+        "endp": 1
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Tests that processor index is unused - arbitrary value should give same result",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_get_clump_bounds_negative_processor",
+      "function": "get_clump_bounds",
+      "inputs": {
+        "n": -1
+      },
+      "expected_output": {
+        "begg": 1,
+        "endg": 1,
+        "begl": 1,
+        "endl": 1,
+        "begc": 1,
+        "endc": 1,
+        "begp": 1,
+        "endp": 1
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Tests with negative processor index to verify parameter is truly unused",
+        "edge_cases": [
+          "negative_index"
+        ]
+      }
+    },
+    {
+      "name": "test_create_bounds_single_cell",
+      "function": "create_bounds",
+      "inputs": {
+        "begg": 1,
+        "endg": 1,
+        "begl": 1,
+        "endl": 1,
+        "begc": 1,
+        "endc": 1,
+        "begp": 1,
+        "endp": 1
+      },
+      "expected_output": {
+        "begg": 1,
+        "endg": 1,
+        "begl": 1,
+        "endl": 1,
+        "begc": 1,
+        "endc": 1,
+        "begp": 1,
+        "endp": 1
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Tests creating bounds for a single cell at all hierarchy levels",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_create_bounds_small_domain",
+      "function": "create_bounds",
+      "inputs": {
+        "begg": 1,
+        "endg": 10,
+        "begl": 1,
+        "endl": 15,
+        "begc": 1,
+        "endc": 30,
+        "begp": 1,
+        "endp": 45
+      },
+      "expected_output": {
+        "begg": 1,
+        "endg": 10,
+        "begl": 1,
+        "endl": 15,
+        "begc": 1,
+        "endc": 30,
+        "begp": 1,
+        "endp": 45
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Tests small domain with typical hierarchy: 10 gridcells, 15 landunits, 30 columns, 45 patches",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_create_bounds_large_domain",
+      "function": "create_bounds",
+      "inputs": {
+        "begg": 1,
+        "endg": 1000,
+        "begl": 1,
+        "endl": 2500,
+        "begc": 1,
+        "endc": 5000,
+        "begp": 1,
+        "endp": 10000
+      },
+      "expected_output": {
+        "begg": 1,
+        "endg": 1000,
+        "begl": 1,
+        "endl": 2500,
+        "begc": 1,
+        "endc": 5000,
+        "begp": 1,
+        "endp": 10000
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Tests large domain decomposition typical of global simulations",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_create_bounds_subdomain_offset",
+      "function": "create_bounds",
+      "inputs": {
+        "begg": 100,
+        "endg": 200,
+        "begl": 250,
+        "endl": 500,
+        "begc": 600,
+        "endc": 1200,
+        "begp": 1500,
+        "endp": 3000
+      },
+      "expected_output": {
+        "begg": 100,
+        "endg": 200,
+        "begl": 250,
+        "endl": 500,
+        "begc": 600,
+        "endc": 1200,
+        "begp": 1500,
+        "endp": 3000
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Tests subdomain with non-unit starting indices, simulating MPI domain decomposition",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_create_bounds_equal_begin_end",
+      "function": "create_bounds",
+      "inputs": {
+        "begg": 5,
+        "endg": 5,
+        "begl": 12,
+        "endl": 12,
+        "begc": 25,
+        "endc": 25,
+        "begp": 50,
+        "endp": 50
+      },
+      "expected_output": {
+        "begg": 5,
+        "endg": 5,
+        "begl": 12,
+        "endl": 12,
+        "begc": 25,
+        "endc": 25,
+        "begp": 50,
+        "endp": 50
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Tests boundary case where begin equals end at each level (single element ranges)",
+        "edge_cases": [
+          "boundary_equality"
+        ]
+      }
+    },
+    {
+      "name": "test_create_bounds_maximum_reasonable_indices",
+      "function": "create_bounds",
+      "inputs": {
+        "begg": 1,
+        "endg": 100000,
+        "begl": 1,
+        "endl": 500000,
+        "begc": 1,
+        "endc": 1000000,
+        "begp": 1,
+        "endp": 2000000
+      },
+      "expected_output": {
+        "begg": 1,
+        "endg": 100000,
+        "begl": 1,
+        "endl": 500000,
+        "begc": 1,
+        "endc": 1000000,
+        "begp": 1,
+        "endp": 2000000
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Tests very large but reasonable domain sizes for high-resolution global simulations",
+        "edge_cases": [
+          "large_magnitude"
+        ]
+      }
+    },
+    {
+      "name": "test_create_bounds_hierarchical_consistency",
+      "function": "create_bounds",
+      "inputs": {
+        "begg": 10,
+        "endg": 50,
+        "begl": 20,
+        "endl": 150,
+        "begc": 40,
+        "endc": 450,
+        "begp": 80,
+        "endp": 1350
+      },
+      "expected_output": {
+        "begg": 10,
+        "endg": 50,
+        "begl": 20,
+        "endl": 150,
+        "begc": 40,
+        "endc": 450,
+        "begp": 80,
+        "endp": 1350
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Tests realistic hierarchical decomposition with ~3 landunits/gridcell, ~3 columns/landunit, ~3 patches/column",
+        "edge_cases": []
+      }
+    }
+  ],
+  "notes": "Test data generation assumptions:\n\n1. **get_clump_bounds tests**: Since the function ignores the 'n' parameter and always returns bounds with all values set to 1, tests verify this behavior with various input values including edge cases (0, negative, large positive).\n\n2. **create_bounds tests**: Focus on the spatial decomposition hierarchy typical in CTSM:\n   - Gridcells are the coarsest level\n   - Landunits subdivide gridcells (typically 1-5 per gridcell)\n   - Columns subdivide landunits (typically 1-15 per landunit)\n   - Patches are the finest level (typically 1-17 per column)\n\n3. **Physical constraints**: All indices start at 1 (Fortran convention). Begin indices are always <= end indices. The hierarchy typically expands: patches > columns > landunits > gridcells.\n\n4. **Edge cases covered**:\n   - Single element ranges (begin == end)\n   - Negative processor indices (for get_clump_bounds)\n   - Large domain sizes (up to 2M patches)\n   - Non-unit starting indices (subdomain decomposition)\n   - Boundary equality conditions\n\n5. **Test distribution**:\n   - Nominal cases (50%): Tests 1, 2, 4, 5, 6 - typical operating conditions\n   - Edge cases (30%): Tests 3, 8, 9 - boundary conditions and extreme values\n   - Special cases (20%): Tests 7, 10 - unusual but valid configurations\n\n6. **Validation approach**: Each test includes expected_output matching the BoundsType namedtuple structure. Tests verify that the functions correctly construct and return bounds objects with proper field values."
+}
