@@ -25,21 +25,17 @@ CLM-ml_v1/                     # Your Fortran code location
 ### Usage
 
 ```python
-from pathlib import Path
-from jax_agents.translator import TranslatorAgent
+cd clm-ml-jax/jax-agents
+export ANTHROPIC_API_KEY="ADDYOURAPIKEY"
 
-translator = TranslatorAgent(
-    analysis_results_path=Path("static_analysis_output/analysis_results.json"),
-    translation_units_path=Path("static_analysis_output/translation_units.json"),
-    jax_ctsm_dir=Path("../jax-ctsm"),
-    fortran_root=Path("../CLM-ml_v1"),  # Path to Fortran source files
-)
+# Translate modules
+./run_translation_workflow.sh --translate --modules clm_varctl
 
-# Translate by module name (file path automatic)
-result = translator.translate_module(
-    module_name="SoilStateType",
-    output_dir=Path("translated_modules/SoilStateType")
-)
+# Generate tests  
+./run_translation_workflow.sh --test
+
+# Complete workflow
+./run_translation_workflow.sh --all --modules clm_varctl
 ```
 
 ### Test It
