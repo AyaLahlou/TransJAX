@@ -11,7 +11,6 @@ from dataclasses import dataclass
 import json
 
 from jax_agents.base_agent import BaseAgent
-from jax_agents.static_analysis import AnalysisResult
 # from jax_agents.prompts.translation_prompts import TRANSLATION_PROMPTS
 from jax_agents.prompts.translation_prompts_v2 import TRANSLATION_PROMPTS
 from jax_agents.utils.config_loader import get_llm_config
@@ -25,6 +24,7 @@ class TranslationResult:
     """Result of translating a Fortran module to JAX."""
     module_name: str
     physics_code: str
+    source_directory: Optional[str] = None  # Track source directory for smart output routing
     params_code: Optional[str] = None
     test_code: Optional[str] = None
     translation_notes: str = ""
@@ -69,6 +69,64 @@ class TranslationResult:
         # Save translation notes
         if self.translation_notes:
             notes_file = output_dir / f"{self.module_name}_translation_notes.md"
+            with open(notes_file, 'w') as f:
+                f.write(self.translation_notes)
+            saved_files["notes"] = notes_file
+            console.print(f"[green]✓ Saved translation notes to {notes_file}[/green]")
+        
+        return saved_files
+
+    def save_structured(self, project_root: Path) -> Dict[str, Path]:
+        """
+        Save translated code to structured directories based on content type.
+        
+        Args:
+            project_root: Root directory of the CLM-ml-jax project
+            
+        Returns:
+            Dictionary mapping file type to path
+        """
+        saved_files = {}
+        
+        # Determine source directory mapping
+        if self.source_directory:
+            source_subdir = self.source_directory
+        else:
+            # Fallback to clm_src_main for unknown sources
+            source_subdir = "clm_src_main"
+        
+        # Save main physics module to src/
+        src_target_dir = project_root / "src" / source_subdir
+        src_target_dir.mkdir(parents=True, exist_ok=True)
+        physics_file = src_target_dir / f"{self.module_name}.py"
+        with open(physics_file, 'w') as f:
+            f.write(self.physics_code)
+        saved_files["physics"] = physics_file
+        console.print(f"[green]✓ Saved physics module to {physics_file}[/green]")
+        
+        # Save parameters if present to same source directory
+        if self.params_code:
+            params_file = src_target_dir / f"{self.module_name}_params.py"
+            with open(params_file, 'w') as f:
+                f.write(self.params_code)
+            saved_files["params"] = params_file
+            console.print(f"[green]✓ Saved parameters to {params_file}[/green]")
+        
+        # Save tests to tests/ with matching directory structure
+        if self.test_code:
+            test_target_dir = project_root / "tests" / source_subdir
+            test_target_dir.mkdir(parents=True, exist_ok=True)
+            test_file = test_target_dir / f"test_{self.module_name}.py"
+            with open(test_file, 'w') as f:
+                f.write(self.test_code)
+            saved_files["test"] = test_file
+            console.print(f"[green]✓ Saved tests to {test_file}[/green]")
+        
+        # Save translation notes to CLM-ml_v1/docs/
+        if self.translation_notes:
+            docs_target_dir = project_root / "CLM-ml_v1" / "docs" / "translation_notes"
+            docs_target_dir.mkdir(parents=True, exist_ok=True)
+            notes_file = docs_target_dir / f"{self.module_name}_translation_notes.md"
             with open(notes_file, 'w') as f:
                 f.write(self.translation_notes)
             saved_files["notes"] = notes_file
@@ -135,7 +193,7 @@ class TranslatorAgent(BaseAgent):
         self,
         module_name: str,
         fortran_file: Optional[Path] = None,
-        analysis: Optional[AnalysisResult] = None,
+        analysis: Optional[Any] = None,
         output_dir: Optional[Path] = None,
     ) -> TranslationResult:
         """
@@ -212,6 +270,9 @@ class TranslatorAgent(BaseAgent):
             module_info=module_info,
             reference_pattern=reference_pattern,
         )
+        
+        # Extract source directory from file path for smart output routing
+        result.source_directory = self._extract_source_directory(module_info.get('file_path', ''))
         
         console.print(f"[green]✓ Translation complete![/green]")
         
@@ -470,7 +531,7 @@ class TranslatorAgent(BaseAgent):
         )
         
         # Parse response
-        return self._parse_translation_response(response, module_name)
+        return self._parse_translation_response(response, module_name, module_info)
     
     def _translate_module_legacy(
         self,
@@ -543,33 +604,66 @@ class TranslatorAgent(BaseAgent):
         
         return deps
     
-    def _remap_fortran_path(self, original_path: str) -> Path:
+    def _extract_source_directory(self, file_path: str) -> str:
         """
-        Remap Fortran file path to correct location.
-        
-        If fortran_root is provided, replaces the original root with it.
+        Extract the source directory from a Fortran file path.
         
         Args:
-            original_path: Original path from JSON (e.g., /home/al4385/CLM-ml_v1/...)
+            file_path: Path to the Fortran file
+            
+        Returns:
+            Source directory name (e.g., 'clm_src_main', 'multilayer_canopy')
+        """
+        path_obj = Path(file_path)
+        parts = path_obj.parts
+        
+        # Look for known source directories
+        known_dirs = [
+            'clm_src_main', 'clm_src_biogeophys', 'clm_src_utils', 
+            'multilayer_canopy', 'offline_driver', 'cime_src_share_util', 'clm_src_cpl'
+        ]
+        
+        for part in parts:
+            if part in known_dirs:
+                return part
+        
+        # Default fallback
+        return 'clm_src_main'
+
+    def _remap_fortran_path(self, original_path: str) -> Path:
+        """
+        Remap Fortran file path from JSON to current project structure.
+        
+        Args:
+            original_path: Original path from JSON
             
         Returns:
             Remapped path
         """
-        if not self.fortran_root:
-            return Path(original_path)
-        
-        # Extract relative path from CLM-ml_v1 onwards
         path_obj = Path(original_path)
-        parts = path_obj.parts
         
-        # Find CLM-ml_v1 or similar project root
-        for i, part in enumerate(parts):
-            if 'CLM' in part or 'clm' in part:
-                relative_parts = parts[i+1:]  # Skip the CLM-ml_v1 part
-                return self.fortran_root / Path(*relative_parts)
+        # If the path already exists, use it directly
+        if path_obj.exists():
+            return path_obj
+            
+        # If we have a fortran_root override, try to remap relative to it
+        if self.fortran_root:
+            # Extract relative path from CLM-ml_v1 onwards
+            parts = path_obj.parts
+            for i, part in enumerate(parts):
+                if 'CLM' in part or 'clm' in part:
+                    relative_parts = parts[i+1:]  # Skip the CLM-ml_v1 part  
+                    remapped = self.fortran_root / Path(*relative_parts)
+                    if remapped.exists():
+                        return remapped
+            
+            # Try just the filename
+            filename_path = self.fortran_root / path_obj.name
+            if filename_path.exists():
+                return filename_path
         
-        # If no CLM found, just use the filename
-        return self.fortran_root / path_obj.name
+        # Fall back to original path
+        return path_obj
     
     def _load_json(self, json_path: Path) -> Dict[str, Any]:
         """
@@ -725,6 +819,7 @@ class TranslatorAgent(BaseAgent):
         self,
         response: str,
         module_name: str,
+        module_info: Optional[Dict[str, Any]] = None,
     ) -> TranslationResult:
         """
         Parse Claude's translation response into code files.
@@ -738,7 +833,7 @@ class TranslatorAgent(BaseAgent):
         """
         # Extract code blocks from response
         physics_code = ""
-        params_code = None
+        params_code = None  # No longer generating separate params files
         test_code = None
         notes = ""
         
@@ -746,20 +841,13 @@ class TranslatorAgent(BaseAgent):
         sections = response.split("```python")
         
         if len(sections) > 1:
-            # First Python block is usually the main physics module
+            # First (and expected only) Python block contains the complete module
             physics_end = sections[1].find("```")
             physics_code = sections[1][:physics_end].strip()
             
-            # Check for additional code blocks
+            # Log warning if unexpected additional code blocks are found
             if len(sections) > 2:
-                # Second block might be parameters
-                params_end = sections[2].find("```")
-                params_code = sections[2][:params_end].strip()
-            
-            if len(sections) > 3:
-                # Third block might be tests
-                test_end = sections[3].find("```")
-                test_code = sections[3][:test_end].strip()
+                console.print("[yellow]⚠ Warning: Found multiple Python code blocks. Using first block only.[/yellow]")
         
         # Extract any markdown notes (text before first code block)
         if "```" in response:
@@ -768,6 +856,7 @@ class TranslatorAgent(BaseAgent):
         return TranslationResult(
             module_name=module_name,
             physics_code=physics_code if physics_code else response,
+            source_directory=self._extract_source_directory(module_info.get('file_path', '')) if module_info else 'clm_src_main',
             params_code=params_code,
             test_code=test_code,
             translation_notes=notes,

@@ -23,6 +23,8 @@ def generate_tests_for_module(
     python_file: Path,
     output_dir: Path,
     num_cases: int = 10,
+    structured_output: bool = False,
+    project_root: Path = None,
 ):
     """
     Generate test suite for a Python/JAX module.
@@ -48,25 +50,55 @@ def generate_tests_for_module(
     
     # Generate tests
     try:
-        result = test_agent.generate_tests(
-            module_name=module_name,
-            python_code=python_code,
-            output_dir=output_dir,
-            num_test_cases=num_cases,
-            include_edge_cases=True,
-            include_performance_tests=False,
-        )
-        
-        # Print summary
-        console.print("\n[bold green]✓ Test generation complete![/bold green]")
-        console.print(f"\n[cyan]Generated files:[/cyan]")
-        console.print(f"  • pytest file: test_{module_name}.py")
-        console.print(f"  • test data: test_data_{module_name}.json")
-        console.print(f"  • documentation: test_documentation_{module_name}.md")
-        
-        console.print(f"\n[cyan]To run tests:[/cyan]")
-        console.print(f"  cd {output_dir}")
-        console.print(f"  pytest test_{module_name}.py -v")
+        # Use structured output approach if requested
+        if structured_output and project_root:
+            # Don't pass output_dir to avoid duplicate saving
+            result = test_agent.generate_tests(
+                module_name=module_name,
+                python_code=python_code,
+                num_test_cases=num_cases,
+                include_edge_cases=True,
+                include_performance_tests=False,
+            )
+            
+            # Determine source directory from python_file path
+            source_directory = "clm_src_main"  # default
+            parts = python_file.parts
+            for part in parts:
+                if part in ['clm_src_main', 'clm_src_biogeophys', 'clm_src_utils', 'multilayer_canopy', 'offline_driver', 'cime_src_share_util', 'clm_src_cpl']:
+                    source_directory = part
+                    break
+            
+            # Save with structured output
+            saved_files = result.save_structured(project_root, source_directory)
+            
+            # Print summary for structured output
+            console.print("\n[bold green]✓ Test generation complete with structured output![/bold green]")
+            console.print(f"\n[cyan]Generated files:[/cyan]")
+            for file_type, file_path in saved_files.items():
+                relative_path = file_path.relative_to(project_root)
+                console.print(f"  • {file_type}: {relative_path}")
+        else:
+            # Traditional output method
+            result = test_agent.generate_tests(
+                module_name=module_name,
+                python_code=python_code,
+                output_dir=output_dir,
+                num_test_cases=num_cases,
+                include_edge_cases=True,
+                include_performance_tests=False,
+            )
+            
+            # Print summary for traditional output
+            console.print("\n[bold green]✓ Test generation complete![/bold green]")
+            console.print(f"\n[cyan]Generated files:[/cyan]")
+            console.print(f"  • pytest file: test_{module_name}.py")
+            console.print(f"  • test data: test_data_{module_name}.json")
+            console.print(f"  • documentation: test_documentation_{module_name}.md")
+            
+            console.print(f"\n[cyan]To run tests:[/cyan]")
+            console.print(f"  cd {output_dir}")
+            console.print(f"  pytest test_{module_name}.py -v")
         
         # Show cost
         cost = test_agent.get_cost_estimate()
@@ -210,6 +242,11 @@ Examples:
         action="store_true",
         help="Interactive mode"
     )
+    parser.add_argument(
+        "--structured-output",
+        action="store_true",
+        help="Use structured output (save to tests/, tests/test_data/, docs/)"
+    )
     
     args = parser.parse_args()
     
@@ -243,14 +280,19 @@ Examples:
             python_file=python_file,
             output_dir=output_dir,
             num_cases=args.num_cases,
+            structured_output=args.structured_output,
+            project_root=project_root if args.structured_output else None,
         )
     elif args.module and args.python and args.output:
         # Manual mode: use specified paths
+        project_root = Path(__file__).parent.parent.parent  # Go up to clm-ml-jax root
         generate_tests_for_module(
             module_name=args.module,
             python_file=Path(args.python),
             output_dir=Path(args.output),
             num_cases=args.num_cases,
+            structured_output=args.structured_output,
+            project_root=project_root if args.structured_output else None,
         )
     else:
         parser.print_help()

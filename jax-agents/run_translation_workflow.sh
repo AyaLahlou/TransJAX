@@ -29,8 +29,13 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-# Configuration
-PROJECT_ROOT="/burg-archive/home/mck2199"
+# Configuration - Updated to match current project structure
+PROJECT_ROOT="/burg-archive/home/al4385/clm-ml-jax"
+# Base directories for different output types
+SRC_OUTPUT_DIR="$PROJECT_ROOT/src"
+TESTS_OUTPUT_DIR="$PROJECT_ROOT/tests"
+DOCS_OUTPUT_DIR="$PROJECT_ROOT/CLM-ml_v1/docs"
+# Legacy output directory (for backward compatibility)
 OUTPUT_DIR="$SCRIPT_DIR/translated_modules"
 REPAIR_DIR="$SCRIPT_DIR/repair_outputs"
 
@@ -151,18 +156,31 @@ run_translation() {
     print_info "Output directory: $OUTPUT_DIR"
     echo
     
-    # Run translate_with_json.py with module arguments
-    if python examples/translate_with_json.py "${modules[@]}"; then
+    # Run translate_with_json.py with module arguments and structured output
+    if python examples/translate_with_json.py "${modules[@]}" --structured-output; then
         print_success "Translation completed successfully"
         
-        # List translated modules
+        # List translated modules (check both structured and legacy locations)
         echo
         print_info "Translated modules:"
         for module in "${modules[@]}"; do
-            if [ -d "$OUTPUT_DIR/$module" ]; then
-                print_success "$module → $OUTPUT_DIR/$module/"
-            else
-                print_warning "$module - translation may have failed"
+            # Check for structured output in src/
+            structured_found=false
+            for src_dir in "clm_src_main" "clm_src_biogeophys" "clm_src_utils" "multilayer_canopy" "offline_driver" "cime_src_share_util" "clm_src_cpl"; do
+                if [ -f "$SRC_OUTPUT_DIR/$src_dir/$module.py" ]; then
+                    print_success "$module → $SRC_OUTPUT_DIR/$src_dir/$module.py"
+                    structured_found=true
+                    break
+                fi
+            done
+            
+            # Check legacy location if not found in structured output
+            if [ "$structured_found" = false ]; then
+                if [ -d "$OUTPUT_DIR/$module" ]; then
+                    print_success "$module → $OUTPUT_DIR/$module/ (legacy)"
+                else
+                    print_warning "$module - translation may have failed"
+                fi
             fi
         done
         return 0
@@ -178,51 +196,115 @@ run_test_generation() {
     
     print_header "STEP 2: Test Generation"
     
-    # If no modules specified, generate for all
+    # If no modules specified, check if all modules have tests and generate for any missing
     if [ ${#modules[@]} -eq 0 ]; then
-        print_info "Generating tests for all translated modules..."
-        echo
-        
-        # Run generate_tests.py --all
-        if python examples/generate_tests.py --all; then
-            print_success "Test generation completed successfully"
-            
-            # List generated tests
-            echo
-            print_info "Generated test files:"
-            find "$OUTPUT_DIR" -name "test_*.py" -type f | while read test_file; do
-                print_success "$(basename $(dirname $test_file))/tests/$(basename $test_file)"
-            done
-            return 0
-        else
-            print_error "Test generation failed"
-            return 1
-        fi
-    else
-        # Generate tests for specific modules
-        print_info "Generating tests for modules: ${modules[*]}"
-        echo
-        
-        local all_success=true
-        for module in "${modules[@]}"; do
-            print_info "Generating tests for $module..."
-            
-            if python examples/generate_tests.py "$module"; then
-                print_success "$module - test generation completed"
-            else
-                print_error "$module - test generation failed"
-                all_success=false
+        # Check all existing structured tests
+        structured_tests_exist=false
+        for test_dir in "$TESTS_OUTPUT_DIR/clm_src_main" "$TESTS_OUTPUT_DIR/clm_src_biogeophys" "$TESTS_OUTPUT_DIR/clm_src_utils" "$TESTS_OUTPUT_DIR/multilayer_canopy" "$TESTS_OUTPUT_DIR/offline_driver"; do
+            if [ -d "$test_dir" ] && [ "$(find "$test_dir" -name "test_*.py" 2>/dev/null | wc -l)" -gt 0 ]; then
+                structured_tests_exist=true
+                break
             fi
-            echo
         done
         
-        if [ "$all_success" = true ]; then
-            print_success "All test generation completed successfully"
+        if [ "$structured_tests_exist" = true ]; then
+            print_info "Tests already generated during structured translation phase"
+            echo
+            print_info "Generated test files in structured layout:"
+            find "$TESTS_OUTPUT_DIR" -name "test_*.py" -type f 2>/dev/null | while read test_file; do
+                relative_path=$(realpath --relative-to="$TESTS_OUTPUT_DIR" "$test_file")
+                print_success "tests/$relative_path"
+            done
             return 0
-        else
-            print_error "Some test generations failed"
-            return 1
         fi
+    else
+        # Check if tests exist for the specific modules being processed
+        modules_needing_tests=()
+        modules_with_tests=()
+        
+        for module in "${modules[@]}"; do
+            test_found=false
+            # Check all possible source directories for this module's test
+            for src_dir in "clm_src_main" "clm_src_biogeophys" "clm_src_utils" "multilayer_canopy" "offline_driver" "cime_src_share_util" "clm_src_cpl"; do
+                test_file="$TESTS_OUTPUT_DIR/$src_dir/test_$module.py"
+                if [ -f "$test_file" ]; then
+                    test_found=true
+                    modules_with_tests+=("$module")
+                    break
+                fi
+            done
+            
+            if [ "$test_found" = false ]; then
+                modules_needing_tests+=("$module")
+            fi
+        done
+        
+        # Show status of requested modules
+        if [ ${#modules_with_tests[@]} -gt 0 ]; then
+            print_info "Tests already exist for: ${modules_with_tests[*]}"
+        fi
+        
+        if [ ${#modules_needing_tests[@]} -eq 0 ]; then
+            print_info "All specified modules already have tests"
+            echo
+            print_info "Existing test files:"
+            for module in "${modules_with_tests[@]}"; do
+                for src_dir in "clm_src_main" "clm_src_biogeophys" "clm_src_utils" "multilayer_canopy" "offline_driver" "cime_src_share_util" "clm_src_cpl"; do
+                    test_file="$TESTS_OUTPUT_DIR/$src_dir/test_$module.py"
+                    if [ -f "$test_file" ]; then
+                        print_success "tests/$src_dir/test_$module.py"
+                        break
+                    fi
+                done
+            done
+            return 0
+        fi
+        
+        # Update modules array to only include those needing tests
+        modules=("${modules_needing_tests[@]}")
+        print_info "Generating tests for modules without existing tests: ${modules[*]}"
+    fi
+    
+    # Generate tests for specific modules (either all modules or those needing tests)
+    print_info "Generating tests for modules: ${modules[*]}"
+    echo
+    
+    local all_success=true
+    for module in "${modules[@]}"; do
+        print_info "Generating tests for $module..."
+        
+        # Find the module's Python file to determine source directory and generate structured tests
+        python_file=""
+        for src_dir in "clm_src_main" "clm_src_biogeophys" "clm_src_utils" "multilayer_canopy" "offline_driver" "cime_src_share_util" "clm_src_cpl"; do
+            candidate_file="$SRC_OUTPUT_DIR/$src_dir/$module.py"
+            if [ -f "$candidate_file" ]; then
+                python_file="$candidate_file"
+                break
+            fi
+        done
+        
+        if [ -z "$python_file" ]; then
+            print_error "$module - Python file not found in src/"
+            all_success=false
+            continue
+        fi
+        
+        # Generate tests with structured output
+        if python examples/generate_tests.py --module "$module" --python "$python_file" --output /tmp/dummy --structured-output; then
+            print_success "$module - test generation completed with structured output"
+        else
+            print_error "$module - test generation failed"
+            all_success=false
+        fi
+        echo
+    done
+    
+    if [ "$all_success" = true ]; then
+        print_success "All test generation completed successfully"
+        return 0
+    else
+        print_error "Some test generations failed"
+        return 1
     fi
 }
 
@@ -235,11 +317,19 @@ run_tests() {
     local has_failures=false
     local failed_modules=()
     
-    # Find all test files
-    test_files=$(find "$OUTPUT_DIR" -name "test_*.py" -type f 2>/dev/null)
+    # Find all test files (check structured location first, then legacy)
+    test_files=""
+    if [ -d "$TESTS_OUTPUT_DIR" ]; then
+        test_files=$(find "$TESTS_OUTPUT_DIR" -name "test_*.py" -type f 2>/dev/null)
+    fi
+    
+    # If no structured tests found, check legacy location
+    if [ -z "$test_files" ]; then
+        test_files=$(find "$OUTPUT_DIR" -name "test_*.py" -type f 2>/dev/null)
+    fi
     
     if [ -z "$test_files" ]; then
-        print_warning "No test files found"
+        print_warning "No test files found in structured ($TESTS_OUTPUT_DIR) or legacy ($OUTPUT_DIR) locations"
         return 1
     fi
     
@@ -367,17 +457,16 @@ run_repair() {
         # Look for Fortran reference in multiple locations
         fortran_ref=""
         
-        # Check common Fortran source locations
+        # Check common Fortran source locations - Updated to use relative paths
         fortran_search_paths=(
             "$module_dir/tests/FORTRAN_REFERENCE.F90"
             "$SCRIPT_DIR/../CLM-ml_v1/clm_src_main/${module}.F90"
             "$SCRIPT_DIR/../CLM-ml_v1/clm_src_biogeophys/${module}.F90"
             "$SCRIPT_DIR/../CLM-ml_v1/clm_src_cpl/${module}.F90"
             "$SCRIPT_DIR/../CLM-ml_v1/clm_src_utils/${module}.F90"
-            "/burg-archive/home/al4385/CLM-ml_v1/clm_src_main/${module}.F90"
-            "/burg-archive/home/al4385/CLM-ml_v1/clm_src_biogeophys/${module}.F90"
-            "/burg-archive/home/al4385/CLM-ml_v1/clm_src_cpl/${module}.F90"
-            "/burg-archive/home/al4385/CLM-ml_v1/clm_src_utils/${module}.F90"
+            "$SCRIPT_DIR/../CLM-ml_v1/cime_src_share_util/${module}.F90"
+            "$SCRIPT_DIR/../CLM-ml_v1/multilayer_canopy/${module}.F90"
+            "$SCRIPT_DIR/../CLM-ml_v1/offline_driver/${module}.F90"
         )
         
         for path in "${fortran_search_paths[@]}"; do

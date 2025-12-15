@@ -1,0 +1,222 @@
+{
+  "function_name": "file_io_utilities",
+  "test_cases": [
+    {
+      "name": "test_get_filename_unix_path",
+      "inputs": {
+        "fulpath": "/home/user/data/simulation_results.txt"
+      },
+      "expected": "simulation_results.txt",
+      "metadata": {
+        "type": "nominal",
+        "description": "Standard Unix absolute path with multiple directories",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_get_filename_no_directory",
+      "inputs": {
+        "fulpath": "standalone_file.dat"
+      },
+      "expected": "standalone_file.dat",
+      "metadata": {
+        "type": "edge",
+        "description": "Filename without any directory separators",
+        "edge_cases": [
+          "no_directory_separator"
+        ]
+      }
+    },
+    {
+      "name": "test_get_filename_trailing_slash",
+      "inputs": {
+        "fulpath": "/var/log/application/"
+      },
+      "expected": "",
+      "metadata": {
+        "type": "edge",
+        "description": "Path ending with slash (directory path, no filename)",
+        "edge_cases": [
+          "trailing_slash",
+          "empty_filename"
+        ]
+      }
+    },
+    {
+      "name": "test_getfil_success_iflag_0",
+      "inputs": {
+        "fulpath": "/tmp/test_data_exists.nc",
+        "iflag": 0
+      },
+      "expected": {
+        "locfn": "/tmp/test_data_exists.nc",
+        "success": true
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "File exists, iflag=0 (abort on missing), should succeed",
+        "edge_cases": [],
+        "setup_required": "create_temp_file"
+      }
+    },
+    {
+      "name": "test_getfil_missing_iflag_1",
+      "inputs": {
+        "fulpath": "/nonexistent/path/missing_file.dat",
+        "iflag": 1
+      },
+      "expected": {
+        "locfn": "/nonexistent/path/missing_file.dat",
+        "success": false
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "File does not exist, iflag=1 (no abort), should return False",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_getfil_relative_path",
+      "inputs": {
+        "fulpath": "./data/relative_path_file.bin",
+        "iflag": 1
+      },
+      "expected": {
+        "locfn": "./data/relative_path_file.bin",
+        "success": false
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Relative path handling",
+        "edge_cases": [
+          "relative_path"
+        ]
+      }
+    },
+    {
+      "name": "test_opnfil_unformatted_binary",
+      "inputs": {
+        "locfn": "binary_output.bin",
+        "iun": 42,
+        "form": "u"
+      },
+      "expected": {
+        "file_handle_type": "binary",
+        "mode": "rb"
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Open file in unformatted (binary) mode with lowercase 'u'",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_opnfil_formatted_text_uppercase",
+      "inputs": {
+        "locfn": "text_output.txt",
+        "iun": 10,
+        "form": "F"
+      },
+      "expected": {
+        "file_handle_type": "text",
+        "mode": "r"
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Open file in formatted (text) mode with uppercase 'F'",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_opnfil_long_filename",
+      "inputs": {
+        "locfn": "very_long_filename_that_exceeds_typical_length_but_is_still_valid_in_modern_filesystems_with_extended_support_for_long_names.data",
+        "iun": 99,
+        "form": "U"
+      },
+      "expected": {
+        "file_handle_type": "binary",
+        "mode": "rb"
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Very long filename (edge case for filesystem limits)",
+        "edge_cases": [
+          "long_filename"
+        ]
+      }
+    },
+    {
+      "name": "test_relavu_valid_handle",
+      "inputs": {
+        "iunit": "mock_file_handle"
+      },
+      "expected": null,
+      "metadata": {
+        "type": "nominal",
+        "description": "Close a valid open file handle",
+        "edge_cases": [],
+        "setup_required": "create_mock_file_handle"
+      }
+    },
+    {
+      "name": "test_relavu_none_handle",
+      "inputs": {
+        "iunit": null
+      },
+      "expected": null,
+      "metadata": {
+        "type": "edge",
+        "description": "Attempt to close None handle (should not raise error)",
+        "edge_cases": [
+          "none_input"
+        ]
+      }
+    },
+    {
+      "name": "test_get_filename_windows_path",
+      "inputs": {
+        "fulpath": "C:\\Users\\scientist\\Documents\\experiment_data.csv"
+      },
+      "expected": "experiment_data.csv",
+      "metadata": {
+        "type": "special",
+        "description": "Windows-style path with backslashes (cross-platform consideration)",
+        "edge_cases": [
+          "windows_path"
+        ]
+      }
+    },
+    {
+      "name": "test_get_filename_multiple_extensions",
+      "inputs": {
+        "fulpath": "/archive/backup/data.tar.gz.bak"
+      },
+      "expected": "data.tar.gz.bak",
+      "metadata": {
+        "type": "special",
+        "description": "Filename with multiple extensions",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_getfil_empty_path",
+      "inputs": {
+        "fulpath": "",
+        "iflag": 1
+      },
+      "expected": {
+        "locfn": "",
+        "success": false
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Empty path string",
+        "edge_cases": [
+          "empty_string"
+        ]
+      }
+    }
+  ],
+  "notes": "Test data generated for file I/O utility functions. These are pure Python functions dealing with file system operations, not JAX-compatible. Test cases cover: (1) get_filename: various path formats including Unix/Windows, edge cases like trailing slashes, no directories, empty results; (2) getfil: both iflag values (0=abort, 1=no abort), existing and missing files, relative paths; (3) opnfil: all four format specifiers (u/U/f/F), various filename lengths; (4) relavu: valid handles and None input. Edge cases include empty strings, None values, very long filenames, trailing slashes, and cross-platform path considerations. Some tests require setup (creating temporary files or mock file handles). The iun parameter in opnfil is maintained for interface compatibility but not functionally used in Python. All test cases are realistic for scientific computing file I/O scenarios involving data files, simulation outputs, and archival storage."
+}

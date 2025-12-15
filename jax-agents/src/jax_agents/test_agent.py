@@ -58,6 +58,48 @@ class TestGenerationResult:
         console.print(f"[green]✓ Saved test documentation to {docs_path}[/green]")
         
         return saved_files
+    
+    def save_structured(self, project_root: Path, source_directory: str) -> Dict[str, Path]:
+        """
+        Save test artifacts to structured project layout.
+        
+        Args:
+            project_root: Root directory of the project
+            source_directory: Source directory name (e.g., 'clm_src_main')
+        
+        Returns:
+            Dictionary mapping artifact type to saved file path
+        """
+        saved_files = {}
+        
+        # Save pytest file to tests/<source_directory>/
+        tests_dir = project_root / "tests" / source_directory
+        tests_dir.mkdir(parents=True, exist_ok=True)
+        pytest_path = tests_dir / f"test_{self.module_name}.py"
+        with open(pytest_path, 'w') as f:
+            f.write(self.pytest_file)
+        saved_files["pytest"] = pytest_path
+        console.print(f"[green]✓ Saved pytest file to {pytest_path}[/green]")
+        
+        # Save test data to central tests/test_data/
+        test_data_dir = project_root / "tests" / "test_data"
+        test_data_dir.mkdir(parents=True, exist_ok=True)
+        test_data_path = test_data_dir / f"test_data_{self.module_name}.json"
+        with open(test_data_path, 'w') as f:
+            f.write(self.test_data_file)
+        saved_files["test_data"] = test_data_path
+        console.print(f"[green]✓ Saved test data to {test_data_path}[/green]")
+        
+        # Save test documentation to docs/
+        docs_dir = project_root / "CLM-ml_v1" / "docs" / "test_documentation"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        docs_path = docs_dir / f"test_documentation_{self.module_name}.md"
+        with open(docs_path, 'w') as f:
+            f.write(self.test_documentation)
+        saved_files["documentation"] = docs_path
+        console.print(f"[green]✓ Saved test documentation to {docs_path}[/green]")
+        
+        return saved_files
 
 
 class TestAgent(BaseAgent):

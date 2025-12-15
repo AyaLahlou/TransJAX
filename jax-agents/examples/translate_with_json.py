@@ -31,20 +31,25 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=Path,
-        help="Output directory (default: <project_root>/jax-ctsm-agents/translated_modules)"
+        help="Output directory (default: jax-agents/translated_modules)"
+    )
+    parser.add_argument(
+        "--structured-output",
+        action="store_true",
+        help="Use structured output (files to src/, tests/, docs/ directories)"
     )
     args = parser.parse_args()
     
-    # Setup paths
-    project_root = Path("/burg-archive/home/al4385")
+    # Setup paths - use current project structure
+    project_root = Path("/burg-archive/home/al4385/clm-ml-jax")
     
-    # JSON files are in jax-ctsm-agents folder
-    analysis_dir = project_root / "jax-ctsm-agents/static_analysis_output"
+    # JSON files are in jax-agents/static_analysis_output 
+    analysis_dir = project_root / "jax-agents/static_analysis_output"
     analysis_results_json = analysis_dir / "analysis_results.json"
     translation_units_json = analysis_dir / "translation_units.json"
     
-    # Path to jax-ctsm for reference patterns
-    jax_ctsm_dir = project_root / "jax-ctsm"
+    # Path to jax-ctsm for reference patterns (adjust if needed)
+    jax_ctsm_dir = project_root.parent / "jax-ctsm" if (project_root.parent / "jax-ctsm").exists() else None
     
     # Path to Fortran source files
     fortran_root = project_root / "CLM-ml_v1"
@@ -53,7 +58,7 @@ def main():
     if args.output_dir:
         output_dir = args.output_dir
     else:
-        output_dir = project_root / "jax-ctsm-agents/translated_modules"
+        output_dir = project_root / "jax-agents/translated_modules"
     
     # Verify JSON files exist
     if not analysis_results_json.exists():
@@ -90,11 +95,24 @@ def main():
     for i, module_name in enumerate(modules_to_translate, 1):
         console.print(f"[bold cyan]Module {i}/{len(modules_to_translate)}: Translating '{module_name}'[/bold cyan]")
         try:
-            result = translator.translate_module(
-                module_name=module_name,
-                output_dir=output_dir / module_name
-            )
-            console.print(f"[green]✓ Translated {module_name} successfully![/green]")
+            result = translator.translate_module(module_name=module_name)
+            
+            # Use structured output if requested
+            if args.structured_output:
+                try:
+                    saved_files = result.save_structured(project_root)
+                    console.print(f"[green]✓ Translated {module_name} successfully with structured output![/green]")
+                    console.print(f"[dim]Saved {len(saved_files)} files across project structure[/dim]")
+                except Exception as save_error:
+                    console.print(f"[red]✗ Structured output failed: {save_error}[/red]")
+                    # Fallback to traditional save method
+                    result.save(output_dir / module_name)
+                    console.print(f"[yellow]⚠ Used legacy output method instead[/yellow]")
+            else:
+                # Traditional output method
+                result.save(output_dir / module_name)
+                console.print(f"[green]✓ Translated {module_name} successfully![/green]")
+            
             console.print(f"[dim]Generated {len(result.physics_code)} chars of physics code[/dim]\n")
             success_count += 1
         except Exception as e:

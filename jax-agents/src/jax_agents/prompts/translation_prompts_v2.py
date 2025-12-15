@@ -35,11 +35,12 @@ REFERENCE PATTERN:
 ```
 
 REQUIREMENTS:
-1. **Structure**: NamedTuples for data, separate params file if needed
+1. **Structure**: Single consolidated module with NamedTuples for data and parameters
 2. **Functions**: Pure with type hints, preserve physics exactly
 3. **Arrays**: Vectorized ops (no Python loops), document shapes # [n_patches, n_layers]
 4. **Conditionals**: jnp.where for JIT compatibility
 5. **Docs**: Reference Fortran line numbers from translation units, explain translations
+6. **Organization**: Include parameters/constants directly in main module (no separate files)
 
 Translation units guide:
 - "module": header/declarations
@@ -49,9 +50,8 @@ Translation units guide:
 - High complexity_score = careful vectorization
 
 Output:
-1. Main physics module
-2. Parameters file (if needed)
-3. Translation notes""",
+1. Single complete physics module (include parameters inline)
+2. Translation notes""",
 
     "translate_function": """Translate Fortran subroutine to JAX function.
 
@@ -160,16 +160,15 @@ REFERENCE PATTERN:
 ```
 
 REQUIREMENTS:
-1. Combine all units into cohesive module
+1. Combine all units into single cohesive module
 2. Add imports (jax, jax.numpy as jnp, typing, NamedTuple)
-3. Organize: imports → types → params → functions
+3. Organize: imports → types → parameters/constants → functions
 4. Ensure consistency across units
-5. Generate params file if needed
+5. Include all parameters and constants directly in main module
 6. Add module-level docstring
 
 Output:
-1. Main physics module (complete, executable)
-2. Parameters file (if needed)
-3. Brief assembly notes""",
+1. Single complete physics module (include all parameters inline)
+2. Brief assembly notes""",
 }
 
