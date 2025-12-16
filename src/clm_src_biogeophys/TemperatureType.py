@@ -1,38 +1,20 @@
 """
 Temperature State Variables and Initialization.
 
-Translated from CTSM's TemperatureType.F90 (lines 1-68)
+Translated from CTSM's TemperatureType.F90
 
 This module defines the temperature state variables used throughout CTSM,
 including soil/snow temperatures and atmospheric reference temperatures.
-It provides initialization routines for setting up temperature arrays
-with proper dimensions based on domain decomposition.
 
 Key variables:
     - t_soisno: Soil and snow layer temperatures [K]
     - t_a10: 10-day running mean 2m air temperature [K]
     - t_ref2m: 2m reference air temperature [K]
 
-Key equations:
-    None - this is a state variable container module
+The temperature state is stored in an immutable NamedTuple for JAX compatibility.
+All initialization functions are pure and return new state objects.
 
-Physics:
-    Temperature state is fundamental to:
-    - Soil thermal dynamics
-    - Snow thermodynamics
-    - Plant phenology (via t_a10)
-    - Surface energy balance
-    - Biogeochemical processes
-
-Vertical indexing:
-    Fortran uses -nlevsno+1:nlevgrnd indexing
-    JAX uses 0-based indexing with shape (nlevsno + nlevgrnd)
-    
-    Layer mapping:
-        Fortran index -nlevsno+1 -> JAX index 0 (top snow)
-        Fortran index 0 -> JAX index nlevsno-1 (bottom snow/top soil interface)
-        Fortran index 1 -> JAX index nlevsno (top soil)
-        Fortran index nlevgrnd -> JAX index nlevsno+nlevgrnd-1 (bottom soil)
+Fortran source: TemperatureType.F90 (lines 1-68)
 """
 
 from typing import NamedTuple
@@ -46,9 +28,6 @@ import jax.numpy as jnp
 
 class BoundsType(NamedTuple):
     """Domain decomposition bounds.
-    
-    Defines the index ranges for patches, columns, and grid cells
-    in the current processor's subdomain.
     
     Attributes:
         begp: Beginning patch index
@@ -89,6 +68,11 @@ class TemperatureState(NamedTuple):
     Note:
         In Fortran, t_soisno_col is indexed as (-nlevsno+1:nlevgrnd).
         In JAX, we use 0-based indexing with shape (nlevsno + nlevgrnd).
+        Layer mapping:
+            Fortran index -nlevsno+1 -> JAX index 0 (top snow)
+            Fortran index 0 -> JAX index nlevsno-1 (bottom snow/top soil interface)
+            Fortran index 1 -> JAX index nlevsno (top soil)
+            Fortran index nlevgrnd -> JAX index nlevsno+nlevgrnd-1 (bottom soil)
     """
     
     t_soisno_col: jnp.ndarray  # [n_columns, n_levtot] in K
@@ -101,131 +85,15 @@ class TemperatureState(NamedTuple):
 # =============================================================================
 
 # Default initialization temperature [K]
-# Corresponds to 0°C, a reasonable starting point for most simulations
-DEFAULT_INIT_TEMP = 273.15
+DEFAULT_INIT_TEMP = 273.15  # 0°C
 
-# Typical vertical layer counts (can be overridden)
-DEFAULT_NLEVSNO = 5   # Maximum number of snow layers
-DEFAULT_NLEVGRND = 15 # Number of soil layers
+# Special value for uninitialized data
+NAN_VALUE = jnp.nan
 
 
 # =============================================================================
 # Initialization Functions
 # =============================================================================
-
-
-def init_allocate_temperature(
-    bounds: BoundsType,
-    nlevsno: int = DEFAULT_NLEVSNO,
-    nlevgrnd: int = DEFAULT_NLEVGRND,
-) -> TemperatureState:
-    """Initialize temperature state arrays with memory allocation.
-    
-    Allocates and initializes all temperature state variables with NaN values.
-    The soil/snow temperature array spans from the top snow layer to the bottom
-    soil layer. NaN initialization helps detect uninitialized data during
-    debugging.
-    
-    Fortran source: TemperatureType.F90, lines 47-68
-    
-    Args:
-        bounds: Spatial bounds containing patch and column indices
-            - begp, endp: Patch index bounds
-            - begc, endc: Column index bounds
-            - begg, endg: Grid cell index bounds
-        nlevsno: Maximum number of snow layers (typically 5)
-        nlevgrnd: Number of ground (soil) layers (typically 15)
-        
-    Returns:
-        Initialized temperature state with NaN-filled arrays
-        
-    Note:
-        Arrays are initialized with NaN to help detect uninitialized values
-        during debugging. The vertical dimension for t_soisno_col ranges from
-        -nlevsno+1 (top snow) to nlevgrnd (bottom soil) in Fortran indexing,
-        which becomes 0 to (nlevsno + nlevgrnd - 1) in JAX.
-        
-    Example:
-        >>> bounds = BoundsType(begp=0, endp=99, begc=0, endc=49, begg=0, endg=24)
-        >>> temp_state = init_allocate_temperature(bounds, nlevsno=5, nlevgrnd=15)
-        >>> temp_state.t_soisno_col.shape
-        (50, 20)  # 50 columns, 20 vertical layers (5 snow + 15 soil)
-    """
-    # Extract bounds (Fortran lines 61-62)
-    begp = bounds.begp
-    endp = bounds.endp
-    begc = bounds.begc
-    endc = bounds.endc
-    
-    # Calculate array sizes
-    n_patches = endp - begp + 1
-    n_columns = endc - begc + 1
-    n_vertical_layers = nlevsno + nlevgrnd  # -nlevsno+1 to nlevgrnd inclusive
-    
-    # Allocate and initialize arrays with NaN (Fortran lines 64-66)
-    # Using float32 for memory efficiency while maintaining sufficient precision
-    t_soisno_col = jnp.full(
-        (n_columns, n_vertical_layers), 
-        jnp.nan, 
-        dtype=jnp.float32
-    )
-    t_a10_patch = jnp.full(
-        (n_patches,), 
-        jnp.nan, 
-        dtype=jnp.float32
-    )
-    t_ref2m_patch = jnp.full(
-        (n_patches,), 
-        jnp.nan, 
-        dtype=jnp.float32
-    )
-    
-    return TemperatureState(
-        t_soisno_col=t_soisno_col,
-        t_a10_patch=t_a10_patch,
-        t_ref2m_patch=t_ref2m_patch,
-    )
-
-
-def init_temperature(
-    bounds: BoundsType,
-    nlevsno: int = DEFAULT_NLEVSNO,
-    nlevgrnd: int = DEFAULT_NLEVGRND,
-) -> TemperatureState:
-    """Initialize temperature state variables (high-level interface).
-    
-    This function provides a high-level interface for initializing the
-    temperature state. It delegates to init_allocate_temperature to perform
-    the actual memory allocation and initialization.
-    
-    Fortran source: TemperatureType.F90, lines 37-44
-    
-    Args:
-        bounds: Domain bounds defining array dimensions
-            - begp, endp: Patch index bounds
-            - begc, endc: Column index bounds
-            - begg, endg: Grid cell index bounds
-        nlevsno: Maximum number of snow layers (typically 5)
-        nlevgrnd: Number of ground (soil) layers (typically 15)
-            
-    Returns:
-        Initialized TemperatureState with allocated arrays
-        
-    Note:
-        This is a wrapper that delegates to init_allocate_temperature.
-        In the Fortran code, this calls this%InitAllocate(bounds).
-        In JAX, we create immutable NamedTuples rather than allocating
-        mutable arrays.
-        
-    Example:
-        >>> bounds = BoundsType(begp=0, endp=99, begc=0, endc=49, begg=0, endg=24)
-        >>> temp_state = init_temperature(bounds)
-        >>> jnp.all(jnp.isnan(temp_state.t_a10_patch))
-        True
-    """
-    # Delegate to the allocation routine
-    # In the Fortran code, this calls this%InitAllocate(bounds)
-    return init_allocate_temperature(bounds, nlevsno, nlevgrnd)
 
 
 def init_temperature_state(
@@ -234,14 +102,12 @@ def init_temperature_state(
     n_levtot: int,
     initial_temp: float = DEFAULT_INIT_TEMP,
 ) -> TemperatureState:
-    """Initialize temperature state with specified values (alternative interface).
-    
-    Creates initial temperature state with all temperatures set to a
-    reference value (default is 273.15 K = 0°C). This is an alternative
-    initialization method that directly specifies array dimensions and
-    initial values rather than using bounds.
+    """Initialize temperature state variables.
     
     Fortran source: TemperatureType.F90, lines 26-27 (Init, InitAllocate procedures)
+    
+    Creates initial temperature state with all temperatures set to a
+    reference value (default is 273.15 K = 0°C).
     
     Args:
         n_columns: Number of columns in domain
@@ -254,34 +120,105 @@ def init_temperature_state(
         Initialized TemperatureState with all temperatures set to initial_temp
         
     Note:
-        This function is useful for testing or when you want to initialize
-        with specific temperature values rather than NaN. For production
-        runs, prefer init_temperature() which uses NaN to detect uninitialized
-        values.
-        
-    Example:
-        >>> temp_state = init_temperature_state(50, 100, 20, initial_temp=280.0)
-        >>> temp_state.t_a10_patch[0]
-        280.0
-        >>> temp_state.t_soisno_col.shape
-        (50, 20)
+        In the Fortran code, Init and InitAllocate are type-bound procedures.
+        Here we provide a pure function for initialization that can be used
+        in a functional JAX context.
     """
     return TemperatureState(
-        t_soisno_col=jnp.full(
-            (n_columns, n_levtot), 
-            initial_temp, 
-            dtype=jnp.float32
-        ),
-        t_a10_patch=jnp.full(
-            n_patches, 
-            initial_temp, 
-            dtype=jnp.float32
-        ),
-        t_ref2m_patch=jnp.full(
-            n_patches, 
-            initial_temp, 
-            dtype=jnp.float32
-        ),
+        t_soisno_col=jnp.full((n_columns, n_levtot), initial_temp, dtype=jnp.float32),
+        t_a10_patch=jnp.full(n_patches, initial_temp, dtype=jnp.float32),
+        t_ref2m_patch=jnp.full(n_patches, initial_temp, dtype=jnp.float32),
+    )
+
+
+def init_temperature(
+    bounds: BoundsType,
+    nlevsno: int,
+    nlevgrnd: int,
+) -> TemperatureState:
+    """Initialize temperature state variables from bounds.
+    
+    This function allocates and initializes all temperature arrays needed
+    for the simulation based on the domain decomposition bounds.
+    
+    Fortran source: TemperatureType.F90, lines 37-44
+    
+    Args:
+        bounds: Domain decomposition bounds containing:
+            - begc, endc: Column index bounds
+            - begp, endp: Patch index bounds
+            - begg, endg: Grid cell index bounds
+        nlevsno: Maximum number of snow layers (positive value)
+        nlevgrnd: Number of ground layers (soil + bedrock)
+            
+    Returns:
+        TemperatureState: Initialized temperature state with allocated arrays
+        
+    Note:
+        This is a wrapper that calls init_allocate to perform the actual
+        allocation. In the JAX translation, we directly return the initialized
+        NamedTuple rather than mutating a class instance.
+        
+    Reference:
+        Fortran source lines 37-44 in TemperatureType.F90
+    """
+    # Call the allocation routine (equivalent to this%InitAllocate(bounds))
+    return init_allocate(bounds, nlevsno, nlevgrnd)
+
+
+def init_allocate(
+    bounds: BoundsType,
+    nlevsno: int,
+    nlevgrnd: int,
+) -> TemperatureState:
+    """Initialize temperature state structure with allocated arrays.
+    
+    Allocates memory for all temperature state variables based on spatial
+    bounds. All arrays are initialized to NaN to help detect uninitialized
+    values during debugging.
+    
+    Fortran source: TemperatureType.F90, lines 47-68
+    
+    Args:
+        bounds: Spatial bounds containing patch and column indices
+        nlevsno: Maximum number of snow layers (positive value)
+        nlevgrnd: Number of ground layers (soil + bedrock)
+        
+    Returns:
+        TemperatureState with allocated arrays initialized to NaN
+        
+    Note:
+        The t_soisno_col array spans from -nlevsno+1 (top snow layer) to
+        nlevgrnd (bottom soil layer). In JAX, we use 0-based indexing, so
+        the array has shape [n_cols, nlevsno + nlevgrnd].
+        
+        Array dimensions are determined by bounds:
+        - Column arrays: (endc - begc + 1,)
+        - Patch arrays: (endp - begp + 1,)
+        - Soil layer arrays: (endc - begc + 1, nlevgrnd)
+        - Snow layer arrays: (endc - begc + 1, nlevsno)
+    """
+    # Extract bounds (lines 61-62)
+    begp = bounds.begp
+    endp = bounds.endp
+    begc = bounds.begc
+    endc = bounds.endc
+    
+    # Calculate array sizes
+    n_patches = endp - begp + 1
+    n_cols = endc - begc + 1
+    n_layers = nlevsno + nlevgrnd  # Total layers from -nlevsno+1 to nlevgrnd
+    
+    # Allocate and initialize arrays with NaN (lines 64-66)
+    # Using NaN helps detect uninitialized values during debugging
+    t_soisno_col = jnp.full((n_cols, n_layers), NAN_VALUE, dtype=jnp.float32)
+    t_a10_patch = jnp.full((n_patches,), NAN_VALUE, dtype=jnp.float32)
+    t_ref2m_patch = jnp.full((n_patches,), NAN_VALUE, dtype=jnp.float32)
+    
+    return TemperatureState(
+        t_soisno_col=t_soisno_col,
+        t_a10_patch=t_a10_patch,
+        t_ref2m_patch=t_ref2m_patch,
     )
 
 
@@ -291,82 +228,86 @@ def init_temperature_state(
 
 
 def get_soil_temperature(
-    temp_state: TemperatureState,
-    column_idx: int,
-    nlevsno: int = DEFAULT_NLEVSNO,
-) -> jnp.ndarray:
-    """Extract soil-only temperatures from combined soil/snow array.
+    state: TemperatureState,
+    col_idx: int,
+    layer_idx: int,
+    nlevsno: int,
+) -> float:
+    """Extract soil temperature for a specific column and layer.
+    
+    Helper function to access soil/snow temperatures with proper indexing.
     
     Args:
-        temp_state: Temperature state containing t_soisno_col
-        column_idx: Column index to extract
-        nlevsno: Number of snow layers (to skip)
-        
-    Returns:
-        Soil temperatures [K] [nlevgrnd]
-        
-    Example:
-        >>> temp_state = init_temperature_state(10, 20, 20, initial_temp=280.0)
-        >>> soil_temp = get_soil_temperature(temp_state, column_idx=0, nlevsno=5)
-        >>> soil_temp.shape
-        (15,)  # nlevgrnd layers
-    """
-    return temp_state.t_soisno_col[column_idx, nlevsno:]
-
-
-def get_snow_temperature(
-    temp_state: TemperatureState,
-    column_idx: int,
-    nlevsno: int = DEFAULT_NLEVSNO,
-) -> jnp.ndarray:
-    """Extract snow-only temperatures from combined soil/snow array.
-    
-    Args:
-        temp_state: Temperature state containing t_soisno_col
-        column_idx: Column index to extract
+        state: Temperature state
+        col_idx: Column index (0-based)
+        layer_idx: Layer index in Fortran convention (-nlevsno+1 to nlevgrnd)
         nlevsno: Number of snow layers
         
     Returns:
-        Snow temperatures [K] [nlevsno]
+        Temperature at specified location [K]
         
-    Example:
-        >>> temp_state = init_temperature_state(10, 20, 20, initial_temp=270.0)
-        >>> snow_temp = get_snow_temperature(temp_state, column_idx=0, nlevsno=5)
-        >>> snow_temp.shape
-        (5,)  # nlevsno layers
+    Note:
+        Converts Fortran layer indexing to JAX 0-based indexing:
+        Fortran layer_idx -> JAX index = layer_idx + nlevsno - 1
     """
-    return temp_state.t_soisno_col[column_idx, :nlevsno]
+    jax_layer_idx = layer_idx + nlevsno - 1
+    return state.t_soisno_col[col_idx, jax_layer_idx]
 
 
-def update_temperature(
-    temp_state: TemperatureState,
-    t_soisno_col: jnp.ndarray = None,
-    t_a10_patch: jnp.ndarray = None,
-    t_ref2m_patch: jnp.ndarray = None,
+def update_soil_temperature(
+    state: TemperatureState,
+    col_idx: int,
+    layer_idx: int,
+    nlevsno: int,
+    new_temp: float,
 ) -> TemperatureState:
-    """Update temperature state with new values (functional update).
+    """Update soil temperature for a specific column and layer.
     
-    Creates a new TemperatureState with updated fields. Only provided
-    fields are updated; others retain their original values.
+    Returns a new TemperatureState with updated temperature value.
     
     Args:
-        temp_state: Current temperature state
-        t_soisno_col: New soil/snow temperatures [K] (optional)
-        t_a10_patch: New 10-day mean temperatures [K] (optional)
-        t_ref2m_patch: New 2m reference temperatures [K] (optional)
+        state: Current temperature state
+        col_idx: Column index (0-based)
+        layer_idx: Layer index in Fortran convention (-nlevsno+1 to nlevgrnd)
+        nlevsno: Number of snow layers
+        new_temp: New temperature value [K]
         
     Returns:
-        New TemperatureState with updated fields
+        New TemperatureState with updated temperature
         
-    Example:
-        >>> temp_state = init_temperature_state(10, 20, 20)
-        >>> new_t_a10 = jnp.full(20, 285.0)
-        >>> updated_state = update_temperature(temp_state, t_a10_patch=new_t_a10)
-        >>> updated_state.t_a10_patch[0]
-        285.0
+    Note:
+        This creates a new state object (immutable update) for JAX compatibility.
     """
-    return TemperatureState(
-        t_soisno_col=t_soisno_col if t_soisno_col is not None else temp_state.t_soisno_col,
-        t_a10_patch=t_a10_patch if t_a10_patch is not None else temp_state.t_a10_patch,
-        t_ref2m_patch=t_ref2m_patch if t_ref2m_patch is not None else temp_state.t_ref2m_patch,
-    )
+    jax_layer_idx = layer_idx + nlevsno - 1
+    new_t_soisno = state.t_soisno_col.at[col_idx, jax_layer_idx].set(new_temp)
+    
+    return state._replace(t_soisno_col=new_t_soisno)
+
+
+def get_surface_temperature(
+    state: TemperatureState,
+    col_idx: int,
+    nlevsno: int,
+    snl: int,
+) -> float:
+    """Get surface temperature (top snow or top soil layer).
+    
+    Args:
+        state: Temperature state
+        col_idx: Column index
+        nlevsno: Maximum number of snow layers
+        snl: Number of active snow layers (negative or zero)
+        
+    Returns:
+        Surface temperature [K]
+        
+    Note:
+        If snow present (snl < 0), returns top snow layer temperature.
+        Otherwise returns top soil layer temperature.
+    """
+    # If snow present, get top snow layer (Fortran index = snl+1)
+    # Otherwise get top soil layer (Fortran index = 1)
+    fortran_idx = jnp.where(snl < 0, snl + 1, 1)
+    jax_idx = fortran_idx + nlevsno - 1
+    
+    return state.t_soisno_col[col_idx, jax_idx]
