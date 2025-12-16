@@ -122,9 +122,9 @@ class TranslationResult:
             saved_files["test"] = test_file
             console.print(f"[green]✓ Saved tests to {test_file}[/green]")
         
-        # Save translation notes to CLM-ml_v1/docs/
+        # Save translation notes to docs/
         if self.translation_notes:
-            docs_target_dir = project_root / "CLM-ml_v1" / "docs" / "translation_notes"
+            docs_target_dir = project_root / "docs" / "translation_notes"
             docs_target_dir.mkdir(parents=True, exist_ok=True)
             notes_file = docs_target_dir / f"{self.module_name}_translation_notes.md"
             with open(notes_file, 'w') as f:

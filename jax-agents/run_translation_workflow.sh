@@ -34,7 +34,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Base directories for different output types
 SRC_OUTPUT_DIR="$PROJECT_ROOT/src"
 TESTS_OUTPUT_DIR="$PROJECT_ROOT/tests"
-DOCS_OUTPUT_DIR="$PROJECT_ROOT/CLM-ml_v1/docs"
+DOCS_OUTPUT_DIR="$PROJECT_ROOT/docs"
 # Legacy output directory (for backward compatibility)
 OUTPUT_DIR="$SCRIPT_DIR/translated_modules"
 REPAIR_DIR="$SCRIPT_DIR/repair_outputs"
