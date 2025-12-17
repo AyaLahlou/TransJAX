@@ -355,7 +355,7 @@ def leaf_photosynthesis(
     vcmax = vcmax * btran[:, None, None]
     
     # Only process layers with plant area
-    has_lai = dpai[:, :, None] > 0.0
+    has_lai = dpai[:, :, None] > 0.0  # Shape: (n_patches, n_layers, 1) broadcasts to (n_patches, n_layers, n_leaf)
     
     # =========================================================================
     # PART 2: Stomatal conductance setup and electron transport
@@ -396,7 +396,7 @@ def leaf_photosynthesis(
     # =========================================================================
     
     # Initial Ci estimate
-    ci_init = jnp.where(is_c3, 0.7 * cair[:, :, None], 0.4 * cair[:, :, None])
+    ci_init = jnp.where(is_c3, 0.7 * cair, 0.4 * cair)
     
     # Expand o2ref for broadcasting
     o2ref_expanded = o2ref[:, None, None]
@@ -454,7 +454,7 @@ def leaf_photosynthesis(
     anet = agross - rd
     
     # CO2 at leaf surface
-    cs = cair[:, :, None] - anet / gbc
+    cs = cair - anet / gbc
     cs = jnp.maximum(cs, 1.0)
     
     # =========================================================================
@@ -482,7 +482,7 @@ def leaf_photosynthesis(
     
     # Update Ci from diffusion equation
     gleaf = 1.0 / (1.0 / gbc + params.dh2o_to_dco2 / gs)
-    ci = cair[:, :, None] - anet / gleaf
+    ci = cair - anet / gleaf
     
     # =========================================================================
     # PART 5: Water stress adjustment
@@ -509,8 +509,8 @@ def leaf_photosynthesis(
     a0_c3 = vcmax
     b0_c3 = kc * (1.0 + o2ref_expanded / ko)
     aquad_c3 = 1.0 / gleaf_stressed
-    bquad_c3 = -(cair[:, :, None] + b0_c3) - (a0_c3 - rd) / gleaf_stressed
-    cquad_c3 = a0_c3 * (cair[:, :, None] - cp) - rd * (cair[:, :, None] + b0_c3)
+    bquad_c3 = -(cair + b0_c3) - (a0_c3 - rd) / gleaf_stressed
+    cquad_c3 = a0_c3 * (cair - cp) - rd * (cair + b0_c3)
     r1_c3, r2_c3 = quadratic(aquad_c3, bquad_c3, cquad_c3)
     ac_stressed_c3 = jnp.minimum(r1_c3, r2_c3) + rd
     
@@ -518,8 +518,8 @@ def leaf_photosynthesis(
     a0_j = je / 4.0
     b0_j = 2.0 * cp
     aquad_j = 1.0 / gleaf_stressed
-    bquad_j = -(cair[:, :, None] + b0_j) - (a0_j - rd) / gleaf_stressed
-    cquad_j = a0_j * (cair[:, :, None] - cp) - rd * (cair[:, :, None] + b0_j)
+    bquad_j = -(cair + b0_j) - (a0_j - rd) / gleaf_stressed
+    cquad_j = a0_j * (cair - cp) - rd * (cair + b0_j)
     r1_j, r2_j = quadratic(aquad_j, bquad_j, cquad_j)
     aj_stressed_c3 = jnp.minimum(r1_j, r2_j) + rd
     
@@ -528,7 +528,7 @@ def leaf_photosynthesis(
     # C4 rates remain the same for Rubisco and RuBP
     ac_stressed_c4 = vcmax
     aj_stressed_c4 = params.qe_c4 * apar
-    ap_stressed_c4 = kp * (cair[:, :, None] * gleaf_stressed + rd) / (gleaf_stressed + kp)
+    ap_stressed_c4 = kp * (cair * gleaf_stressed + rd) / (gleaf_stressed + kp)
     
     # Select C3 or C4
     ac = jnp.where(is_c3, ac_stressed_c3, ac_stressed_c4)
@@ -561,10 +561,10 @@ def leaf_photosynthesis(
     anet = agross - rd
     
     # CO2 at leaf surface
-    cs = jnp.maximum(cair[:, :, None] - anet / gbc, 1.0)
+    cs = jnp.maximum(cair - anet / gbc, 1.0)
     
     # Intercellular CO2
-    ci = cair[:, :, None] - anet / gleaf_stressed
+    ci = cair - anet / gleaf_stressed
     
     # =========================================================================
     # PART 6: Final calculations
@@ -593,7 +593,7 @@ def leaf_photosynthesis(
     # =========================================================================
     
     # C3 fractionation
-    alphapsn_c3 = 1.0 + (4.4 + 22.6 * ci / cair[:, :, None]) / 1000.0
+    alphapsn_c3 = 1.0 + (4.4 + 22.6 * ci / cair) / 1000.0
     
     # C4 fractionation
     alphapsn_c4 = 1.0 + 4.4 / 1000.0
