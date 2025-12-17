@@ -514,8 +514,8 @@ run_repair() {
         
         # Fall back to legacy location if not found in structured layout
         if [ -z "$python_file" ]; then
-            module_dir="$OUTPUT_DIR/$module"
-            python_file="$module_dir/${module}.py"
+        module_dir="$OUTPUT_DIR/$module"
+        python_file="$module_dir/${module}.py"
         fi
         
         # Look for Fortran reference in multiple locations
@@ -555,7 +555,7 @@ run_repair() {
         fi
         
         # For repair, we always repair the main Python file
-        python_file_to_repair="$python_file"
+            python_file_to_repair="$python_file"
         
         # Run repair agent
         repair_output="$REPAIR_DIR/${module}"

@@ -1,0 +1,342 @@
+STDOUT:
+============================= test session starts ==============================
+platform linux -- Python 3.11.13, pytest-9.0.2, pluggy-1.6.0 -- /burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /burg-archive/home/mck2199/clm-ml-jax
+configfile: pytest.ini
+plugins: cov-7.0.0, anyio-4.12.0
+collecting ... collected 50 items
+
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_shapes[nominal_room_temp] FAILED [  2%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_shapes[edge_freezing] FAILED [  4%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_shapes[edge_bounds] FAILED [  6%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_shapes[multidim_2d] FAILED [  8%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_dtypes[nominal_room_temp] FAILED [ 10%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_dtypes[edge_freezing] FAILED [ 12%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_dtypes[edge_bounds] FAILED [ 14%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_nominal_values FAILED [ 16%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_freezing_point FAILED [ 18%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_boiling_point FAILED [ 20%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_monotonicity FAILED [ 22%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_multidimensional FAILED [ 24%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_shapes[nominal_atmospheric] FAILED [ 26%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_shapes[edge_near_zero] FAILED [ 28%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_shapes[multidim_3d] FAILED [ 30%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_dtypes FAILED [ 32%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_nominal_values FAILED [ 34%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_phase_transition FAILED [ 36%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_extreme_cold FAILED [ 38%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_multidimensional FAILED [ 40%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_shapes FAILED [ 42%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_dtypes FAILED [ 44%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_values FAILED [ 46%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_consistency FAILED [ 48%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_multidimensional FAILED [ 50%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_shapes[nominal_varied_humidity] FAILED [ 52%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_shapes[edge_saturated] FAILED [ 54%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_shapes[edge_dry] FAILED [ 56%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_shapes[multidim_broadcast] FAILED [ 58%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_dtypes FAILED [ 60%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_nominal_values FAILED [ 62%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_saturated_air FAILED [ 64%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_dry_air FAILED [ 66%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_formula_verification FAILED [ 68%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_multidimensional FAILED [ 70%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_rh_bounds FAILED [ 72%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestIntegration::test_thermodynamic_consistency FAILED [ 74%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestIntegration::test_array_broadcasting_consistency FAILED [ 76%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestIntegration::test_numerical_stability FAILED [ 78%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_temperature_clamping FAILED [ 80%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_zero_temperature FAILED [ 82%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_negative_temperature FAILED [ 84%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_rh_outside_bounds FAILED [ 86%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_empty_arrays FAILED [ 88%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_single_value_arrays FAILED [ 90%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_positive_pressure FAILED [ 92%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_positive_latent_heat FAILED [ 94%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_non_negative_vpd FAILED [ 96%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_clausius_clapeyron_relation FAILED [ 98%]
+../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_monotonic_increase_with_temperature FAILED [100%]
+
+=================================== FAILURES ===================================
+______________ TestSatVap.test_sat_vap_shapes[nominal_room_temp] _______________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:186: in test_sat_vap_shapes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+---------------------------- Captured stderr setup -----------------------------
+WARNING:2025-12-16 23:22:40,501:jax._src.xla_bridge:854: An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+------------------------------ Captured log setup ------------------------------
+WARNING  jax._src.xla_bridge:xla_bridge.py:854 An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+________________ TestSatVap.test_sat_vap_shapes[edge_freezing] _________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:186: in test_sat_vap_shapes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_________________ TestSatVap.test_sat_vap_shapes[edge_bounds] __________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:186: in test_sat_vap_shapes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_________________ TestSatVap.test_sat_vap_shapes[multidim_2d] __________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:186: in test_sat_vap_shapes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+______________ TestSatVap.test_sat_vap_dtypes[nominal_room_temp] _______________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:210: in test_sat_vap_dtypes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+________________ TestSatVap.test_sat_vap_dtypes[edge_freezing] _________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:210: in test_sat_vap_dtypes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_________________ TestSatVap.test_sat_vap_dtypes[edge_bounds] __________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:210: in test_sat_vap_dtypes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+____________________ TestSatVap.test_sat_vap_nominal_values ____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:236: in test_sat_vap_nominal_values
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+____________________ TestSatVap.test_sat_vap_freezing_point ____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:267: in test_sat_vap_freezing_point
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+____________________ TestSatVap.test_sat_vap_boiling_point _____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:292: in test_sat_vap_boiling_point
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_____________________ TestSatVap.test_sat_vap_monotonicity _____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:313: in test_sat_vap_monotonicity
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________________ TestSatVap.test_sat_vap_multidimensional ___________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:336: in test_sat_vap_multidimensional
+    from multilayer_canopy.MLWaterVaporMod import sat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_____________ TestLatVap.test_lat_vap_shapes[nominal_atmospheric] ______________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:374: in test_lat_vap_shapes
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+________________ TestLatVap.test_lat_vap_shapes[edge_near_zero] ________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:374: in test_lat_vap_shapes
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_________________ TestLatVap.test_lat_vap_shapes[multidim_3d] __________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:374: in test_lat_vap_shapes
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+________________________ TestLatVap.test_lat_vap_dtypes ________________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:391: in test_lat_vap_dtypes
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+____________________ TestLatVap.test_lat_vap_nominal_values ____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:413: in test_lat_vap_nominal_values
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________________ TestLatVap.test_lat_vap_phase_transition ___________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:442: in test_lat_vap_phase_transition
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_____________________ TestLatVap.test_lat_vap_extreme_cold _____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:463: in test_lat_vap_extreme_cold
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________________ TestLatVap.test_lat_vap_multidimensional ___________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:488: in test_lat_vap_multidimensional
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+__________ TestSatVapWithConstants.test_sat_vap_with_constants_shapes __________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:518: in test_sat_vap_with_constants_shapes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+__________ TestSatVapWithConstants.test_sat_vap_with_constants_dtypes __________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:535: in test_sat_vap_with_constants_dtypes
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+__________ TestSatVapWithConstants.test_sat_vap_with_constants_values __________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:552: in test_sat_vap_with_constants_values
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_______ TestSatVapWithConstants.test_sat_vap_with_constants_consistency ________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:579: in test_sat_vap_with_constants_consistency
+    from multilayer_canopy.MLWaterVaporMod import sat_vap, sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_____ TestSatVapWithConstants.test_sat_vap_with_constants_multidimensional _____
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:596: in test_sat_vap_with_constants_multidimensional
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+______ TestVaporPressureDeficit.test_vpd_shapes[nominal_varied_humidity] _______
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:630: in test_vpd_shapes
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________ TestVaporPressureDeficit.test_vpd_shapes[edge_saturated] ___________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:630: in test_vpd_shapes
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+______________ TestVaporPressureDeficit.test_vpd_shapes[edge_dry] ______________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:630: in test_vpd_shapes
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_________ TestVaporPressureDeficit.test_vpd_shapes[multidim_broadcast] _________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:630: in test_vpd_shapes
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________________ TestVaporPressureDeficit.test_vpd_dtypes ___________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:646: in test_vpd_dtypes
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_______________ TestVaporPressureDeficit.test_vpd_nominal_values _______________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:669: in test_vpd_nominal_values
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_______________ TestVaporPressureDeficit.test_vpd_saturated_air ________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:697: in test_vpd_saturated_air
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+__________________ TestVaporPressureDeficit.test_vpd_dry_air ___________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:718: in test_vpd_dry_air
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit, sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+____________ TestVaporPressureDeficit.test_vpd_formula_verification ____________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:738: in test_vpd_formula_verification
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit, sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+______________ TestVaporPressureDeficit.test_vpd_multidimensional ______________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:757: in test_vpd_multidimensional
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_________________ TestVaporPressureDeficit.test_vpd_rh_bounds __________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:780: in test_vpd_rh_bounds
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit, sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+________________ TestIntegration.test_thermodynamic_consistency ________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:810: in test_thermodynamic_consistency
+    from multilayer_canopy.MLWaterVaporMod import (
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_____________ TestIntegration.test_array_broadcasting_consistency ______________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:846: in test_array_broadcasting_consistency
+    from multilayer_canopy.MLWaterVaporMod import (
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________________ TestIntegration.test_numerical_stability ___________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:883: in test_numerical_stability
+    from multilayer_canopy.MLWaterVaporMod import (
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________________ TestEdgeCases.test_temperature_clamping ____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:923: in test_temperature_clamping
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_____________________ TestEdgeCases.test_zero_temperature ______________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:942: in test_zero_temperature
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________________ TestEdgeCases.test_negative_temperature ____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:958: in test_negative_temperature
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_____________________ TestEdgeCases.test_rh_outside_bounds _____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:978: in test_rh_outside_bounds
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_______________________ TestEdgeCases.test_empty_arrays ________________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:999: in test_empty_arrays
+    from multilayer_canopy.MLWaterVaporMod import (
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+____________________ TestEdgeCases.test_single_value_arrays ____________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:1023: in test_single_value_arrays
+    from multilayer_canopy.MLWaterVaporMod import (
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+________________ TestPhysicalConstraints.test_positive_pressure ________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:1061: in test_positive_pressure
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+______________ TestPhysicalConstraints.test_positive_latent_heat _______________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:1075: in test_positive_latent_heat
+    from multilayer_canopy.MLWaterVaporMod import lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+________________ TestPhysicalConstraints.test_non_negative_vpd _________________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:1089: in test_non_negative_vpd
+    from multilayer_canopy.MLWaterVaporMod import vapor_pressure_deficit
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+___________ TestPhysicalConstraints.test_clausius_clapeyron_relation ___________
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:1105: in test_clausius_clapeyron_relation
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants, lat_vap
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+_______ TestPhysicalConstraints.test_monotonic_increase_with_temperature _______
+../tests/multilayer_canopy/test_MLWaterVaporMod.py:1131: in test_monotonic_increase_with_temperature
+    from multilayer_canopy.MLWaterVaporMod import sat_vap_with_constants
+E   ModuleNotFoundError: No module named 'multilayer_canopy'
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.13-final-0 _______________
+
+Name                                                Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------------------
+src/jax_agents/__init__.py                              6      6     0%   7-14
+src/jax_agents/base_agent.py                          114    114     0%   7-386
+src/jax_agents/prompts/__init__.py                      3      3     0%   3-6
+src/jax_agents/prompts/repair_prompts.py                1      1     0%   11
+src/jax_agents/prompts/test_prompts_simplified.py       1      1     0%   8
+src/jax_agents/prompts/translation_prompts_v2.py        1      1     0%   3
+src/jax_agents/repair_agent.py                        169    169     0%   13-453
+src/jax_agents/test_agent.py                          133    133     0%   11-335
+src/jax_agents/translator.py                          277    277     0%   8-891
+src/jax_agents/utils/__init__.py                        2      2     0%   3-5
+src/jax_agents/utils/config_loader.py                  21     21     0%   3-69
+---------------------------------------------------------------------------------
+TOTAL                                                 728    728     0%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+=========================== short test summary info ============================
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_shapes[nominal_room_temp] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_shapes[edge_freezing] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_shapes[edge_bounds] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_shapes[multidim_2d] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_dtypes[nominal_room_temp] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_dtypes[edge_freezing] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_dtypes[edge_bounds] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_nominal_values - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_freezing_point - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_boiling_point - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_monotonicity - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVap::test_sat_vap_multidimensional - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_shapes[nominal_atmospheric] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_shapes[edge_near_zero] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_shapes[multidim_3d] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_dtypes - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_nominal_values - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_phase_transition - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_extreme_cold - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestLatVap::test_lat_vap_multidimensional - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_shapes - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_dtypes - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_values - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_consistency - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestSatVapWithConstants::test_sat_vap_with_constants_multidimensional - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_shapes[nominal_varied_humidity] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_shapes[edge_saturated] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_shapes[edge_dry] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_shapes[multidim_broadcast] - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_dtypes - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_nominal_values - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_saturated_air - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_dry_air - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_formula_verification - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_multidimensional - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestVaporPressureDeficit::test_vpd_rh_bounds - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestIntegration::test_thermodynamic_consistency - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestIntegration::test_array_broadcasting_consistency - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestIntegration::test_numerical_stability - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_temperature_clamping - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_zero_temperature - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_negative_temperature - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_rh_outside_bounds - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_empty_arrays - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestEdgeCases::test_single_value_arrays - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_positive_pressure - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_positive_latent_heat - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_non_negative_vpd - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_clausius_clapeyron_relation - ModuleNotFoundError: No module named 'multilayer_canopy'
+FAILED ../tests/multilayer_canopy/test_MLWaterVaporMod.py::TestPhysicalConstraints::test_monotonic_increase_with_temperature - ModuleNotFoundError: No module named 'multilayer_canopy'
+============================== 50 failed in 1.77s ==============================
+
+
+STDERR:
+/burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/lib64/python3.11/site-packages/coverage/control.py:957: CoverageWarning: No data was collected. (no-data-collected); see https://coverage.readthedocs.io/en/7.13.0/messages.html#warning-no-data-collected
+  self._warn("No data was collected.", slug="no-data-collected")

@@ -1,0 +1,327 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.13, pytest-9.0.2, pluggy-1.6.0 -- /burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /burg-archive/home/mck2199/clm-ml-jax
+configfile: pytest.ini
+plugins: cov-7.0.0, anyio-4.12.0
+collecting ... collected 48 items
+
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_simple_quadratic[xa0-xb0-expected_root0-1e-06] FAILED [  2%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_transcendental[xa0-xb0-expected_root0-1e-07] FAILED [  4%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_tight_tolerance[xa0-xb0-expected_root0-1e-12] FAILED [  6%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_vectorized_operation[xa0-xb0-1e-08] FAILED [  8%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_output_dtype FAILED [ 10%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestZbrent::test_polynomial_roots[xa0-xb0-expected_roots0] FAILED [ 12%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestZbrent::test_zero_crossing[xa0-xb0-expected_root0] FAILED [ 14%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestZbrent::test_no_bracket_error[xa0-xb0] FAILED [ 16%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestZbrent::test_return_tuple_structure FAILED [ 18%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestQuadratic::test_standard_cases[a0-b0-c0-expected_r10-expected_r20] FAILED [ 20%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestQuadratic::test_edge_cases[a0-b0-c0-expected_r10-expected_r20] FAILED [ 22%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestQuadratic::test_near_zero_discriminant[a0-b0-c0] FAILED [ 25%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestQuadratic::test_return_tuple_structure FAILED [ 27%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag::test_simple_system FAILED [ 29%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag::test_diagonal_dominant FAILED [ 31%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag::test_output_shape FAILED [ 33%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag2Eq::test_coupled_system FAILED [ 35%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag2Eq::test_atmospheric_profile FAILED [ 37%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag2Eq::test_return_tuple_structure FAILED [ 39%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[1.0-0.0] FAILED [ 41%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[2.0-0.0] FAILED [ 43%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[0.5-0.5723] FAILED [ 45%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[10.0-12.8018] FAILED [ 47%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[100.0-359.1342] FAILED [ 50%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[1e-06-13.8155] FAILED [ 52%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_array_input FAILED [ 54%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_positive_constraint FAILED [ 56%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunction::test_standard_values[a0-b0-expected0] FAILED [ 58%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunction::test_symmetry FAILED [ 60%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunction::test_positive_constraint FAILED [ 62%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_values[2.0-5.0-0.3-2.1609] FAILED [ 64%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_values[5.0-2.0-0.7-2.1609] FAILED [ 66%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_values[0.5-0.5-0.5-0.6366] FAILED [ 68%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_values[2.0-2.0-0.0-0.0] FAILED [ 70%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_array_input FAILED [ 72%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_boundary_behavior FAILED [ 75%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionCDF::test_cdf_lower_boundary FAILED [ 77%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionCDF::test_cdf_upper_boundary FAILED [ 79%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionCDF::test_cdf_monotonicity FAILED [ 81%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionCDF::test_cdf_range FAILED [ 83%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunctionIncompleteCF::test_cf_convergence[a0-b0-x0-expected0] FAILED [ 85%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunctionIncompleteCF::test_cf_range FAILED [ 87%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestIntegration::test_root_finder_with_quadratic FAILED [ 89%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestIntegration::test_beta_pdf_integrates_to_one FAILED [ 91%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestEdgeCasesAndErrors::test_root_finder_max_iterations FAILED [ 93%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestEdgeCasesAndErrors::test_tridiag_single_element FAILED [ 95%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::TestEdgeCasesAndErrors::test_beta_extreme_parameters FAILED [ 97%]
+../tests/multilayer_canopy/test_MLMathToolsMod.py::test_module_imports FAILED [100%]/burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/lib64/python3.11/site-packages/coverage/control.py:957: CoverageWarning: No data was collected. (no-data-collected); see https://coverage.readthedocs.io/en/7.13.0/messages.html#warning-no-data-collected
+  self._warn("No data was collected.", slug="no-data-collected")
+
+
+=================================== FAILURES ===================================
+___ TestHybridRootFinder.test_simple_quadratic[xa0-xb0-expected_root0-1e-06] ___
+../tests/multilayer_canopy/test_MLMathToolsMod.py:107: in test_simple_quadratic
+    from MLMathToolsMod import hybrid_root_finder
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____ TestHybridRootFinder.test_transcendental[xa0-xb0-expected_root0-1e-07] ____
+../tests/multilayer_canopy/test_MLMathToolsMod.py:137: in test_transcendental
+    from MLMathToolsMod import hybrid_root_finder
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+___ TestHybridRootFinder.test_tight_tolerance[xa0-xb0-expected_root0-1e-12] ____
+../tests/multilayer_canopy/test_MLMathToolsMod.py:153: in test_tight_tolerance
+    from MLMathToolsMod import hybrid_root_finder
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+________ TestHybridRootFinder.test_vectorized_operation[xa0-xb0-1e-08] _________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:169: in test_vectorized_operation
+    from MLMathToolsMod import hybrid_root_finder
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____________________ TestHybridRootFinder.test_output_dtype ____________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:183: in test_output_dtype
+    from MLMathToolsMod import hybrid_root_finder
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+__________ TestZbrent.test_polynomial_roots[xa0-xb0-expected_roots0] ___________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:206: in test_polynomial_roots
+    from MLMathToolsMod import zbrent
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____________ TestZbrent.test_zero_crossing[xa0-xb0-expected_root0] _____________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:233: in test_zero_crossing
+    from MLMathToolsMod import zbrent
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+__________________ TestZbrent.test_no_bracket_error[xa0-xb0] ___________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:252: in test_no_bracket_error
+    from MLMathToolsMod import zbrent
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____________________ TestZbrent.test_return_tuple_structure ____________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:263: in test_return_tuple_structure
+    from MLMathToolsMod import zbrent
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____ TestQuadratic.test_standard_cases[a0-b0-c0-expected_r10-expected_r20] _____
+../tests/multilayer_canopy/test_MLMathToolsMod.py:294: in test_standard_cases
+    from MLMathToolsMod import quadratic
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+______ TestQuadratic.test_edge_cases[a0-b0-c0-expected_r10-expected_r20] _______
+../tests/multilayer_canopy/test_MLMathToolsMod.py:337: in test_edge_cases
+    from MLMathToolsMod import quadratic
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_____________ TestQuadratic.test_near_zero_discriminant[a0-b0-c0] ______________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:359: in test_near_zero_discriminant
+    from MLMathToolsMod import quadratic
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+__________________ TestQuadratic.test_return_tuple_structure ___________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:375: in test_return_tuple_structure
+    from MLMathToolsMod import quadratic
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+________________________ TestTridiag.test_simple_system ________________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:400: in test_simple_system
+    from MLMathToolsMod import tridiag
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+______________________ TestTridiag.test_diagonal_dominant ______________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:443: in test_diagonal_dominant
+    from MLMathToolsMod import tridiag
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+________________________ TestTridiag.test_output_shape _________________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:461: in test_output_shape
+    from MLMathToolsMod import tridiag
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+______________________ TestTridiag2Eq.test_coupled_system ______________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:483: in test_coupled_system
+    from MLMathToolsMod import tridiag_2eq
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+___________________ TestTridiag2Eq.test_atmospheric_profile ____________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:526: in test_atmospheric_profile
+    from MLMathToolsMod import tridiag_2eq
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+__________________ TestTridiag2Eq.test_return_tuple_structure __________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:551: in test_return_tuple_structure
+    from MLMathToolsMod import tridiag_2eq
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+______________ TestLogGammaFunction.test_special_values[1.0-0.0] _______________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:593: in test_special_values
+    from MLMathToolsMod import log_gamma_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+______________ TestLogGammaFunction.test_special_values[2.0-0.0] _______________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:593: in test_special_values
+    from MLMathToolsMod import log_gamma_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_____________ TestLogGammaFunction.test_special_values[0.5-0.5723] _____________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:593: in test_special_values
+    from MLMathToolsMod import log_gamma_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____________ TestLogGammaFunction.test_special_values[10.0-12.8018] ____________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:593: in test_special_values
+    from MLMathToolsMod import log_gamma_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+___________ TestLogGammaFunction.test_special_values[100.0-359.1342] ___________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:593: in test_special_values
+    from MLMathToolsMod import log_gamma_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+___________ TestLogGammaFunction.test_special_values[1e-06-13.8155] ____________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:593: in test_special_values
+    from MLMathToolsMod import log_gamma_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____________________ TestLogGammaFunction.test_array_input _____________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:605: in test_array_input
+    from MLMathToolsMod import log_gamma_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+________________ TestLogGammaFunction.test_positive_constraint _________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:621: in test_positive_constraint
+    from MLMathToolsMod import log_gamma_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____________ TestBetaFunction.test_standard_values[a0-b0-expected0] ____________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:642: in test_standard_values
+    from MLMathToolsMod import beta_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+________________________ TestBetaFunction.test_symmetry ________________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:655: in test_symmetry
+    from MLMathToolsMod import beta_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+__________________ TestBetaFunction.test_positive_constraint ___________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:671: in test_positive_constraint
+    from MLMathToolsMod import beta_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_________ TestBetaDistributionPDF.test_pdf_values[2.0-5.0-0.3-2.1609] __________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:697: in test_pdf_values
+    from MLMathToolsMod import beta_distribution_pdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_________ TestBetaDistributionPDF.test_pdf_values[5.0-2.0-0.7-2.1609] __________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:697: in test_pdf_values
+    from MLMathToolsMod import beta_distribution_pdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_________ TestBetaDistributionPDF.test_pdf_values[0.5-0.5-0.5-0.6366] __________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:697: in test_pdf_values
+    from MLMathToolsMod import beta_distribution_pdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+___________ TestBetaDistributionPDF.test_pdf_values[2.0-2.0-0.0-0.0] ___________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:697: in test_pdf_values
+    from MLMathToolsMod import beta_distribution_pdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_________________ TestBetaDistributionPDF.test_pdf_array_input _________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:709: in test_pdf_array_input
+    from MLMathToolsMod import beta_distribution_pdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+______________ TestBetaDistributionPDF.test_pdf_boundary_behavior ______________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:722: in test_pdf_boundary_behavior
+    from MLMathToolsMod import beta_distribution_pdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_______________ TestBetaDistributionCDF.test_cdf_lower_boundary ________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:742: in test_cdf_lower_boundary
+    from MLMathToolsMod import beta_distribution_cdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_______________ TestBetaDistributionCDF.test_cdf_upper_boundary ________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:754: in test_cdf_upper_boundary
+    from MLMathToolsMod import beta_distribution_cdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+________________ TestBetaDistributionCDF.test_cdf_monotonicity _________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:766: in test_cdf_monotonicity
+    from MLMathToolsMod import beta_distribution_cdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____________________ TestBetaDistributionCDF.test_cdf_range ____________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:780: in test_cdf_range
+    from MLMathToolsMod import beta_distribution_cdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_____ TestBetaFunctionIncompleteCF.test_cf_convergence[a0-b0-x0-expected0] _____
+../tests/multilayer_canopy/test_MLMathToolsMod.py:806: in test_cf_convergence
+    from MLMathToolsMod import beta_function_incomplete_cf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+__________________ TestBetaFunctionIncompleteCF.test_cf_range __________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:819: in test_cf_range
+    from MLMathToolsMod import beta_function_incomplete_cf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_______________ TestIntegration.test_root_finder_with_quadratic ________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:840: in test_root_finder_with_quadratic
+    from MLMathToolsMod import hybrid_root_finder, quadratic
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_______________ TestIntegration.test_beta_pdf_integrates_to_one ________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:855: in test_beta_pdf_integrates_to_one
+    from MLMathToolsMod import beta_distribution_pdf
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+____________ TestEdgeCasesAndErrors.test_root_finder_max_iterations ____________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:880: in test_root_finder_max_iterations
+    from MLMathToolsMod import hybrid_root_finder
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+______________ TestEdgeCasesAndErrors.test_tridiag_single_element ______________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:893: in test_tridiag_single_element
+    from MLMathToolsMod import tridiag
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_____________ TestEdgeCasesAndErrors.test_beta_extreme_parameters ______________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:907: in test_beta_extreme_parameters
+    from MLMathToolsMod import beta_function
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+_____________________________ test_module_imports ______________________________
+../tests/multilayer_canopy/test_MLMathToolsMod.py:925: in test_module_imports
+    from MLMathToolsMod import (
+E   ModuleNotFoundError: No module named 'MLMathToolsMod'
+
+During handling of the above exception, another exception occurred:
+../tests/multilayer_canopy/test_MLMathToolsMod.py:939: in test_module_imports
+    pytest.fail(f"Failed to import required functions: {e}")
+E   Failed: Failed to import required functions: No module named 'MLMathToolsMod'
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.13-final-0 _______________
+
+Name                                                Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------------------
+src/jax_agents/__init__.py                              6      6     0%   7-14
+src/jax_agents/base_agent.py                          114    114     0%   7-386
+src/jax_agents/prompts/__init__.py                      3      3     0%   3-6
+src/jax_agents/prompts/repair_prompts.py                1      1     0%   11
+src/jax_agents/prompts/test_prompts_simplified.py       1      1     0%   8
+src/jax_agents/prompts/translation_prompts_v2.py        1      1     0%   3
+src/jax_agents/repair_agent.py                        169    169     0%   13-453
+src/jax_agents/test_agent.py                          133    133     0%   11-335
+src/jax_agents/translator.py                          277    277     0%   8-891
+src/jax_agents/utils/__init__.py                        2      2     0%   3-5
+src/jax_agents/utils/config_loader.py                  21     21     0%   3-69
+---------------------------------------------------------------------------------
+TOTAL                                                 728    728     0%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+=========================== short test summary info ============================
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_simple_quadratic[xa0-xb0-expected_root0-1e-06] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_transcendental[xa0-xb0-expected_root0-1e-07] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_tight_tolerance[xa0-xb0-expected_root0-1e-12] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_vectorized_operation[xa0-xb0-1e-08] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestHybridRootFinder::test_output_dtype - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestZbrent::test_polynomial_roots[xa0-xb0-expected_roots0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestZbrent::test_zero_crossing[xa0-xb0-expected_root0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestZbrent::test_no_bracket_error[xa0-xb0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestZbrent::test_return_tuple_structure - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestQuadratic::test_standard_cases[a0-b0-c0-expected_r10-expected_r20] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestQuadratic::test_edge_cases[a0-b0-c0-expected_r10-expected_r20] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestQuadratic::test_near_zero_discriminant[a0-b0-c0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestQuadratic::test_return_tuple_structure - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag::test_simple_system - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag::test_diagonal_dominant - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag::test_output_shape - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag2Eq::test_coupled_system - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag2Eq::test_atmospheric_profile - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestTridiag2Eq::test_return_tuple_structure - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[1.0-0.0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[2.0-0.0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[0.5-0.5723] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[10.0-12.8018] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[100.0-359.1342] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_special_values[1e-06-13.8155] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_array_input - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestLogGammaFunction::test_positive_constraint - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunction::test_standard_values[a0-b0-expected0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunction::test_symmetry - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunction::test_positive_constraint - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_values[2.0-5.0-0.3-2.1609] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_values[5.0-2.0-0.7-2.1609] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_values[0.5-0.5-0.5-0.6366] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_values[2.0-2.0-0.0-0.0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_array_input - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionPDF::test_pdf_boundary_behavior - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionCDF::test_cdf_lower_boundary - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionCDF::test_cdf_upper_boundary - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionCDF::test_cdf_monotonicity - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaDistributionCDF::test_cdf_range - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunctionIncompleteCF::test_cf_convergence[a0-b0-x0-expected0] - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestBetaFunctionIncompleteCF::test_cf_range - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestIntegration::test_root_finder_with_quadratic - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestIntegration::test_beta_pdf_integrates_to_one - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestEdgeCasesAndErrors::test_root_finder_max_iterations - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestEdgeCasesAndErrors::test_tridiag_single_element - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::TestEdgeCasesAndErrors::test_beta_extreme_parameters - ModuleNotFoundError: No module named 'MLMathToolsMod'
+FAILED ../tests/multilayer_canopy/test_MLMathToolsMod.py::test_module_imports - Failed: Failed to import required functions: No module named 'MLMathToolsMod'
+============================== 48 failed in 2.19s ==============================

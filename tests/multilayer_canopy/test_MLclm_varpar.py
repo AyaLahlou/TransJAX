@@ -23,15 +23,15 @@ from typing import NamedTuple
 # - validate_mlcanopy_params(params) function
 # - Module constants: DEFAULT_MLCANOPY_PARAMS, NLEVMLCAN, NLEAF, ISUN, ISHA
 from multilayer_canopy.MLclm_varpar import (
-    MLCanopyParams,
-    get_mlcanopy_params,
-    validate_mlcanopy_params,
-    DEFAULT_MLCANOPY_PARAMS,
-    NLEVMLCAN,
-    NLEAF,
-    ISUN,
-    ISHA,
-)
+        MLCanopyParams,
+        get_mlcanopy_params,
+        validate_mlcanopy_params,
+        DEFAULT_MLCANOPY_PARAMS,
+        NLEVMLCAN,
+        NLEAF,
+        ISUN,
+        ISHA,
+    )
 
 
 # ============================================================================

@@ -1,0 +1,827 @@
+{
+  "function_name": "leaf_boundary_layer",
+  "test_cases": [
+    {
+      "name": "test_nominal_single_patch_single_layer",
+      "inputs": {
+        "dleaf": [
+          0.05
+        ],
+        "tref": [
+          298.15
+        ],
+        "pref": [
+          101325.0
+        ],
+        "wind": [
+          [
+            2.5
+          ]
+        ],
+        "tair": [
+          [
+            295.15
+          ]
+        ],
+        "tleaf": [
+          [
+            297.15
+          ]
+        ],
+        "rhomol": [
+          [
+            41.5
+          ]
+        ],
+        "dpai": [
+          [
+            1.5
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Standard temperate conditions with single patch and canopy layer. Leaf dimension 5cm, moderate wind, typical atmospheric conditions.",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_multiple_patches_layers",
+      "inputs": {
+        "dleaf": [
+          0.03,
+          0.08,
+          0.06
+        ],
+        "tref": [
+          300.15,
+          295.15,
+          303.15
+        ],
+        "pref": [
+          101325.0,
+          95000.0,
+          101325.0
+        ],
+        "wind": [
+          [
+            1.2,
+            0.8,
+            0.5
+          ],
+          [
+            3.5,
+            2.1,
+            1.3
+          ],
+          [
+            0.9,
+            0.6,
+            0.3
+          ]
+        ],
+        "tair": [
+          [
+            298.15,
+            297.15,
+            296.15
+          ],
+          [
+            293.15,
+            292.15,
+            291.15
+          ],
+          [
+            301.15,
+            300.15,
+            299.15
+          ]
+        ],
+        "tleaf": [
+          [
+            299.15,
+            298.15,
+            297.15
+          ],
+          [
+            294.15,
+            293.15,
+            292.15
+          ],
+          [
+            302.15,
+            301.15,
+            300.15
+          ]
+        ],
+        "rhomol": [
+          [
+            40.8,
+            41.0,
+            41.2
+          ],
+          [
+            43.5,
+            43.7,
+            43.9
+          ],
+          [
+            40.2,
+            40.4,
+            40.6
+          ]
+        ],
+        "dpai": [
+          [
+            2.0,
+            1.5,
+            0.8
+          ],
+          [
+            3.5,
+            2.8,
+            1.2
+          ],
+          [
+            1.8,
+            1.3,
+            0.6
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Multiple patches (3) with multiple canopy layers (3). Varied leaf sizes, wind profiles decreasing with depth, temperature gradients, and different elevations (pressure).",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_tropical_conditions",
+      "inputs": {
+        "dleaf": [
+          0.12,
+          0.15
+        ],
+        "tref": [
+          305.15,
+          308.15
+        ],
+        "pref": [
+          101325.0,
+          101325.0
+        ],
+        "wind": [
+          [
+            4.5,
+            3.2,
+            2.1,
+            1.5
+          ],
+          [
+            5.2,
+            3.8,
+            2.6,
+            1.8
+          ]
+        ],
+        "tair": [
+          [
+            303.15,
+            302.15,
+            301.15,
+            300.15
+          ],
+          [
+            306.15,
+            305.15,
+            304.15,
+            303.15
+          ]
+        ],
+        "tleaf": [
+          [
+            304.65,
+            303.65,
+            302.65,
+            301.65
+          ],
+          [
+            307.65,
+            306.65,
+            305.65,
+            304.65
+          ]
+        ],
+        "rhomol": [
+          [
+            39.5,
+            39.7,
+            39.9,
+            40.1
+          ],
+          [
+            38.8,
+            39.0,
+            39.2,
+            39.4
+          ]
+        ],
+        "dpai": [
+          [
+            4.5,
+            3.8,
+            2.5,
+            1.2
+          ],
+          [
+            5.2,
+            4.3,
+            3.0,
+            1.5
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Tropical rainforest conditions with large leaves, high temperatures, high LAI, and 4 canopy layers. Leaves warmer than air due to radiation.",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_cold_alpine_conditions",
+      "inputs": {
+        "dleaf": [
+          0.02,
+          0.025
+        ],
+        "tref": [
+          278.15,
+          275.15
+        ],
+        "pref": [
+          80000.0,
+          78000.0
+        ],
+        "wind": [
+          [
+            6.5,
+            4.2
+          ],
+          [
+            7.8,
+            5.1
+          ]
+        ],
+        "tair": [
+          [
+            276.15,
+            275.15
+          ],
+          [
+            273.65,
+            272.65
+          ]
+        ],
+        "tleaf": [
+          [
+            277.15,
+            276.15
+          ],
+          [
+            274.65,
+            273.65
+          ]
+        ],
+        "rhomol": [
+          [
+            44.8,
+            45.2
+          ],
+          [
+            45.5,
+            45.9
+          ]
+        ],
+        "dpai": [
+          [
+            0.8,
+            0.4
+          ],
+          [
+            1.2,
+            0.6
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Alpine/cold climate with small leaves, low temperatures near freezing, reduced pressure at altitude, high winds, and sparse canopy.",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_desert_hot_conditions",
+      "inputs": {
+        "dleaf": [
+          0.01,
+          0.015,
+          0.012
+        ],
+        "tref": [
+          313.15,
+          315.15,
+          311.15
+        ],
+        "pref": [
+          101325.0,
+          101325.0,
+          101325.0
+        ],
+        "wind": [
+          [
+            8.5,
+            6.2,
+            4.1
+          ],
+          [
+            9.2,
+            6.8,
+            4.5
+          ],
+          [
+            7.8,
+            5.5,
+            3.7
+          ]
+        ],
+        "tair": [
+          [
+            311.15,
+            310.15,
+            309.15
+          ],
+          [
+            313.15,
+            312.15,
+            311.15
+          ],
+          [
+            309.15,
+            308.15,
+            307.15
+          ]
+        ],
+        "tleaf": [
+          [
+            315.15,
+            314.15,
+            313.15
+          ],
+          [
+            317.15,
+            316.15,
+            315.15
+          ],
+          [
+            313.15,
+            312.15,
+            311.15
+          ]
+        ],
+        "rhomol": [
+          [
+            38.2,
+            38.4,
+            38.6
+          ],
+          [
+            37.8,
+            38.0,
+            38.2
+          ],
+          [
+            38.6,
+            38.8,
+            39.0
+          ]
+        ],
+        "dpai": [
+          [
+            0.5,
+            0.3,
+            0.15
+          ],
+          [
+            0.6,
+            0.35,
+            0.18
+          ],
+          [
+            0.45,
+            0.28,
+            0.12
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Hot desert conditions with very small leaves (xerophytic), high temperatures, strong winds, low LAI, and leaves significantly warmer than air.",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_edge_minimal_wind_calm_conditions",
+      "inputs": {
+        "dleaf": [
+          0.05,
+          0.06
+        ],
+        "tref": [
+          298.15,
+          299.15
+        ],
+        "pref": [
+          101325.0,
+          101325.0
+        ],
+        "wind": [
+          [
+            0.01,
+            0.005
+          ],
+          [
+            0.02,
+            0.01
+          ]
+        ],
+        "tair": [
+          [
+            296.15,
+            295.15
+          ],
+          [
+            297.15,
+            296.15
+          ]
+        ],
+        "tleaf": [
+          [
+            300.15,
+            299.15
+          ],
+          [
+            301.15,
+            300.15
+          ]
+        ],
+        "rhomol": [
+          [
+            41.5,
+            41.7
+          ],
+          [
+            41.3,
+            41.5
+          ]
+        ],
+        "dpai": [
+          [
+            1.5,
+            0.8
+          ],
+          [
+            1.8,
+            0.9
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Near-zero wind speeds to test free convection dominance. Large temperature difference between leaf and air to drive natural convection.",
+        "edge_cases": [
+          "minimal_wind",
+          "free_convection_dominant"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_zero_wind_isothermal",
+      "inputs": {
+        "dleaf": [
+          0.04
+        ],
+        "tref": [
+          298.15
+        ],
+        "pref": [
+          101325.0
+        ],
+        "wind": [
+          [
+            0.0
+          ]
+        ],
+        "tair": [
+          [
+            298.15
+          ]
+        ],
+        "tleaf": [
+          [
+            298.15
+          ]
+        ],
+        "rhomol": [
+          [
+            41.5
+          ]
+        ],
+        "dpai": [
+          [
+            1.0
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Absolute zero wind and isothermal conditions (leaf temp = air temp). Tests numerical stability when both forced and free convection are minimal.",
+        "edge_cases": [
+          "zero_wind",
+          "isothermal",
+          "minimal_convection"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_extreme_temperature_gradient",
+      "inputs": {
+        "dleaf": [
+          0.05,
+          0.06
+        ],
+        "tref": [
+          298.15,
+          300.15
+        ],
+        "pref": [
+          101325.0,
+          101325.0
+        ],
+        "wind": [
+          [
+            0.5,
+            0.3
+          ],
+          [
+            0.6,
+            0.4
+          ]
+        ],
+        "tair": [
+          [
+            288.15,
+            287.15
+          ],
+          [
+            290.15,
+            289.15
+          ]
+        ],
+        "tleaf": [
+          [
+            318.15,
+            317.15
+          ],
+          [
+            320.15,
+            319.15
+          ]
+        ],
+        "rhomol": [
+          [
+            41.5,
+            41.7
+          ],
+          [
+            41.3,
+            41.5
+          ]
+        ],
+        "dpai": [
+          [
+            2.0,
+            1.2
+          ],
+          [
+            2.2,
+            1.4
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Extreme temperature difference (30K) between leaf and air with low wind. Tests free convection at extreme gradients and Grashof number calculations.",
+        "edge_cases": [
+          "extreme_temperature_gradient",
+          "high_grashof"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_very_small_leaves",
+      "inputs": {
+        "dleaf": [
+          0.001,
+          0.0005,
+          0.002
+        ],
+        "tref": [
+          298.15,
+          299.15,
+          297.15
+        ],
+        "pref": [
+          101325.0,
+          101325.0,
+          101325.0
+        ],
+        "wind": [
+          [
+            2.0,
+            1.5
+          ],
+          [
+            2.5,
+            1.8
+          ],
+          [
+            1.8,
+            1.3
+          ]
+        ],
+        "tair": [
+          [
+            296.15,
+            295.15
+          ],
+          [
+            297.15,
+            296.15
+          ],
+          [
+            295.15,
+            294.15
+          ]
+        ],
+        "tleaf": [
+          [
+            297.15,
+            296.15
+          ],
+          [
+            298.15,
+            297.15
+          ],
+          [
+            296.15,
+            295.15
+          ]
+        ],
+        "rhomol": [
+          [
+            41.5,
+            41.7
+          ],
+          [
+            41.3,
+            41.5
+          ],
+          [
+            41.7,
+            41.9
+          ]
+        ],
+        "dpai": [
+          [
+            0.5,
+            0.3
+          ],
+          [
+            0.6,
+            0.35
+          ],
+          [
+            0.45,
+            0.28
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Very small leaf dimensions (0.5-2mm) typical of needle-like leaves or moss. Tests Reynolds number at very low values and laminar flow regime.",
+        "edge_cases": [
+          "minimal_leaf_dimension",
+          "low_reynolds"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_very_large_leaves_high_wind",
+      "inputs": {
+        "dleaf": [
+          0.5,
+          0.8
+        ],
+        "tref": [
+          298.15,
+          299.15
+        ],
+        "pref": [
+          101325.0,
+          101325.0
+        ],
+        "wind": [
+          [
+            15.0,
+            12.0,
+            9.0
+          ],
+          [
+            18.0,
+            14.0,
+            10.0
+          ]
+        ],
+        "tair": [
+          [
+            296.15,
+            295.15,
+            294.15
+          ],
+          [
+            297.15,
+            296.15,
+            295.15
+          ]
+        ],
+        "tleaf": [
+          [
+            297.15,
+            296.15,
+            295.15
+          ],
+          [
+            298.15,
+            297.15,
+            296.15
+          ]
+        ],
+        "rhomol": [
+          [
+            41.5,
+            41.7,
+            41.9
+          ],
+          [
+            41.3,
+            41.5,
+            41.7
+          ]
+        ],
+        "dpai": [
+          [
+            3.0,
+            2.5,
+            1.8
+          ],
+          [
+            3.5,
+            2.8,
+            2.0
+          ]
+        ],
+        "params": null
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Very large leaves (50-80cm) like banana or palm with high wind speeds. Tests high Reynolds numbers and turbulent flow regime dominance.",
+        "edge_cases": [
+          "large_leaf_dimension",
+          "high_reynolds",
+          "high_wind",
+          "turbulent_flow"
+        ]
+      }
+    }
+  ],
+  "notes": "Test data generation assumptions:\n\n1. **Physical Realism**: All temperatures are in Kelvin and above absolute zero. Typical range 273-320K covers most terrestrial conditions. Pressure values range from sea level (101325 Pa) to high altitude (~78000 Pa at 2000m).\n\n2. **Leaf Dimensions**: Range from 0.5mm (needles, moss) to 80cm (tropical palms). Most common range 2-15cm for temperate broadleaves.\n\n3. **Wind Profiles**: Decrease with canopy depth following typical exponential decay. Range from calm (0.01 m/s) to storm conditions (18 m/s).\n\n4. **Temperature Gradients**: Leaves typically 1-5K warmer than air due to radiation absorption. Extreme case shows 30K difference to test free convection limits.\n\n5. **Molar Density**: Calculated approximately as P/(R*T) where R=8.314 J/(mol\u00b7K). Values range 38-46 mol/m\u00b3 depending on temperature and pressure.\n\n6. **Plant Area Index (PAI)**: Ranges from sparse desert (0.1) to dense tropical forest (5.2). Decreases with canopy depth.\n\n7. **Array Dimensions**: Tests include 1-3 patches and 1-4 canopy layers to verify broadcasting and dimension handling.\n\n8. **Edge Cases**: Focus on numerical stability challenges:\n   - Zero/minimal wind (free convection only)\n   - Isothermal conditions (no temperature gradient)\n   - Extreme temperature gradients (high Grashof numbers)\n   - Very small leaves (low Reynolds, laminar flow)\n   - Very large leaves with high wind (high Reynolds, turbulent flow)\n\n9. **Parameter Object**: All tests use params=null to test default parameter handling. Separate tests should verify custom BoundaryLayerParams with different gb_type values (0-3).\n\n10. **Biome Coverage**: Tests span major biomes: temperate, tropical rainforest, alpine/cold, hot desert to ensure algorithm works across Earth's climate zones."
+}

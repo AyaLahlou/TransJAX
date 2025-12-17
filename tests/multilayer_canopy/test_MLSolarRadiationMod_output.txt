@@ -1,0 +1,771 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.13, pytest-9.0.2, pluggy-1.6.0 -- /burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /burg-archive/home/mck2199/clm-ml-jax
+configfile: pytest.ini
+plugins: cov-7.0.0, anyio-4.12.0
+collecting ... collected 81 items
+
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_nominal_single_patch_midday] FAILED [  1%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_nominal_multiple_patches_varied_lai] FAILED [  2%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_nominal_twostream_method] FAILED [  3%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_zero_solar_zenith_angle] FAILED [  4%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_maximum_solar_zenith] FAILED [  6%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_zero_lai_bare_ground] FAILED [  7%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_very_dense_canopy] FAILED [  8%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_extreme_albedo_boundaries] FAILED [  9%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_special_single_canopy_layer] FAILED [ 11%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_special_many_canopy_layers] FAILED [ 12%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_nominal_single_patch_midday] FAILED [ 13%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_nominal_multiple_patches_varied_lai] FAILED [ 14%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_nominal_twostream_method] FAILED [ 16%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_zero_solar_zenith_angle] FAILED [ 17%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_maximum_solar_zenith] FAILED [ 18%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_zero_lai_bare_ground] FAILED [ 19%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_very_dense_canopy] FAILED [ 20%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_extreme_albedo_boundaries] FAILED [ 22%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_special_single_canopy_layer] FAILED [ 23%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_special_many_canopy_layers] FAILED [ 24%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_nominal_single_patch_midday] FAILED [ 25%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_nominal_multiple_patches_varied_lai] FAILED [ 27%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_nominal_twostream_method] FAILED [ 28%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_zero_solar_zenith_angle] FAILED [ 29%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_maximum_solar_zenith] FAILED [ 30%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_zero_lai_bare_ground] FAILED [ 32%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_very_dense_canopy] FAILED [ 33%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_extreme_albedo_boundaries] FAILED [ 34%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_special_single_canopy_layer] FAILED [ 35%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_special_many_canopy_layers] FAILED [ 37%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_nominal_single_patch_midday] FAILED [ 38%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_nominal_multiple_patches_varied_lai] FAILED [ 39%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_nominal_twostream_method] FAILED [ 40%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_zero_solar_zenith_angle] FAILED [ 41%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_maximum_solar_zenith] FAILED [ 43%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_zero_lai_bare_ground] FAILED [ 44%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_very_dense_canopy] FAILED [ 45%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_extreme_albedo_boundaries] FAILED [ 46%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_special_single_canopy_layer] FAILED [ 48%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_special_many_canopy_layers] FAILED [ 49%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_nominal_single_patch_midday] FAILED [ 50%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_nominal_multiple_patches_varied_lai] FAILED [ 51%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_nominal_twostream_method] FAILED [ 53%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_zero_solar_zenith_angle] FAILED [ 54%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_maximum_solar_zenith] FAILED [ 55%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_zero_lai_bare_ground] FAILED [ 56%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_very_dense_canopy] FAILED [ 58%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_extreme_albedo_boundaries] FAILED [ 59%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_special_single_canopy_layer] FAILED [ 60%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_special_many_canopy_layers] FAILED [ 61%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationEdgeCases::test_zero_lai_bare_ground FAILED [ 62%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationEdgeCases::test_zero_solar_zenith_angle PASSED [ 64%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationEdgeCases::test_maximum_solar_zenith FAILED [ 65%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationEdgeCases::test_dense_canopy_attenuation FAILED [ 66%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationEdgeCases::test_extreme_albedo_boundaries PASSED [ 67%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationSpecialCases::test_single_canopy_layer FAILED [ 69%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationSpecialCases::test_many_canopy_layers PASSED [ 70%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationMethodComparison::test_norman_vs_twostream_consistency PASSED [ 71%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_nominal_single_patch_midday] FAILED [ 72%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_nominal_multiple_patches_varied_lai] FAILED [ 74%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_nominal_twostream_method] FAILED [ 75%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_zero_solar_zenith_angle] FAILED [ 76%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_maximum_solar_zenith] FAILED [ 77%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_zero_lai_bare_ground] FAILED [ 79%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_very_dense_canopy] FAILED [ 80%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_extreme_albedo_boundaries] FAILED [ 81%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_special_single_canopy_layer] FAILED [ 82%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_special_many_canopy_layers] FAILED [ 83%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_nominal_single_patch_midday] FAILED [ 85%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_nominal_multiple_patches_varied_lai] FAILED [ 86%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_nominal_twostream_method] FAILED [ 87%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_zero_solar_zenith_angle] FAILED [ 88%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_maximum_solar_zenith] FAILED [ 90%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_zero_lai_bare_ground] FAILED [ 91%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_very_dense_canopy] FAILED [ 92%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_extreme_albedo_boundaries] FAILED [ 93%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_special_single_canopy_layer] FAILED [ 95%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_special_many_canopy_layers] FAILED [ 96%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationInputValidation::test_filter_indices_bounds PASSED [ 97%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationInputValidation::test_num_filter_consistency PASSED [ 98%]
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationInputValidation::test_array_dimension_consistency PASSED [100%]/burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/lib64/python3.11/site-packages/coverage/control.py:957: CoverageWarning: No data was collected. (no-data-collected); see https://coverage.readthedocs.io/en/7.13.0/messages.html#warning-no-data-collected
+  self._warn("No data was collected.", slug="no-data-collected")
+
+
+=================================== FAILURES ===================================
+_ TestSolarRadiationShapes.test_output_shapes[test_nominal_single_patch_midday] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationShapes.test_output_shapes[test_nominal_multiple_patches_varied_lai] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+__ TestSolarRadiationShapes.test_output_shapes[test_nominal_twostream_method] __
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationShapes.test_output_shapes[test_edge_zero_solar_zenith_angle] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationShapes.test_output_shapes[test_edge_maximum_solar_zenith] __
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationShapes.test_output_shapes[test_edge_zero_lai_bare_ground] __
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+___ TestSolarRadiationShapes.test_output_shapes[test_edge_very_dense_canopy] ___
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationShapes.test_output_shapes[test_edge_extreme_albedo_boundaries] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationShapes.test_output_shapes[test_special_single_canopy_layer] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationShapes.test_output_shapes[test_special_many_canopy_layers] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:576: in test_output_shapes
+    n_patches = inputs['bounds'].endp - inputs['bounds'].begp
+                ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationDtypes.test_output_dtypes[test_nominal_single_patch_midday] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationDtypes.test_output_dtypes[test_nominal_multiple_patches_varied_lai] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+__ TestSolarRadiationDtypes.test_output_dtypes[test_nominal_twostream_method] __
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationDtypes.test_output_dtypes[test_edge_zero_solar_zenith_angle] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationDtypes.test_output_dtypes[test_edge_maximum_solar_zenith] __
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationDtypes.test_output_dtypes[test_edge_zero_lai_bare_ground] __
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+___ TestSolarRadiationDtypes.test_output_dtypes[test_edge_very_dense_canopy] ___
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationDtypes.test_output_dtypes[test_edge_extreme_albedo_boundaries] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationDtypes.test_output_dtypes[test_special_single_canopy_layer] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationDtypes.test_output_dtypes[test_special_many_canopy_layers] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:612: in test_output_dtypes
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_nominal_single_patch_midday] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_nominal_multiple_patches_varied_lai] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_nominal_twostream_method] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_edge_zero_solar_zenith_angle] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_edge_maximum_solar_zenith] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_edge_zero_lai_bare_ground] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_edge_very_dense_canopy] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_edge_extreme_albedo_boundaries] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_special_single_canopy_layer] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_non_negative_radiation[test_special_many_canopy_layers] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:644: in test_non_negative_radiation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_nominal_single_patch_midday] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_nominal_multiple_patches_varied_lai] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_nominal_twostream_method] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_edge_zero_solar_zenith_angle] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_edge_maximum_solar_zenith] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_edge_zero_lai_bare_ground] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_edge_very_dense_canopy] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_edge_extreme_albedo_boundaries] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_special_single_canopy_layer] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_albedo_bounds[test_special_many_canopy_layers] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:670: in test_albedo_bounds
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_nominal_single_patch_midday] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_nominal_multiple_patches_varied_lai] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_nominal_twostream_method] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_edge_zero_solar_zenith_angle] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_edge_maximum_solar_zenith] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_edge_zero_lai_bare_ground] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_edge_very_dense_canopy] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_edge_extreme_albedo_boundaries] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_special_single_canopy_layer] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationPhysicalConstraints.test_sunlit_shaded_sum[test_special_many_canopy_layers] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:686: in test_sunlit_shaded_sum
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+____________ TestSolarRadiationEdgeCases.test_zero_lai_bare_ground _____________
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:719: in test_zero_lai_bare_ground
+    assert jnp.any(result.swsoi > 0), \
+E   AssertionError: Bare ground should have soil absorption
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <function any at 0x1554f6695a80>(Array([[0., 0.]], dtype=float32) > 0)
+E    +    where <function any at 0x1554f6695a80> = jnp.any
+E    +    and   Array([[0., 0.]], dtype=float32) = RadiationFluxes(swleaf=Array([[[[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]]]], dtype=float32), swsoi=Array([[0., 0.]], dtype=float32), swveg=Array([[0., 0.]], dtype=float32), swvegsun=Array([[0., 0.]], dtype=float32), swvegsha=Array([[0., 0.]], dtype=float32), albcan=Array([[0., 0.]], dtype=float32), apar_sun=Array([[0., 0., 0., 0., 0.]], dtype=float32), apar_shade=Array([[0., 0., 0., 0., 0.]], dtype=float32)).swsoi
+---------------------------- Captured stderr setup -----------------------------
+WARNING:2025-12-16 22:26:49,157:jax._src.xla_bridge:854: An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+------------------------------ Captured log setup ------------------------------
+WARNING  jax._src.xla_bridge:xla_bridge.py:854 An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+____________ TestSolarRadiationEdgeCases.test_maximum_solar_zenith _____________
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:763: in test_maximum_solar_zenith
+    assert jnp.any(result.swveg > 0), \
+E   AssertionError: Maximum cosz should produce canopy absorption
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <function any at 0x1554f6695a80>(Array([[0., 0.]], dtype=float32) > 0)
+E    +    where <function any at 0x1554f6695a80> = jnp.any
+E    +    and   Array([[0., 0.]], dtype=float32) = RadiationFluxes(swleaf=Array([[[[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]]]], dtype=float32), swsoi=Array([[0., 0.]], dtype=float32), swveg=Array([[0., 0.]], dtype=float32), swvegsun=Array([[0., 0.]], dtype=float32), swvegsha=Array([[0., 0.]], dtype=float32), albcan=Array([[0., 0.]], dtype=float32), apar_sun=Array([[0., 0., 0., 0., 0.]], dtype=float32), apar_shade=Array([[0., 0., 0., 0., 0.]], dtype=float32)).swveg
+__________ TestSolarRadiationEdgeCases.test_dense_canopy_attenuation ___________
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:787: in test_dense_canopy_attenuation
+    assert canopy_fraction > 0.5, \
+E   AssertionError: Dense canopy should absorb majority of radiation
+E   assert Array(0., dtype=float32) > 0.5
+___________ TestSolarRadiationSpecialCases.test_single_canopy_layer ____________
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:839: in test_single_canopy_layer
+    assert jnp.any(result.swvegsun > 0) or jnp.any(result.swvegsha > 0), \
+E   AssertionError: Single layer should have some absorption
+E   assert (Array(False, dtype=bool) or Array(False, dtype=bool))
+E    +  where Array(False, dtype=bool) = <function any at 0x1554f6695a80>(Array([[0., 0.]], dtype=float32) > 0)
+E    +    where <function any at 0x1554f6695a80> = jnp.any
+E    +    and   Array([[0., 0.]], dtype=float32) = RadiationFluxes(swleaf=Array([[[[0., 0.],\n         [0., 0.]]]], dtype=float32), swsoi=Array([[0., 0.]], dtype=float32), swveg=Array([[0., 0.]], dtype=float32), swvegsun=Array([[0., 0.]], dtype=float32), swvegsha=Array([[0., 0.]], dtype=float32), albcan=Array([[0., 0.]], dtype=float32), apar_sun=Array([[0.]], dtype=float32), apar_shade=Array([[0.]], dtype=float32)).swvegsun
+E    +  and   Array(False, dtype=bool) = <function any at 0x1554f6695a80>(Array([[0., 0.]], dtype=float32) > 0)
+E    +    where <function any at 0x1554f6695a80> = jnp.any
+E    +    and   Array([[0., 0.]], dtype=float32) = RadiationFluxes(swleaf=Array([[[[0., 0.],\n         [0., 0.]]]], dtype=float32), swsoi=Array([[0., 0.]], dtype=float32), swveg=Array([[0., 0.]], dtype=float32), swvegsun=Array([[0., 0.]], dtype=float32), swvegsha=Array([[0., 0.]], dtype=float32), albcan=Array([[0., 0.]], dtype=float32), apar_sun=Array([[0.]], dtype=float32), apar_shade=Array([[0.]], dtype=float32)).swvegsha
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_nominal_single_patch_midday] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_nominal_multiple_patches_varied_lai] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_nominal_twostream_method] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_edge_zero_solar_zenith_angle] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_edge_maximum_solar_zenith] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_edge_zero_lai_bare_ground] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_edge_very_dense_canopy] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_edge_extreme_albedo_boundaries] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_special_single_canopy_layer] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_no_nan_or_inf[test_special_many_canopy_layers] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:929: in test_no_nan_or_inf
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_nominal_single_patch_midday] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_nominal_multiple_patches_varied_lai] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_nominal_twostream_method] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_edge_zero_solar_zenith_angle] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_edge_maximum_solar_zenith] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_edge_zero_lai_bare_ground] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_edge_very_dense_canopy] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_edge_extreme_albedo_boundaries] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_special_single_canopy_layer] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+_ TestSolarRadiationNumericalStability.test_energy_conservation[test_special_many_canopy_layers] _
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:957: in test_energy_conservation
+    result = solar_radiation_function(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLSolarRadiationMod.py:529: in mock_solar_radiation
+    n_patches = bounds.endp - bounds.begp
+                ^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'endp'
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.13-final-0 _______________
+
+Name                                                Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------------------
+src/jax_agents/__init__.py                              6      6     0%   7-14
+src/jax_agents/base_agent.py                          114    114     0%   7-386
+src/jax_agents/prompts/__init__.py                      3      3     0%   3-6
+src/jax_agents/prompts/repair_prompts.py                1      1     0%   11
+src/jax_agents/prompts/test_prompts_simplified.py       1      1     0%   8
+src/jax_agents/prompts/translation_prompts_v2.py        1      1     0%   3
+src/jax_agents/repair_agent.py                        169    169     0%   13-453
+src/jax_agents/test_agent.py                          133    133     0%   11-335
+src/jax_agents/translator.py                          277    277     0%   8-891
+src/jax_agents/utils/__init__.py                        2      2     0%   3-5
+src/jax_agents/utils/config_loader.py                  21     21     0%   3-69
+---------------------------------------------------------------------------------
+TOTAL                                                 728    728     0%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+=========================== short test summary info ============================
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_nominal_single_patch_midday] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_nominal_multiple_patches_varied_lai] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_nominal_twostream_method] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_zero_solar_zenith_angle] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_maximum_solar_zenith] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_zero_lai_bare_ground] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_very_dense_canopy] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_edge_extreme_albedo_boundaries] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_special_single_canopy_layer] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationShapes::test_output_shapes[test_special_many_canopy_layers] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_nominal_single_patch_midday] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_nominal_multiple_patches_varied_lai] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_nominal_twostream_method] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_zero_solar_zenith_angle] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_maximum_solar_zenith] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_zero_lai_bare_ground] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_very_dense_canopy] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_edge_extreme_albedo_boundaries] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_special_single_canopy_layer] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationDtypes::test_output_dtypes[test_special_many_canopy_layers] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_nominal_single_patch_midday] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_nominal_multiple_patches_varied_lai] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_nominal_twostream_method] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_zero_solar_zenith_angle] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_maximum_solar_zenith] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_zero_lai_bare_ground] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_very_dense_canopy] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_edge_extreme_albedo_boundaries] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_special_single_canopy_layer] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_non_negative_radiation[test_special_many_canopy_layers] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_nominal_single_patch_midday] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_nominal_multiple_patches_varied_lai] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_nominal_twostream_method] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_zero_solar_zenith_angle] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_maximum_solar_zenith] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_zero_lai_bare_ground] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_very_dense_canopy] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_edge_extreme_albedo_boundaries] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_special_single_canopy_layer] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_albedo_bounds[test_special_many_canopy_layers] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_nominal_single_patch_midday] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_nominal_multiple_patches_varied_lai] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_nominal_twostream_method] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_zero_solar_zenith_angle] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_maximum_solar_zenith] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_zero_lai_bare_ground] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_very_dense_canopy] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_edge_extreme_albedo_boundaries] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_special_single_canopy_layer] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationPhysicalConstraints::test_sunlit_shaded_sum[test_special_many_canopy_layers] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationEdgeCases::test_zero_lai_bare_ground - AssertionError: Bare ground should have soil absorption
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <function any at 0x1554f6695a80>(Array([[0., 0.]], dtype=float32) > 0)
+ +    where <function any at 0x1554f6695a80> = jnp.any
+ +    and   Array([[0., 0.]], dtype=float32) = RadiationFluxes(swleaf=Array([[[[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]]]], dtype=float32), swsoi=Array([[0., 0.]], dtype=float32), swveg=Array([[0., 0.]], dtype=float32), swvegsun=Array([[0., 0.]], dtype=float32), swvegsha=Array([[0., 0.]], dtype=float32), albcan=Array([[0., 0.]], dtype=float32), apar_sun=Array([[0., 0., 0., 0., 0.]], dtype=float32), apar_shade=Array([[0., 0., 0., 0., 0.]], dtype=float32)).swsoi
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationEdgeCases::test_maximum_solar_zenith - AssertionError: Maximum cosz should produce canopy absorption
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <function any at 0x1554f6695a80>(Array([[0., 0.]], dtype=float32) > 0)
+ +    where <function any at 0x1554f6695a80> = jnp.any
+ +    and   Array([[0., 0.]], dtype=float32) = RadiationFluxes(swleaf=Array([[[[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]],\n\n        [[0., 0.],\n         [0., 0.]]]], dtype=float32), swsoi=Array([[0., 0.]], dtype=float32), swveg=Array([[0., 0.]], dtype=float32), swvegsun=Array([[0., 0.]], dtype=float32), swvegsha=Array([[0., 0.]], dtype=float32), albcan=Array([[0., 0.]], dtype=float32), apar_sun=Array([[0., 0., 0., 0., 0.]], dtype=float32), apar_shade=Array([[0., 0., 0., 0., 0.]], dtype=float32)).swveg
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationEdgeCases::test_dense_canopy_attenuation - AssertionError: Dense canopy should absorb majority of radiation
+assert Array(0., dtype=float32) > 0.5
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationSpecialCases::test_single_canopy_layer - AssertionError: Single layer should have some absorption
+assert (Array(False, dtype=bool) or Array(False, dtype=bool))
+ +  where Array(False, dtype=bool) = <function any at 0x1554f6695a80>(Array([[0., 0.]], dtype=float32) > 0)
+ +    where <function any at 0x1554f6695a80> = jnp.any
+ +    and   Array([[0., 0.]], dtype=float32) = RadiationFluxes(swleaf=Array([[[[0., 0.],\n         [0., 0.]]]], dtype=float32), swsoi=Array([[0., 0.]], dtype=float32), swveg=Array([[0., 0.]], dtype=float32), swvegsun=Array([[0., 0.]], dtype=float32), swvegsha=Array([[0., 0.]], dtype=float32), albcan=Array([[0., 0.]], dtype=float32), apar_sun=Array([[0.]], dtype=float32), apar_shade=Array([[0.]], dtype=float32)).swvegsun
+ +  and   Array(False, dtype=bool) = <function any at 0x1554f6695a80>(Array([[0., 0.]], dtype=float32) > 0)
+ +    where <function any at 0x1554f6695a80> = jnp.any
+ +    and   Array([[0., 0.]], dtype=float32) = RadiationFluxes(swleaf=Array([[[[0., 0.],\n         [0., 0.]]]], dtype=float32), swsoi=Array([[0., 0.]], dtype=float32), swveg=Array([[0., 0.]], dtype=float32), swvegsun=Array([[0., 0.]], dtype=float32), swvegsha=Array([[0., 0.]], dtype=float32), albcan=Array([[0., 0.]], dtype=float32), apar_sun=Array([[0.]], dtype=float32), apar_shade=Array([[0.]], dtype=float32)).swvegsha
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_nominal_single_patch_midday] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_nominal_multiple_patches_varied_lai] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_nominal_twostream_method] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_zero_solar_zenith_angle] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_maximum_solar_zenith] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_zero_lai_bare_ground] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_very_dense_canopy] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_edge_extreme_albedo_boundaries] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_special_single_canopy_layer] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_no_nan_or_inf[test_special_many_canopy_layers] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_nominal_single_patch_midday] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_nominal_multiple_patches_varied_lai] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_nominal_twostream_method] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_zero_solar_zenith_angle] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_maximum_solar_zenith] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_zero_lai_bare_ground] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_very_dense_canopy] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_edge_extreme_albedo_boundaries] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_special_single_canopy_layer] - AttributeError: 'dict' object has no attribute 'endp'
+FAILED ../tests/multilayer_canopy/test_MLSolarRadiationMod.py::TestSolarRadiationNumericalStability::test_energy_conservation[test_special_many_canopy_layers] - AttributeError: 'dict' object has no attribute 'endp'
+========================= 74 failed, 7 passed in 5.17s =========================

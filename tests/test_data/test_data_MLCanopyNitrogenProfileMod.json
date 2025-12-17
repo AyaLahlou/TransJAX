@@ -1,0 +1,1255 @@
+{
+  "function_name": "canopy_nitrogen_profile",
+  "test_cases": [
+    {
+      "name": "test_nominal_single_patch_c3_moderate_lai",
+      "inputs": {
+        "vcmaxpft": [
+          62.0
+        ],
+        "c3psn": [
+          1
+        ],
+        "tacclim": [
+          293.15
+        ],
+        "dpai": [
+          [
+            0.5,
+            0.4,
+            0.3,
+            0.2,
+            0.1
+          ]
+        ],
+        "kb": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ]
+        ],
+        "tbi": [
+          [
+            0.95,
+            0.85,
+            0.75,
+            0.65,
+            0.55
+          ]
+        ],
+        "fracsun": [
+          [
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4
+          ]
+        ],
+        "clump_fac": [
+          0.85
+        ],
+        "ncan": [
+          5
+        ],
+        "lai": [
+          1.5
+        ],
+        "sai": [
+          0.5
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Single C3 patch with moderate LAI, typical temperate conditions, 5 canopy layers",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_multiple_patches_mixed_pathways",
+      "inputs": {
+        "vcmaxpft": [
+          62.0,
+          40.0,
+          55.0
+        ],
+        "c3psn": [
+          1,
+          0,
+          1
+        ],
+        "tacclim": [
+          293.15,
+          303.15,
+          283.15
+        ],
+        "dpai": [
+          [
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.2
+          ],
+          [
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4
+          ],
+          [
+            0.4,
+            0.3,
+            0.2,
+            0.1,
+            0.05
+          ]
+        ],
+        "kb": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ],
+          [
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4
+          ]
+        ],
+        "tbi": [
+          [
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5
+          ],
+          [
+            0.85,
+            0.75,
+            0.65,
+            0.55,
+            0.45
+          ],
+          [
+            0.95,
+            0.88,
+            0.8,
+            0.72,
+            0.65
+          ]
+        ],
+        "fracsun": [
+          [
+            0.75,
+            0.65,
+            0.55,
+            0.45,
+            0.35
+          ],
+          [
+            0.7,
+            0.6,
+            0.5,
+            0.4,
+            0.3
+          ],
+          [
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4
+          ]
+        ],
+        "clump_fac": [
+          0.85,
+          0.75,
+          0.9
+        ],
+        "ncan": [
+          5,
+          5,
+          5
+        ],
+        "lai": [
+          2.0,
+          3.0,
+          1.45
+        ],
+        "sai": [
+          0.6,
+          0.8,
+          0.4
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Three patches with mixed C3/C4 pathways, varying temperatures and LAI values",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_high_lai_dense_canopy",
+      "inputs": {
+        "vcmaxpft": [
+          80.0,
+          70.0
+        ],
+        "c3psn": [
+          1,
+          1
+        ],
+        "tacclim": [
+          298.15,
+          295.15
+        ],
+        "dpai": [
+          [
+            1.2,
+            1.0,
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.2
+          ],
+          [
+            1.0,
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.2,
+            0.1
+          ]
+        ],
+        "kb": [
+          [
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55
+          ],
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ]
+        ],
+        "tbi": [
+          [
+            0.88,
+            0.77,
+            0.67,
+            0.58,
+            0.5,
+            0.43,
+            0.37,
+            0.32,
+            0.27,
+            0.23
+          ],
+          [
+            0.9,
+            0.8,
+            0.71,
+            0.63,
+            0.56,
+            0.5,
+            0.44,
+            0.39,
+            0.35,
+            0.31
+          ]
+        ],
+        "fracsun": [
+          [
+            0.65,
+            0.55,
+            0.45,
+            0.38,
+            0.32,
+            0.27,
+            0.23,
+            0.19,
+            0.16,
+            0.13
+          ],
+          [
+            0.7,
+            0.6,
+            0.5,
+            0.42,
+            0.35,
+            0.29,
+            0.24,
+            0.2,
+            0.17,
+            0.14
+          ]
+        ],
+        "clump_fac": [
+          0.8,
+          0.82
+        ],
+        "ncan": [
+          10,
+          10
+        ],
+        "lai": [
+          6.6,
+          5.5
+        ],
+        "sai": [
+          1.2,
+          1.0
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Dense canopy with high LAI (6-7), 10 layers, typical for tropical forests",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_edge_zero_lai_no_canopy",
+      "inputs": {
+        "vcmaxpft": [
+          50.0,
+          45.0
+        ],
+        "c3psn": [
+          1,
+          0
+        ],
+        "tacclim": [
+          290.15,
+          295.15
+        ],
+        "dpai": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "kb": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ]
+        ],
+        "tbi": [
+          [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        ],
+        "fracsun": [
+          [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        ],
+        "clump_fac": [
+          1.0,
+          1.0
+        ],
+        "ncan": [
+          0,
+          0
+        ],
+        "lai": [
+          0.0,
+          0.0
+        ],
+        "sai": [
+          0.0,
+          0.0
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Zero LAI/SAI representing bare ground or dormant vegetation",
+        "edge_cases": [
+          "zero_lai",
+          "zero_dpai",
+          "full_transmission"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_minimal_lai_single_layer",
+      "inputs": {
+        "vcmaxpft": [
+          30.0
+        ],
+        "c3psn": [
+          1
+        ],
+        "tacclim": [
+          288.15
+        ],
+        "dpai": [
+          [
+            0.05
+          ]
+        ],
+        "kb": [
+          [
+            0.5
+          ]
+        ],
+        "tbi": [
+          [
+            0.975
+          ]
+        ],
+        "fracsun": [
+          [
+            0.95
+          ]
+        ],
+        "clump_fac": [
+          0.95
+        ],
+        "ncan": [
+          1
+        ],
+        "lai": [
+          0.05
+        ],
+        "sai": [
+          0.01
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Minimal LAI with single canopy layer, sparse vegetation",
+        "edge_cases": [
+          "minimal_lai",
+          "single_layer"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_extreme_cold_temperature",
+      "inputs": {
+        "vcmaxpft": [
+          40.0,
+          35.0
+        ],
+        "c3psn": [
+          1,
+          1
+        ],
+        "tacclim": [
+          253.15,
+          258.15
+        ],
+        "dpai": [
+          [
+            0.3,
+            0.25,
+            0.2,
+            0.15,
+            0.1
+          ],
+          [
+            0.35,
+            0.3,
+            0.25,
+            0.2,
+            0.15
+          ]
+        ],
+        "kb": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ]
+        ],
+        "tbi": [
+          [
+            0.92,
+            0.84,
+            0.76,
+            0.68,
+            0.6
+          ],
+          [
+            0.91,
+            0.82,
+            0.73,
+            0.64,
+            0.55
+          ]
+        ],
+        "fracsun": [
+          [
+            0.78,
+            0.68,
+            0.58,
+            0.48,
+            0.38
+          ],
+          [
+            0.76,
+            0.66,
+            0.56,
+            0.46,
+            0.36
+          ]
+        ],
+        "clump_fac": [
+          0.88,
+          0.86
+        ],
+        "ncan": [
+          5,
+          5
+        ],
+        "lai": [
+          1.0,
+          1.25
+        ],
+        "sai": [
+          0.3,
+          0.35
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Extreme cold temperatures (-20\u00b0C to -15\u00b0C), boreal/arctic conditions",
+        "edge_cases": [
+          "extreme_cold",
+          "low_temperature_acclimation"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_extreme_hot_temperature",
+      "inputs": {
+        "vcmaxpft": [
+          90.0,
+          85.0
+        ],
+        "c3psn": [
+          0,
+          0
+        ],
+        "tacclim": [
+          313.15,
+          318.15
+        ],
+        "dpai": [
+          [
+            0.7,
+            0.6,
+            0.5,
+            0.4,
+            0.3
+          ],
+          [
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4
+          ]
+        ],
+        "kb": [
+          [
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ],
+          [
+            0.65,
+            0.65,
+            0.65,
+            0.65,
+            0.65
+          ]
+        ],
+        "tbi": [
+          [
+            0.87,
+            0.75,
+            0.64,
+            0.54,
+            0.45
+          ],
+          [
+            0.85,
+            0.72,
+            0.6,
+            0.5,
+            0.41
+          ]
+        ],
+        "fracsun": [
+          [
+            0.68,
+            0.58,
+            0.48,
+            0.38,
+            0.28
+          ],
+          [
+            0.65,
+            0.55,
+            0.45,
+            0.35,
+            0.25
+          ]
+        ],
+        "clump_fac": [
+          0.7,
+          0.72
+        ],
+        "ncan": [
+          5,
+          5
+        ],
+        "lai": [
+          2.5,
+          3.0
+        ],
+        "sai": [
+          0.7,
+          0.8
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Extreme hot temperatures (40-45\u00b0C), C4 plants in desert/tropical conditions",
+        "edge_cases": [
+          "extreme_heat",
+          "high_temperature_acclimation",
+          "c4_pathway"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_full_shade_zero_transmission",
+      "inputs": {
+        "vcmaxpft": [
+          55.0
+        ],
+        "c3psn": [
+          1
+        ],
+        "tacclim": [
+          295.15
+        ],
+        "dpai": [
+          [
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4
+          ]
+        ],
+        "kb": [
+          [
+            0.8,
+            0.8,
+            0.8,
+            0.8,
+            0.8
+          ]
+        ],
+        "tbi": [
+          [
+            0.5,
+            0.25,
+            0.12,
+            0.06,
+            0.0
+          ]
+        ],
+        "fracsun": [
+          [
+            0.4,
+            0.2,
+            0.1,
+            0.05,
+            0.0
+          ]
+        ],
+        "clump_fac": [
+          0.6
+        ],
+        "ncan": [
+          5
+        ],
+        "lai": [
+          3.0
+        ],
+        "sai": [
+          0.8
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Deep canopy with zero transmission in lower layers, fully shaded understory",
+        "edge_cases": [
+          "zero_transmission",
+          "zero_fracsun",
+          "full_shade"
+        ]
+      }
+    },
+    {
+      "name": "test_special_uniform_clumping_perfect_distribution",
+      "inputs": {
+        "vcmaxpft": [
+          65.0,
+          58.0
+        ],
+        "c3psn": [
+          1,
+          1
+        ],
+        "tacclim": [
+          291.15,
+          294.15
+        ],
+        "dpai": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ]
+        ],
+        "kb": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ]
+        ],
+        "tbi": [
+          [
+            0.9,
+            0.81,
+            0.73,
+            0.66,
+            0.59
+          ],
+          [
+            0.88,
+            0.77,
+            0.68,
+            0.6,
+            0.53
+          ]
+        ],
+        "fracsun": [
+          [
+            0.72,
+            0.64,
+            0.57,
+            0.51,
+            0.45
+          ],
+          [
+            0.7,
+            0.62,
+            0.54,
+            0.48,
+            0.42
+          ]
+        ],
+        "clump_fac": [
+          1.0,
+          1.0
+        ],
+        "ncan": [
+          5,
+          5
+        ],
+        "lai": [
+          2.5,
+          3.0
+        ],
+        "sai": [
+          0.5,
+          0.6
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Perfect uniform foliage distribution (clump_fac=1.0), equal dpai across layers",
+        "edge_cases": [
+          "uniform_clumping",
+          "equal_layer_distribution"
+        ]
+      }
+    },
+    {
+      "name": "test_special_variable_layer_count_asymmetric",
+      "inputs": {
+        "vcmaxpft": [
+          60.0,
+          55.0,
+          50.0,
+          65.0
+        ],
+        "c3psn": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "tacclim": [
+          292.15,
+          298.15,
+          287.15,
+          303.15
+        ],
+        "dpai": [
+          [
+            1.5,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.4,
+            0.35,
+            0.3,
+            0.25,
+            0.2,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.25,
+            0.22,
+            0.2,
+            0.18,
+            0.16,
+            0.14,
+            0.12,
+            0.1,
+            0.08,
+            0.05,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.5,
+            0.48,
+            0.45,
+            0.42,
+            0.4,
+            0.38,
+            0.35,
+            0.32,
+            0.3,
+            0.28,
+            0.25,
+            0.22,
+            0.2,
+            0.18,
+            0.15
+          ]
+        ],
+        "kb": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55
+          ],
+          [
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48
+          ],
+          [
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52
+          ]
+        ],
+        "tbi": [
+          [
+            0.85,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.92,
+            0.84,
+            0.77,
+            0.7,
+            0.64,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.94,
+            0.88,
+            0.83,
+            0.78,
+            0.73,
+            0.68,
+            0.64,
+            0.6,
+            0.56,
+            0.53,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.9,
+            0.81,
+            0.73,
+            0.66,
+            0.59,
+            0.53,
+            0.48,
+            0.43,
+            0.39,
+            0.35,
+            0.31,
+            0.28,
+            0.25,
+            0.23,
+            0.2
+          ]
+        ],
+        "fracsun": [
+          [
+            0.75,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.78,
+            0.7,
+            0.62,
+            0.54,
+            0.46,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.8,
+            0.73,
+            0.67,
+            0.61,
+            0.55,
+            0.5,
+            0.45,
+            0.4,
+            0.36,
+            0.32,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.72,
+            0.65,
+            0.59,
+            0.53,
+            0.48,
+            0.43,
+            0.39,
+            0.35,
+            0.31,
+            0.28,
+            0.25,
+            0.22,
+            0.2,
+            0.18,
+            0.15
+          ]
+        ],
+        "clump_fac": [
+          0.9,
+          0.75,
+          0.85,
+          0.7
+        ],
+        "ncan": [
+          1,
+          5,
+          10,
+          15
+        ],
+        "lai": [
+          1.5,
+          1.5,
+          1.5,
+          5.58
+        ],
+        "sai": [
+          0.3,
+          0.4,
+          0.5,
+          1.2
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Four patches with highly variable layer counts (1, 5, 10, 15), testing asymmetric canopy structures",
+        "edge_cases": [
+          "variable_ncan",
+          "single_layer",
+          "many_layers"
+        ]
+      }
+    }
+  ],
+  "notes": "Test data generation strategy:\n\n1. **Nominal cases (tests 1-3)**: Cover typical operating conditions with physically realistic values. Temperatures range 283-303K (10-30\u00b0C), LAI 1.5-7, mixed C3/C4 pathways, 5-10 canopy layers.\n\n2. **Edge cases (tests 4-8)**:\n   - Zero LAI/SAI: Tests bare ground conditions\n   - Minimal LAI: Tests sparse vegetation with single layer\n   - Extreme cold (253-258K): Tests boreal/arctic conditions near physiological limits\n   - Extreme heat (313-318K): Tests desert/tropical C4 plants at high temperatures\n   - Full shade: Tests deep canopy with zero transmission in lower layers\n\n3. **Special cases (tests 9-10)**:\n   - Uniform clumping: Tests perfect foliage distribution (clump_fac=1.0)\n   - Variable layer count: Tests 1, 5, 10, and 15 layers in single test to verify handling of asymmetric canopy structures\n\n**Physical constraints enforced**:\n- All temperatures > 0K (absolute zero)\n- LAI, SAI, dpai \u2265 0 (non-negative area indices)\n- tbi, fracsun \u2208 [0,1] (transmission fractions)\n- kb \u2265 0 (extinction coefficients)\n- clump_fac \u2208 (0,1] (clumping factor)\n- c3psn \u2208 {0,1} (binary pathway indicator)\n- vcmaxpft > 0 for active photosynthesis\n\n**Array dimensions**: All 2D arrays use shape (n_patches, 15) with padding zeros for unused layers, allowing variable ncan values. The dpai values sum approximately to LAI for each patch (accounting for SAI contribution to total plant area index).\n\n**Validation**: All tests include validate=True to test numerical integration validation. The params field is set to null to test default parameter usage."
+}

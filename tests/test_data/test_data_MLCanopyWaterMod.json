@@ -1,0 +1,1418 @@
+{
+  "function_name": "canopy_interception",
+  "test_cases": [
+    {
+      "name": "test_nominal_moderate_rain_multilayer",
+      "inputs": {
+        "qflx_rain": [
+          0.0001,
+          0.0002,
+          0.00015
+        ],
+        "qflx_snow": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "lai": [
+          4.5,
+          3.2,
+          5.1
+        ],
+        "sai": [
+          0.8,
+          0.6,
+          1.0
+        ],
+        "ncan": [
+          10,
+          10,
+          10
+        ],
+        "dlai_profile": [
+          [
+            0.45,
+            0.45,
+            0.45,
+            0.45,
+            0.45,
+            0.45,
+            0.45,
+            0.45,
+            0.45,
+            0.45
+          ],
+          [
+            0.32,
+            0.32,
+            0.32,
+            0.32,
+            0.32,
+            0.32,
+            0.32,
+            0.32,
+            0.32,
+            0.32
+          ],
+          [
+            0.51,
+            0.51,
+            0.51,
+            0.51,
+            0.51,
+            0.51,
+            0.51,
+            0.51,
+            0.51,
+            0.51
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.53,
+            0.53,
+            0.53,
+            0.53,
+            0.53,
+            0.53,
+            0.53,
+            0.53,
+            0.53,
+            0.53
+          ],
+          [
+            0.38,
+            0.38,
+            0.38,
+            0.38,
+            0.38,
+            0.38,
+            0.38,
+            0.38,
+            0.38,
+            0.38
+          ],
+          [
+            0.61,
+            0.61,
+            0.61,
+            0.61,
+            0.61,
+            0.61,
+            0.61,
+            0.61,
+            0.61,
+            0.61
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02
+          ],
+          [
+            0.015,
+            0.015,
+            0.015,
+            0.015,
+            0.015,
+            0.015,
+            0.015,
+            0.015,
+            0.015,
+            0.015
+          ],
+          [
+            0.025,
+            0.025,
+            0.025,
+            0.025,
+            0.025,
+            0.025,
+            0.025,
+            0.025,
+            0.025,
+            0.025
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Typical moderate rainfall with multi-layer canopy, moderate LAI/SAI, and existing intercepted water",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_mixed_precipitation",
+      "inputs": {
+        "qflx_rain": [
+          5e-05,
+          8e-05
+        ],
+        "qflx_snow": [
+          3e-05,
+          2e-05
+        ],
+        "lai": [
+          2.8,
+          6.5
+        ],
+        "sai": [
+          0.5,
+          1.2
+        ],
+        "ncan": [
+          8,
+          12
+        ],
+        "dlai_profile": [
+          [
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.542,
+            0.542,
+            0.542,
+            0.542,
+            0.542,
+            0.542,
+            0.542,
+            0.542,
+            0.542,
+            0.542,
+            0.542,
+            0.542
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.4125,
+            0.4125,
+            0.4125,
+            0.4125,
+            0.4125,
+            0.4125,
+            0.4125,
+            0.4125,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.642,
+            0.642,
+            0.642,
+            0.642,
+            0.642,
+            0.642,
+            0.642,
+            0.642,
+            0.642,
+            0.642,
+            0.642,
+            0.642
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Mixed rain and snow precipitation with different canopy layer counts (8 vs 12 layers)",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_heavy_rain_dense_canopy",
+      "inputs": {
+        "qflx_rain": [
+          0.0005,
+          0.0008
+        ],
+        "qflx_snow": [
+          0.0,
+          0.0
+        ],
+        "lai": [
+          7.2,
+          8.5
+        ],
+        "sai": [
+          1.5,
+          1.8
+        ],
+        "ncan": [
+          15,
+          15
+        ],
+        "dlai_profile": [
+          [
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48
+          ],
+          [
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567,
+            0.567
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58,
+            0.58
+          ],
+          [
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687,
+            0.687
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04
+          ],
+          [
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Heavy rainfall with dense canopy (high LAI/SAI) and significant existing intercepted water",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_clm45_formulation",
+      "inputs": {
+        "qflx_rain": [
+          0.00012,
+          0.00018,
+          0.00025
+        ],
+        "qflx_snow": [
+          1e-05,
+          0.0,
+          2e-05
+        ],
+        "lai": [
+          3.5,
+          4.8,
+          2.2
+        ],
+        "sai": [
+          0.7,
+          0.9,
+          0.4
+        ],
+        "ncan": [
+          10,
+          10,
+          10
+        ],
+        "dlai_profile": [
+          [
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35
+          ],
+          [
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48
+          ],
+          [
+            0.22,
+            0.22,
+            0.22,
+            0.22,
+            0.22,
+            0.22,
+            0.22,
+            0.22,
+            0.22,
+            0.22
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42
+          ],
+          [
+            0.57,
+            0.57,
+            0.57,
+            0.57,
+            0.57,
+            0.57,
+            0.57,
+            0.57,
+            0.57,
+            0.57
+          ],
+          [
+            0.26,
+            0.26,
+            0.26,
+            0.26,
+            0.26,
+            0.26,
+            0.26,
+            0.26,
+            0.26,
+            0.26
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.018,
+            0.018,
+            0.018,
+            0.018,
+            0.018,
+            0.018,
+            0.018,
+            0.018,
+            0.018,
+            0.018
+          ],
+          [
+            0.022,
+            0.022,
+            0.022,
+            0.022,
+            0.022,
+            0.022,
+            0.022,
+            0.022,
+            0.022,
+            0.022
+          ],
+          [
+            0.012,
+            0.012,
+            0.012,
+            0.012,
+            0.012,
+            0.012,
+            0.012,
+            0.012,
+            0.012,
+            0.012
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 1,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Testing CLM4.5 interception formulation (fpi_type=1) with varied canopy structures",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_nominal_short_timestep",
+      "inputs": {
+        "qflx_rain": [
+          0.0003
+        ],
+        "qflx_snow": [
+          0.0
+        ],
+        "lai": [
+          5.0
+        ],
+        "sai": [
+          1.0
+        ],
+        "ncan": [
+          10
+        ],
+        "dlai_profile": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02,
+            0.02
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 300.0
+        }
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Testing with shorter timestep (300s vs default 1800s) for sub-hourly dynamics",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_edge_zero_precipitation",
+      "inputs": {
+        "qflx_rain": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "qflx_snow": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "lai": [
+          3.0,
+          5.0,
+          1.5,
+          7.0
+        ],
+        "sai": [
+          0.6,
+          1.0,
+          0.3,
+          1.4
+        ],
+        "ncan": [
+          10,
+          10,
+          10,
+          10
+        ],
+        "dlai_profile": [
+          [
+            0.3,
+            0.3,
+            0.3,
+            0.3,
+            0.3,
+            0.3,
+            0.3,
+            0.3,
+            0.3,
+            0.3
+          ],
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.15,
+            0.15,
+            0.15,
+            0.15,
+            0.15,
+            0.15,
+            0.15,
+            0.15,
+            0.15,
+            0.15
+          ],
+          [
+            0.7,
+            0.7,
+            0.7,
+            0.7,
+            0.7,
+            0.7,
+            0.7,
+            0.7,
+            0.7,
+            0.7
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.36,
+            0.36,
+            0.36,
+            0.36,
+            0.36,
+            0.36,
+            0.36,
+            0.36,
+            0.36,
+            0.36
+          ],
+          [
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ],
+          [
+            0.18,
+            0.18,
+            0.18,
+            0.18,
+            0.18,
+            0.18,
+            0.18,
+            0.18,
+            0.18,
+            0.18
+          ],
+          [
+            0.84,
+            0.84,
+            0.84,
+            0.84,
+            0.84,
+            0.84,
+            0.84,
+            0.84,
+            0.84,
+            0.84
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01,
+            0.01
+          ],
+          [
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03,
+            0.03
+          ],
+          [
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005
+          ],
+          [
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04,
+            0.04
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Zero precipitation - tests that existing intercepted water is preserved and no throughfall occurs",
+        "edge_cases": [
+          "zero_precipitation"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_zero_canopy_structure",
+      "inputs": {
+        "qflx_rain": [
+          0.0002,
+          0.0001
+        ],
+        "qflx_snow": [
+          1e-05,
+          0.0
+        ],
+        "lai": [
+          0.0,
+          0.0
+        ],
+        "sai": [
+          0.0,
+          0.0
+        ],
+        "ncan": [
+          0,
+          0
+        ],
+        "dlai_profile": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Zero canopy structure (bare ground) - all precipitation should pass through as throughfall",
+        "edge_cases": [
+          "zero_lai",
+          "zero_sai",
+          "zero_layers"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_minimal_canopy_structure",
+      "inputs": {
+        "qflx_rain": [
+          5e-05,
+          8e-05,
+          3e-05
+        ],
+        "qflx_snow": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "lai": [
+          0.1,
+          0.05,
+          0.2
+        ],
+        "sai": [
+          0.02,
+          0.01,
+          0.03
+        ],
+        "ncan": [
+          1,
+          1,
+          2
+        ],
+        "dlai_profile": [
+          [
+            0.1,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.05,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.1,
+            0.1,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.12,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.06,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.115,
+            0.115,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.001,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0005,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.002,
+            0.002,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Minimal canopy structure (sparse vegetation, 1-2 layers) - tests lower boundary of interception",
+        "edge_cases": [
+          "minimal_lai",
+          "minimal_layers"
+        ]
+      }
+    },
+    {
+      "name": "test_edge_saturated_canopy",
+      "inputs": {
+        "qflx_rain": [
+          0.0001,
+          0.00015
+        ],
+        "qflx_snow": [
+          0.0,
+          0.0
+        ],
+        "lai": [
+          4.0,
+          6.0
+        ],
+        "sai": [
+          0.8,
+          1.2
+        ],
+        "ncan": [
+          10,
+          10
+        ],
+        "dlai_profile": [
+          [
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4
+          ],
+          [
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48
+          ],
+          [
+            0.72,
+            0.72,
+            0.72,
+            0.72,
+            0.72,
+            0.72,
+            0.72,
+            0.72,
+            0.72,
+            0.72
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.048,
+            0.048,
+            0.048,
+            0.048,
+            0.048,
+            0.048,
+            0.048,
+            0.048,
+            0.048,
+            0.048
+          ],
+          [
+            0.072,
+            0.072,
+            0.072,
+            0.072,
+            0.072,
+            0.072,
+            0.072,
+            0.072,
+            0.072,
+            0.072
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Near-saturated canopy (h2ocan \u2248 dewmx * dpai) - tests maximum storage capacity and overflow",
+        "edge_cases": [
+          "saturated_canopy"
+        ]
+      }
+    },
+    {
+      "name": "test_special_extreme_snowfall",
+      "inputs": {
+        "qflx_rain": [
+          0.0,
+          0.0
+        ],
+        "qflx_snow": [
+          0.001,
+          0.0015
+        ],
+        "lai": [
+          3.5,
+          5.2
+        ],
+        "sai": [
+          0.7,
+          1.0
+        ],
+        "ncan": [
+          10,
+          12
+        ],
+        "dlai_profile": [
+          [
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.0,
+            0.0
+          ],
+          [
+            0.433,
+            0.433,
+            0.433,
+            0.433,
+            0.433,
+            0.433,
+            0.433,
+            0.433,
+            0.433,
+            0.433,
+            0.433,
+            0.433
+          ]
+        ],
+        "dpai_profile": [
+          [
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.42,
+            0.0,
+            0.0
+          ],
+          [
+            0.517,
+            0.517,
+            0.517,
+            0.517,
+            0.517,
+            0.517,
+            0.517,
+            0.517,
+            0.517,
+            0.517,
+            0.517,
+            0.517
+          ]
+        ],
+        "h2ocan_profile": [
+          [
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.005,
+            0.0,
+            0.0
+          ],
+          [
+            0.008,
+            0.008,
+            0.008,
+            0.008,
+            0.008,
+            0.008,
+            0.008,
+            0.008,
+            0.008,
+            0.008,
+            0.008,
+            0.008
+          ]
+        ],
+        "params": {
+          "dewmx": 0.1,
+          "maximum_leaf_wetted_fraction": 0.05,
+          "interception_fraction": 0.25,
+          "fwet_exponent": 0.667,
+          "clm45_interception_p1": 0.25,
+          "clm45_interception_p2": 1.0,
+          "fpi_type": 2,
+          "dtime_substep": 1800.0
+        }
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Extreme snowfall only (no rain) - tests snow interception behavior separately",
+        "edge_cases": [
+          "extreme_snowfall",
+          "zero_rain"
+        ]
+      }
+    }
+  ],
+  "notes": "Test data generation assumptions:\n\n1. **Physical Realism**: All fluxes are non-negative. LAI/SAI values range from 0 (bare ground) to ~8.5 (dense forest). Typical LAI for forests: 3-8, grasslands: 1-3.\n\n2. **Precipitation Rates**: Converted to kg/m2/s. Light rain: ~0.00005, moderate: ~0.0002, heavy: ~0.0008. Snow rates typically lower than rain.\n\n3. **Canopy Layers**: ncan ranges from 0 (bare) to 15 (dense multi-story). Layer profiles distribute LAI/SAI evenly across active layers, with zeros for inactive layers.\n\n4. **Intercepted Water**: h2ocan_profile values respect physical limits (0 to dewmx*dpai). Typical values: 0.01-0.05 kg/m2 per layer.\n\n5. **PAI Calculation**: dpai = dlai + dsai, where dsai = sai/ncan distributed across layers.\n\n6. **Edge Cases**: Include zero precipitation, bare ground, minimal vegetation, near-saturation, and extreme snowfall to test boundary conditions.\n\n7. **Parameter Variations**: Test both CLM4.5 (fpi_type=1) and CLM5 (fpi_type=2) formulations, different timesteps (300-1800s).\n\n8. **Array Dimensions**: All test cases maintain consistent dimensions within each case. n_patches varies (1-4), n_layers fixed at 10-15 with appropriate masking via ncan.\n\n9. **Wetted Fraction**: Not directly specified in inputs but calculated from h2ocan, dpai, and params. Tests cover range from dry to saturated.\n\n10. **Mass Balance**: Test cases designed to verify conservation of water mass through interception and throughfall calculations."
+}

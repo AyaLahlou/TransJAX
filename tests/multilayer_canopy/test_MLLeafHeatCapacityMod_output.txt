@@ -1,0 +1,380 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.13, pytest-9.0.2, pluggy-1.6.0 -- /burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /burg-archive/home/mck2199/clm-ml-jax
+configfile: pytest.ini
+plugins: cov-7.0.0, anyio-4.12.0
+collecting ... collected 45 items
+
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_nominal_single_patch_single_layer FAILED [  2%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_nominal_multi_patch_multi_layer ERROR [  4%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_nominal_grassland_low_lai FAILED [  6%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_zero_dpai FAILED [  8%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_very_small_slatop FAILED [ 11%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_very_large_slatop FAILED [ 13%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_extreme_fwater_boundary FAILED [ 15%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_low_fwater FAILED [ 17%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_special_high_lai_dense_canopy FAILED [ 20%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_special_variable_physical_params FAILED [ 22%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_output_dtype PASSED [ 24%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_output_shape_consistency ERROR [ 26%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacitySimple::test_simple_nominal_default_params FAILED [ 28%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacitySimple::test_simple_edge_zero_dpai_all_layers PASSED [ 31%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacitySimple::test_simple_special_single_layer_high_lai FAILED [ 33%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacitySimple::test_simple_custom_params FAILED [ 35%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacitySimple::test_simple_output_dtype PASSED [ 37%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestValidation::test_consistency_between_functions PASSED [ 40%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestValidation::test_jit_consistency PASSED [ 42%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestProperties::test_property_non_negative_output PASSED [ 44%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestProperties::test_property_zero_dpai_zero_output PASSED [ 46%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestProperties::test_property_monotonic_with_dpai FAILED [ 48%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestProperties::test_property_inverse_slatop_relationship FAILED [ 51%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestProperties::test_property_water_content_effect FAILED [ 53%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_output_sign[slatop0-dpai0-True] FAILED [ 55%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_output_sign[slatop1-dpai1-False] PASSED [ 57%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_output_sign[slatop2-dpai2-True] FAILED [ 60%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_fwater_range[0.1] PASSED [ 62%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_fwater_range[0.3] PASSED [ 64%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_fwater_range[0.5] PASSED [ 66%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_fwater_range[0.7] PASSED [ 68%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_fwater_range[0.85] PASSED [ 71%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_fwater_range[0.95] PASSED [ 73%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_slatop_range[0.001] PASSED [ 75%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_slatop_range[0.005] PASSED [ 77%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_slatop_range[0.01] PASSED [ 80%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_slatop_range[0.02] PASSED [ 82%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_slatop_range[0.04] PASSED [ 84%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_slatop_range[0.08] PASSED [ 86%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestEdgeCases::test_single_element_arrays FAILED [ 88%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestEdgeCases::test_large_arrays PASSED [ 91%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestEdgeCases::test_mixed_zero_nonzero_dpai FAILED [ 93%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestEdgeCases::test_extreme_parameter_combinations FAILED [ 95%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_module_has_docstrings PASSED [ 97%]
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_namedtuples_exist PASSED [100%]/burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/lib64/python3.11/site-packages/coverage/control.py:957: CoverageWarning: No data was collected. (no-data-collected); see https://coverage.readthedocs.io/en/7.13.0/messages.html#warning-no-data-collected
+  self._warn("No data was collected.", slug="no-data-collected")
+
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestLeafHeatCapacity.test_nominal_multi_patch_multi_layer __
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:104: in nominal_multi_patch_data
+    'dpai': jnp.array([
+.venv/lib64/python3.11/site-packages/jax/_src/numpy/array_constructors.py:262: in array
+    out = np.asarray(object, dtype=dtype)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (3,) + inhomogeneous part.
+_____ ERROR at setup of TestLeafHeatCapacity.test_output_shape_consistency _____
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:104: in nominal_multi_patch_data
+    'dpai': jnp.array([
+.venv/lib64/python3.11/site-packages/jax/_src/numpy/array_constructors.py:262: in array
+    out = np.asarray(object, dtype=dtype)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (3,) + inhomogeneous part.
+=================================== FAILURES ===================================
+_________ TestLeafHeatCapacity.test_nominal_single_patch_single_layer __________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:370: in test_nominal_single_patch_single_layer
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity values don't match expected for single patch case
+E   Mismatched elements: 1 / 1 (100%)
+E   Max absolute difference among violations: 1498.9335
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0.]], dtype=float32)
+E    DESIRED: array([[1498.9335]], dtype=float32)
+_____________ TestLeafHeatCapacity.test_nominal_grassland_low_lai ______________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:437: in test_nominal_grassland_low_lai
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity values don't match expected for grassland case
+E   Mismatched elements: 4 / 4 (100%)
+E   Max absolute difference among violations: 899.36
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0., 0.],
+E          [0., 0.]], dtype=float32)
+E    DESIRED: array([[899.36   , 899.36   ],
+E          [749.46674, 749.46674]], dtype=float32)
+___________________ TestLeafHeatCapacity.test_edge_zero_dpai ___________________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:470: in test_edge_zero_dpai
+    assert np.all(result[nonzero_mask] > 0.0), \
+E   AssertionError: Expected positive heat capacity where dpai is positive
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <function all at 0x1555056a5570>(Array([0.], dtype=float32) > 0.0)
+E    +    where <function all at 0x1555056a5570> = np.all
+_______________ TestLeafHeatCapacity.test_edge_very_small_slatop _______________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:509: in test_edge_very_small_slatop
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity incorrect for small SLA case
+E   Mismatched elements: 4 / 4 (100%)
+E   Max absolute difference among violations: 44968.
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0., 0.],
+E          [0., 0.]], dtype=float32)
+E    DESIRED: array([[22484., 22484.],
+E          [44968., 44968.]], dtype=float32)
+_______________ TestLeafHeatCapacity.test_edge_very_large_slatop _______________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:550: in test_edge_very_large_slatop
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity incorrect for large SLA case
+E   Mismatched elements: 5 / 6 (83.3%)
+E   Max absolute difference among violations: 449.68
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0., 0., 0.],
+E          [0., 0., 0.]], dtype=float32)
+E    DESIRED: array([[449.68, 449.68,   0.  ],
+E          [281.05, 281.05, 281.05]], dtype=float32)
+____________ TestLeafHeatCapacity.test_edge_extreme_fwater_boundary ____________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:588: in test_edge_extreme_fwater_boundary
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity incorrect for high fwater case
+E   Mismatched elements: 2 / 2 (100%)
+E   Max absolute difference among violations: 10805.601
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0., 0.]], dtype=float32)
+E    DESIRED: array([[10805.601, 10805.601]], dtype=float32)
+__________________ TestLeafHeatCapacity.test_edge_low_fwater ___________________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:626: in test_edge_low_fwater
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity incorrect for low fwater case
+E   Mismatched elements: 2 / 2 (100%)
+E   Max absolute difference among violations: 258.0445
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0., 0.]], dtype=float32)
+E    DESIRED: array([[258.0445, 258.0445]], dtype=float32)
+___________ TestLeafHeatCapacity.test_special_high_lai_dense_canopy ____________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:655: in test_special_high_lai_dense_canopy
+    assert np.all(result > 0.0), \
+E   AssertionError: Expected positive heat capacity for dense canopy
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <function all at 0x1555056a5570>(Array([[0., 0., 0., 0., 0.]], dtype=float32) > 0.0)
+E    +    where <function all at 0x1555056a5570> = np.all
+__________ TestLeafHeatCapacity.test_special_variable_physical_params __________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:696: in test_special_variable_physical_params
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity incorrect for variable params case
+E   Mismatched elements: 4 / 4 (100%)
+E   Max absolute difference among violations: 1330.032
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0., 0.],
+E          [0., 0.]], dtype=float32)
+E    DESIRED: array([[1330.032 , 1330.032 ],
+E          [ 997.5239,  997.5239]], dtype=float32)
+________ TestLeafHeatCapacitySimple.test_simple_nominal_default_params _________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:772: in test_simple_nominal_default_params
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity values don't match expected
+E   Mismatched elements: 4 / 4 (100%)
+E   Max absolute difference among violations: 1498.9335
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0., 0.],
+E          [0., 0.]], dtype=float32)
+E    DESIRED: array([[1498.9335, 1498.9335],
+E          [1124.2   , 1124.2   ]], dtype=float32)
+_____ TestLeafHeatCapacitySimple.test_simple_special_single_layer_high_lai _____
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:811: in test_simple_special_single_layer_high_lai
+    assert np.all(result > 0.0), \
+E   AssertionError: Expected positive heat capacity for high LAI
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <function all at 0x1555056a5570>(Array([[0.]], dtype=float32) > 0.0)
+E    +    where <function all at 0x1555056a5570> = np.all
+_____________ TestLeafHeatCapacitySimple.test_simple_custom_params _____________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:846: in test_simple_custom_params
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=0.0001, atol=0.01
+E   Heat capacity incorrect with custom params
+E   Mismatched elements: 2 / 2 (100%)
+E   Max absolute difference among violations: 1330.032
+E   Max relative difference among violations: 1.
+E    ACTUAL: array([[0., 0.]], dtype=float32)
+E    DESIRED: array([[1330.032, 1330.032]], dtype=float32)
+_______________ TestProperties.test_property_monotonic_with_dpai _______________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:1000: in test_property_monotonic_with_dpai
+    assert results[i] < results[i + 1], \
+E   AssertionError: Heat capacity not monotonic: 0.0 >= 0.0
+E   assert 0.0 < 0.0
+___________ TestProperties.test_property_inverse_slatop_relationship ___________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:1021: in test_property_inverse_slatop_relationship
+    assert results[i] < results[i + 1], \
+E   AssertionError: Heat capacity doesn't increase with decreasing SLA: 0.0 >= 0.0
+E   assert 0.0 < 0.0
+______________ TestProperties.test_property_water_content_effect _______________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:1046: in test_property_water_content_effect
+    assert results[i] < results[i + 1], \
+E   AssertionError: Heat capacity doesn't increase with water content: 0.0 >= 0.0
+E   assert 0.0 < 0.0
+______________ test_parametrized_output_sign[slatop0-dpai0-True] _______________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:1071: in test_parametrized_output_sign
+    assert has_positive == expected_positive, \
+E   AssertionError: Expected positive values: True, got: False
+E   assert Array(False, dtype=bool) == True
+______________ test_parametrized_output_sign[slatop2-dpai2-True] _______________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:1071: in test_parametrized_output_sign
+    assert has_positive == expected_positive, \
+E   AssertionError: Expected positive values: True, got: False
+E   assert Array(False, dtype=bool) == True
+___________________ TestEdgeCases.test_single_element_arrays ___________________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:1151: in test_single_element_arrays
+    assert result[0, 0] > 0.0, \
+E   AssertionError: Result must be positive for non-zero dpai
+E   assert Array(0., dtype=float32) > 0.0
+__________________ TestEdgeCases.test_mixed_zero_nonzero_dpai __________________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:1188: in test_mixed_zero_nonzero_dpai
+    assert np.all(result[nonzero_mask] > 0.0), \
+E   AssertionError: Expected positive output where dpai is positive
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <function all at 0x1555056a5570>(Array([0., 0., 0., 0.], dtype=float32) > 0.0)
+E    +    where <function all at 0x1555056a5570> = np.all
+______________ TestEdgeCases.test_extreme_parameter_combinations _______________
+../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py:1207: in test_extreme_parameter_combinations
+    assert result[0, 0] > 0.0, \
+E   AssertionError: Result must be positive
+E   assert Array(0., dtype=float32) > 0.0
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.13-final-0 _______________
+
+Name                                                Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------------------
+src/jax_agents/__init__.py                              6      6     0%   7-14
+src/jax_agents/base_agent.py                          114    114     0%   7-386
+src/jax_agents/prompts/__init__.py                      3      3     0%   3-6
+src/jax_agents/prompts/repair_prompts.py                1      1     0%   11
+src/jax_agents/prompts/test_prompts_simplified.py       1      1     0%   8
+src/jax_agents/prompts/translation_prompts_v2.py        1      1     0%   3
+src/jax_agents/repair_agent.py                        169    169     0%   13-453
+src/jax_agents/test_agent.py                          133    133     0%   11-335
+src/jax_agents/translator.py                          277    277     0%   8-891
+src/jax_agents/utils/__init__.py                        2      2     0%   3-5
+src/jax_agents/utils/config_loader.py                  21     21     0%   3-69
+---------------------------------------------------------------------------------
+TOTAL                                                 728    728     0%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+=========================== short test summary info ============================
+ERROR ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_nominal_multi_patch_multi_layer - ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (3,) + inhomogeneous part.
+ERROR ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_output_shape_consistency - ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (3,) + inhomogeneous part.
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_nominal_single_patch_single_layer - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity values don't match expected for single patch case
+Mismatched elements: 1 / 1 (100%)
+Max absolute difference among violations: 1498.9335
+Max relative difference among violations: 1.
+ ACTUAL: array([[0.]], dtype=float32)
+ DESIRED: array([[1498.9335]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_nominal_grassland_low_lai - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity values don't match expected for grassland case
+Mismatched elements: 4 / 4 (100%)
+Max absolute difference among violations: 899.36
+Max relative difference among violations: 1.
+ ACTUAL: array([[0., 0.],
+       [0., 0.]], dtype=float32)
+ DESIRED: array([[899.36   , 899.36   ],
+       [749.46674, 749.46674]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_zero_dpai - AssertionError: Expected positive heat capacity where dpai is positive
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <function all at 0x1555056a5570>(Array([0.], dtype=float32) > 0.0)
+ +    where <function all at 0x1555056a5570> = np.all
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_very_small_slatop - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity incorrect for small SLA case
+Mismatched elements: 4 / 4 (100%)
+Max absolute difference among violations: 44968.
+Max relative difference among violations: 1.
+ ACTUAL: array([[0., 0.],
+       [0., 0.]], dtype=float32)
+ DESIRED: array([[22484., 22484.],
+       [44968., 44968.]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_very_large_slatop - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity incorrect for large SLA case
+Mismatched elements: 5 / 6 (83.3%)
+Max absolute difference among violations: 449.68
+Max relative difference among violations: 1.
+ ACTUAL: array([[0., 0., 0.],
+       [0., 0., 0.]], dtype=float32)
+ DESIRED: array([[449.68, 449.68,   0.  ],
+       [281.05, 281.05, 281.05]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_extreme_fwater_boundary - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity incorrect for high fwater case
+Mismatched elements: 2 / 2 (100%)
+Max absolute difference among violations: 10805.601
+Max relative difference among violations: 1.
+ ACTUAL: array([[0., 0.]], dtype=float32)
+ DESIRED: array([[10805.601, 10805.601]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_edge_low_fwater - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity incorrect for low fwater case
+Mismatched elements: 2 / 2 (100%)
+Max absolute difference among violations: 258.0445
+Max relative difference among violations: 1.
+ ACTUAL: array([[0., 0.]], dtype=float32)
+ DESIRED: array([[258.0445, 258.0445]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_special_high_lai_dense_canopy - AssertionError: Expected positive heat capacity for dense canopy
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <function all at 0x1555056a5570>(Array([[0., 0., 0., 0., 0.]], dtype=float32) > 0.0)
+ +    where <function all at 0x1555056a5570> = np.all
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacity::test_special_variable_physical_params - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity incorrect for variable params case
+Mismatched elements: 4 / 4 (100%)
+Max absolute difference among violations: 1330.032
+Max relative difference among violations: 1.
+ ACTUAL: array([[0., 0.],
+       [0., 0.]], dtype=float32)
+ DESIRED: array([[1330.032 , 1330.032 ],
+       [ 997.5239,  997.5239]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacitySimple::test_simple_nominal_default_params - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity values don't match expected
+Mismatched elements: 4 / 4 (100%)
+Max absolute difference among violations: 1498.9335
+Max relative difference among violations: 1.
+ ACTUAL: array([[0., 0.],
+       [0., 0.]], dtype=float32)
+ DESIRED: array([[1498.9335, 1498.9335],
+       [1124.2   , 1124.2   ]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacitySimple::test_simple_special_single_layer_high_lai - AssertionError: Expected positive heat capacity for high LAI
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <function all at 0x1555056a5570>(Array([[0.]], dtype=float32) > 0.0)
+ +    where <function all at 0x1555056a5570> = np.all
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestLeafHeatCapacitySimple::test_simple_custom_params - AssertionError: 
+Not equal to tolerance rtol=0.0001, atol=0.01
+Heat capacity incorrect with custom params
+Mismatched elements: 2 / 2 (100%)
+Max absolute difference among violations: 1330.032
+Max relative difference among violations: 1.
+ ACTUAL: array([[0., 0.]], dtype=float32)
+ DESIRED: array([[1330.032, 1330.032]], dtype=float32)
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestProperties::test_property_monotonic_with_dpai - AssertionError: Heat capacity not monotonic: 0.0 >= 0.0
+assert 0.0 < 0.0
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestProperties::test_property_inverse_slatop_relationship - AssertionError: Heat capacity doesn't increase with decreasing SLA: 0.0 >= 0.0
+assert 0.0 < 0.0
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestProperties::test_property_water_content_effect - AssertionError: Heat capacity doesn't increase with water content: 0.0 >= 0.0
+assert 0.0 < 0.0
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_output_sign[slatop0-dpai0-True] - AssertionError: Expected positive values: True, got: False
+assert Array(False, dtype=bool) == True
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::test_parametrized_output_sign[slatop2-dpai2-True] - AssertionError: Expected positive values: True, got: False
+assert Array(False, dtype=bool) == True
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestEdgeCases::test_single_element_arrays - AssertionError: Result must be positive for non-zero dpai
+assert Array(0., dtype=float32) > 0.0
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestEdgeCases::test_mixed_zero_nonzero_dpai - AssertionError: Expected positive output where dpai is positive
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <function all at 0x1555056a5570>(Array([0., 0., 0., 0.], dtype=float32) > 0.0)
+ +    where <function all at 0x1555056a5570> = np.all
+FAILED ../tests/multilayer_canopy/test_MLLeafHeatCapacityMod.py::TestEdgeCases::test_extreme_parameter_combinations - AssertionError: Result must be positive
+assert Array(0., dtype=float32) > 0.0
+=================== 20 failed, 23 passed, 2 errors in 5.06s ====================

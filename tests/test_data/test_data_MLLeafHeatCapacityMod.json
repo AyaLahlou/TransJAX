@@ -1,0 +1,561 @@
+{
+  "function_name": "leaf_heat_capacity",
+  "test_cases": [
+    {
+      "name": "test_nominal_single_patch_single_layer",
+      "inputs": {
+        "slatop": [
+          0.015
+        ],
+        "ncan": [
+          1
+        ],
+        "dpai": [
+          [
+            2.5
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.7
+      },
+      "expected_output": [
+        [
+          17458.33
+        ]
+      ],
+      "metadata": {
+        "type": "nominal",
+        "description": "Single patch, single canopy layer with typical forest parameters",
+        "edge_cases": [],
+        "physical_context": "Typical temperate forest canopy with moderate LAI"
+      }
+    },
+    {
+      "name": "test_nominal_multi_patch_multi_layer",
+      "inputs": {
+        "slatop": [
+          0.012,
+          0.018,
+          0.02
+        ],
+        "ncan": [
+          3,
+          2,
+          4
+        ],
+        "dpai": [
+          [
+            1.5,
+            1.2,
+            0.8
+          ],
+          [
+            2.0,
+            1.5,
+            0.0
+          ],
+          [
+            1.8,
+            1.6,
+            1.4,
+            1.0
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.7
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "nominal",
+        "description": "Multiple patches with varying canopy layers representing different vegetation types",
+        "edge_cases": [],
+        "physical_context": "Mixed forest stand with different species (conifer, broadleaf, shrub)"
+      }
+    },
+    {
+      "name": "test_nominal_grassland_low_lai",
+      "inputs": {
+        "slatop": [
+          0.025,
+          0.03
+        ],
+        "ncan": [
+          2,
+          2
+        ],
+        "dpai": [
+          [
+            0.5,
+            0.3
+          ],
+          [
+            0.8,
+            0.4
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.7
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "nominal",
+        "description": "Grassland/crop canopy with high SLA and low LAI",
+        "edge_cases": [],
+        "physical_context": "Agricultural or grassland ecosystem with thin leaves"
+      }
+    },
+    {
+      "name": "test_edge_zero_dpai",
+      "inputs": {
+        "slatop": [
+          0.015,
+          0.02
+        ],
+        "ncan": [
+          3,
+          2
+        ],
+        "dpai": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            1.5,
+            0.0
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.7
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "edge",
+        "description": "Zero plant area index in some or all layers (bare ground or gaps)",
+        "edge_cases": [
+          "zero_dpai"
+        ],
+        "physical_context": "Sparse canopy or winter deciduous forest, should return zero heat capacity"
+      }
+    },
+    {
+      "name": "test_edge_very_small_slatop",
+      "inputs": {
+        "slatop": [
+          0.001,
+          0.0005
+        ],
+        "ncan": [
+          2,
+          2
+        ],
+        "dpai": [
+          [
+            1.0,
+            0.5
+          ],
+          [
+            1.2,
+            0.8
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.7
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "edge",
+        "description": "Very small SLA representing extremely thick leaves (succulents)",
+        "edge_cases": [
+          "small_sla"
+        ],
+        "physical_context": "Succulent plants or sclerophyllous vegetation with very thick leaves"
+      }
+    },
+    {
+      "name": "test_edge_very_large_slatop",
+      "inputs": {
+        "slatop": [
+          0.05,
+          0.08
+        ],
+        "ncan": [
+          2,
+          3
+        ],
+        "dpai": [
+          [
+            2.0,
+            1.5
+          ],
+          [
+            1.8,
+            1.2,
+            0.6
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.7
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "edge",
+        "description": "Very large SLA representing extremely thin leaves",
+        "edge_cases": [
+          "large_sla"
+        ],
+        "physical_context": "Shade-adapted understory plants with very thin leaves"
+      }
+    },
+    {
+      "name": "test_edge_extreme_fwater_boundary",
+      "inputs": {
+        "slatop": [
+          0.015
+        ],
+        "ncan": [
+          2
+        ],
+        "dpai": [
+          [
+            1.5,
+            1.0
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.95
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "edge",
+        "description": "Very high water fraction near upper boundary (succulent-like)",
+        "edge_cases": [
+          "high_fwater"
+        ],
+        "physical_context": "Succulent plants with very high water content, tests numerical stability"
+      }
+    },
+    {
+      "name": "test_edge_low_fwater",
+      "inputs": {
+        "slatop": [
+          0.015
+        ],
+        "ncan": [
+          2
+        ],
+        "dpai": [
+          [
+            1.5,
+            1.0
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.1
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "edge",
+        "description": "Very low water fraction (drought-stressed or dry leaves)",
+        "edge_cases": [
+          "low_fwater"
+        ],
+        "physical_context": "Severely drought-stressed vegetation or senescing leaves"
+      }
+    },
+    {
+      "name": "test_special_high_lai_dense_canopy",
+      "inputs": {
+        "slatop": [
+          0.01
+        ],
+        "ncan": [
+          5
+        ],
+        "dpai": [
+          [
+            3.5,
+            3.0,
+            2.5,
+            2.0,
+            1.5
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.7
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "special",
+        "description": "Dense tropical forest canopy with many layers and high LAI",
+        "edge_cases": [],
+        "physical_context": "Tropical rainforest with deep, multi-layered canopy structure"
+      }
+    },
+    {
+      "name": "test_special_variable_physical_params",
+      "inputs": {
+        "slatop": [
+          0.015,
+          0.02
+        ],
+        "ncan": [
+          2,
+          2
+        ],
+        "dpai": [
+          [
+            1.5,
+            1.0
+          ],
+          [
+            2.0,
+            1.2
+          ]
+        ],
+        "cpbio": 1200.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.45,
+        "fwater": 0.65
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "special",
+        "description": "Non-default physical parameters representing different tissue composition",
+        "edge_cases": [],
+        "physical_context": "Vegetation with different biochemical composition (e.g., high lignin content)"
+      }
+    }
+  ],
+  "test_cases_simple_function": [
+    {
+      "name": "test_simple_nominal_default_params",
+      "inputs": {
+        "slatop": [
+          0.015,
+          0.02
+        ],
+        "dpai": [
+          [
+            1.5,
+            1.0
+          ],
+          [
+            2.0,
+            1.2
+          ]
+        ],
+        "params": {
+          "cpbio": 1470.0,
+          "cpliq": 4188.0,
+          "fcarbon": 0.5,
+          "fwater": 0.7
+        }
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "nominal",
+        "description": "Simple function with default parameters",
+        "edge_cases": [],
+        "physical_context": "Standard test case for simplified interface"
+      }
+    },
+    {
+      "name": "test_simple_edge_zero_dpai_all_layers",
+      "inputs": {
+        "slatop": [
+          0.015
+        ],
+        "dpai": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "params": {
+          "cpbio": 1470.0,
+          "cpliq": 4188.0,
+          "fcarbon": 0.5,
+          "fwater": 0.7
+        }
+      },
+      "expected_output": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "metadata": {
+        "type": "edge",
+        "description": "All layers have zero PAI, should return all zeros",
+        "edge_cases": [
+          "zero_dpai"
+        ],
+        "physical_context": "Completely bare ground or winter leafless condition"
+      }
+    },
+    {
+      "name": "test_simple_special_single_layer_high_lai",
+      "inputs": {
+        "slatop": [
+          0.008
+        ],
+        "dpai": [
+          [
+            8.0
+          ]
+        ],
+        "params": {
+          "cpbio": 1470.0,
+          "cpliq": 4188.0,
+          "fcarbon": 0.5,
+          "fwater": 0.7
+        }
+      },
+      "expected_output": null,
+      "metadata": {
+        "type": "special",
+        "description": "Single very dense layer with extreme LAI",
+        "edge_cases": [],
+        "physical_context": "Extremely dense canopy layer (e.g., bamboo forest)"
+      }
+    }
+  ],
+  "validation_tests": [
+    {
+      "name": "test_consistency_between_functions",
+      "description": "Verify that leaf_heat_capacity and leaf_heat_capacity_simple produce identical results",
+      "inputs": {
+        "slatop": [
+          0.015,
+          0.02
+        ],
+        "ncan": [
+          2,
+          3
+        ],
+        "dpai": [
+          [
+            1.5,
+            1.0
+          ],
+          [
+            2.0,
+            1.5,
+            1.0
+          ]
+        ],
+        "cpbio": 1470.0,
+        "cpliq": 4188.0,
+        "fcarbon": 0.5,
+        "fwater": 0.7
+      },
+      "metadata": {
+        "type": "validation",
+        "description": "Cross-validation between two function implementations",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_jit_consistency",
+      "description": "Verify JIT-compiled versions produce identical results to non-JIT versions",
+      "inputs": {
+        "slatop": [
+          0.015
+        ],
+        "dpai": [
+          [
+            1.5,
+            1.0,
+            0.5
+          ]
+        ],
+        "params": {
+          "cpbio": 1470.0,
+          "cpliq": 4188.0,
+          "fcarbon": 0.5,
+          "fwater": 0.7
+        }
+      },
+      "metadata": {
+        "type": "validation",
+        "description": "Ensure JIT compilation doesn't change numerical results",
+        "edge_cases": []
+      }
+    }
+  ],
+  "property_based_tests": [
+    {
+      "name": "test_property_non_negative_output",
+      "description": "Heat capacity must always be non-negative",
+      "property": "output >= 0 for all valid inputs",
+      "strategy": "Generate random valid inputs and verify output >= 0"
+    },
+    {
+      "name": "test_property_zero_dpai_zero_output",
+      "description": "Zero plant area index should produce zero heat capacity",
+      "property": "output[i,j] == 0 when dpai[i,j] == 0",
+      "strategy": "Generate inputs with some zero dpai values"
+    },
+    {
+      "name": "test_property_monotonic_with_dpai",
+      "description": "Heat capacity should increase monotonically with dpai (all else equal)",
+      "property": "output increases as dpai increases",
+      "strategy": "Fix all params, vary dpai, check monotonicity"
+    },
+    {
+      "name": "test_property_inverse_slatop_relationship",
+      "description": "Heat capacity should increase as slatop decreases (thicker leaves)",
+      "property": "output increases as slatop decreases (for fixed dpai)",
+      "strategy": "Fix dpai, vary slatop inversely, check relationship"
+    }
+  ],
+  "notes": {
+    "generation_method": "Test cases generated based on physical understanding of leaf heat capacity",
+    "assumptions": [
+      "slatop values range from 0.0005 (succulents) to 0.080 (thin shade leaves) m2/gC",
+      "dpai values range from 0 (bare) to 8.0 (very dense) m2/m2 per layer",
+      "ncan typically ranges from 1-5 layers for most vegetation",
+      "Default physical parameters: cpbio=1470 J/kg/K, cpliq=4188 J/kg/K",
+      "fcarbon typically 0.45-0.5 (carbon fraction of dry biomass)",
+      "fwater typically 0.6-0.8 (water fraction of fresh biomass), must be < 1.0",
+      "Expected output calculated using: cpleaf = cpbio * dry_weight + cpliq * leaf_water",
+      "Where: lma = 1/slatop * 0.001, dry_weight = lma/fcarbon, fresh_weight = dry_weight/(1-fwater), leaf_water = fwater * fresh_weight"
+    ],
+    "edge_case_rationale": {
+      "zero_dpai": "Tests handling of bare ground or canopy gaps",
+      "small_sla": "Tests numerical stability with thick leaves (high LMA)",
+      "large_sla": "Tests numerical stability with thin leaves (low LMA)",
+      "high_fwater": "Tests near-boundary condition where (1-fwater) approaches zero",
+      "low_fwater": "Tests drought-stressed or senescing vegetation"
+    },
+    "physical_realism": {
+      "slatop_range": "0.005-0.040 m2/gC typical for most vegetation",
+      "dpai_range": "0-6 m2/m2 typical for natural canopies",
+      "fwater_range": "0.6-0.8 typical for healthy vegetation",
+      "output_range": "Expected outputs typically 5000-30000 J/m2/K for moderate LAI"
+    },
+    "dimension_consistency": "All test cases ensure dpai shape matches (n_patches, n_levels) where n_levels >= max(ncan)"
+  }
+}

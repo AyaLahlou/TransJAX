@@ -1,0 +1,64 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.13, pytest-9.0.2, pluggy-1.6.0 -- /burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /burg-archive/home/mck2199/clm-ml-jax
+configfile: pytest.ini
+plugins: cov-7.0.0, anyio-4.12.0
+collecting ... collected 32 items
+
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_nominal_single_patch_single_layer] PASSED [  3%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_nominal_multi_patch_multi_layer] PASSED [  6%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_edge_zero_plant_area_index] PASSED [  9%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_edge_extreme_temperature_gradient] PASSED [ 12%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_edge_full_transmittance] PASSED [ 15%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_edge_zero_transmittance] PASSED [ 18%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_special_maximum_canopy_layers] PASSED [ 21%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_special_all_shaded_canopy] PASSED [ 25%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_special_high_incoming_radiation] PASSED [ 28%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_shapes[test_edge_boundary_emissivity] PASSED [ 31%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_physical_constraints[test_nominal_single_patch_single_layer] PASSED [ 34%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_physical_constraints[test_nominal_multi_patch_multi_layer] PASSED [ 37%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_edge_cases[test_edge_zero_plant_area_index] PASSED [ 40%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_edge_cases[test_edge_extreme_temperature_gradient] PASSED [ 43%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_edge_cases[test_edge_full_transmittance] PASSED [ 46%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_edge_cases[test_edge_zero_transmittance] PASSED [ 50%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_special_cases[test_special_maximum_canopy_layers] PASSED [ 53%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_special_cases[test_special_all_shaded_canopy] PASSED [ 56%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_special_cases[test_special_high_incoming_radiation] PASSED [ 59%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_dtypes PASSED [ 62%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_energy_conservation PASSED [ 65%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_layer_consistency PASSED [ 68%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_stefan_boltzmann_emission PASSED [ 71%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_filter_indices PASSED [ 75%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_transmittance_relationship PASSED [ 78%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_temperature_gradient PASSED [ 81%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_emissivity_bounds PASSED [ 84%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_output_initialization[test_nominal_single_patch_single_layer] PASSED [ 87%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_output_initialization[test_edge_zero_plant_area_index] PASSED [ 90%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_output_initialization[test_special_all_shaded_canopy] PASSED [ 93%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_parameter_validation PASSED [ 96%]
+../tests/multilayer_canopy/test_MLLongwaveRadiationMod.py::test_longwave_radiation_bounds_consistency PASSED [100%]/burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/lib64/python3.11/site-packages/coverage/control.py:957: CoverageWarning: No data was collected. (no-data-collected); see https://coverage.readthedocs.io/en/7.13.0/messages.html#warning-no-data-collected
+  self._warn("No data was collected.", slug="no-data-collected")
+
+
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.13-final-0 _______________
+
+Name                                                Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------------------
+src/jax_agents/__init__.py                              6      6     0%   7-14
+src/jax_agents/base_agent.py                          114    114     0%   7-386
+src/jax_agents/prompts/__init__.py                      3      3     0%   3-6
+src/jax_agents/prompts/repair_prompts.py                1      1     0%   11
+src/jax_agents/prompts/test_prompts_simplified.py       1      1     0%   8
+src/jax_agents/prompts/translation_prompts_v2.py        1      1     0%   3
+src/jax_agents/repair_agent.py                        169    169     0%   13-453
+src/jax_agents/test_agent.py                          133    133     0%   11-335
+src/jax_agents/translator.py                          277    277     0%   8-891
+src/jax_agents/utils/__init__.py                        2      2     0%   3-5
+src/jax_agents/utils/config_loader.py                  21     21     0%   3-69
+---------------------------------------------------------------------------------
+TOTAL                                                 728    728     0%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+============================== 32 passed in 4.03s ==============================

@@ -1,0 +1,269 @@
+{
+  "function_name": "water_vapor_functions",
+  "test_cases": [
+    {
+      "name": "test_sat_vap_nominal_room_temperature",
+      "function": "sat_vap",
+      "inputs": {
+        "t": [
+          293.15,
+          298.15,
+          303.15
+        ],
+        "tfrz": 273.15
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Room temperature conditions (20\u00b0C, 25\u00b0C, 30\u00b0C) - typical indoor/outdoor scenarios",
+        "edge_cases": [],
+        "expected_behavior": "es should increase exponentially with temperature, desdt should be positive and increasing"
+      }
+    },
+    {
+      "name": "test_sat_vap_edge_freezing_point",
+      "function": "sat_vap",
+      "inputs": {
+        "t": [
+          273.15
+        ],
+        "tfrz": 273.15
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Exactly at freezing point - critical phase transition temperature",
+        "edge_cases": [
+          "boundary_condition",
+          "phase_transition"
+        ],
+        "expected_behavior": "es should be ~611 Pa (triple point pressure)"
+      }
+    },
+    {
+      "name": "test_sat_vap_edge_temperature_bounds",
+      "function": "sat_vap",
+      "inputs": {
+        "t": [
+          198.15,
+          373.15
+        ],
+        "tfrz": 273.15
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Minimum and maximum valid temperatures (-75\u00b0C and 100\u00b0C)",
+        "edge_cases": [
+          "boundary_min",
+          "boundary_max"
+        ],
+        "expected_behavior": "Should handle clamping boundaries correctly, es at 373.15K should be ~101325 Pa"
+      }
+    },
+    {
+      "name": "test_sat_vap_multidimensional_array",
+      "function": "sat_vap",
+      "inputs": {
+        "t": [
+          [
+            273.15,
+            283.15,
+            293.15
+          ],
+          [
+            303.15,
+            313.15,
+            323.15
+          ]
+        ],
+        "tfrz": 273.15
+      },
+      "metadata": {
+        "type": "special",
+        "description": "2D array input representing spatial grid (e.g., 2x3 atmospheric profile)",
+        "edge_cases": [],
+        "expected_behavior": "Output shape should match input shape (2, 3)"
+      }
+    },
+    {
+      "name": "test_lat_vap_nominal_atmospheric_range",
+      "function": "lat_vap",
+      "inputs": {
+        "t": [
+          250.0,
+          273.15,
+          300.0,
+          320.0
+        ],
+        "constants": {
+          "tfrz": 273.15,
+          "hvap": 2501000.0,
+          "hsub": 2834000.0,
+          "mmh2o": 0.018015
+        }
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Atmospheric temperature range from cold (-23\u00b0C) to warm (47\u00b0C)",
+        "edge_cases": [],
+        "expected_behavior": "Latent heat should decrease with temperature, range ~44-52 kJ/mol"
+      }
+    },
+    {
+      "name": "test_lat_vap_edge_near_absolute_zero",
+      "function": "lat_vap",
+      "inputs": {
+        "t": [
+          1.0,
+          10.0,
+          50.0
+        ],
+        "constants": {
+          "tfrz": 273.15,
+          "hvap": 2501000.0,
+          "hsub": 2834000.0,
+          "mmh2o": 0.018015
+        }
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Very low temperatures near absolute zero (physically valid but extreme)",
+        "edge_cases": [
+          "extreme_cold"
+        ],
+        "expected_behavior": "Should use sublimation heat, values should be physically reasonable"
+      }
+    },
+    {
+      "name": "test_vapor_pressure_deficit_nominal_varied_humidity",
+      "function": "vapor_pressure_deficit",
+      "inputs": {
+        "t": [
+          298.15,
+          298.15,
+          298.15,
+          298.15
+        ],
+        "rh": [
+          30.0,
+          50.0,
+          70.0,
+          90.0
+        ],
+        "constants": {
+          "tfrz": 273.15,
+          "hvap": 2501000.0,
+          "hsub": 2834000.0,
+          "mmh2o": 0.018015
+        }
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Fixed temperature (25\u00b0C) with varying relative humidity levels",
+        "edge_cases": [],
+        "expected_behavior": "VPD should decrease as RH increases, inversely proportional relationship"
+      }
+    },
+    {
+      "name": "test_vapor_pressure_deficit_edge_saturated_air",
+      "function": "vapor_pressure_deficit",
+      "inputs": {
+        "t": [
+          273.15,
+          293.15,
+          313.15
+        ],
+        "rh": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "constants": {
+          "tfrz": 273.15,
+          "hvap": 2501000.0,
+          "hsub": 2834000.0,
+          "mmh2o": 0.018015
+        }
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "100% relative humidity (saturated air) at various temperatures",
+        "edge_cases": [
+          "zero_vpd",
+          "saturation"
+        ],
+        "expected_behavior": "VPD should be zero or near-zero for all temperatures"
+      }
+    },
+    {
+      "name": "test_vapor_pressure_deficit_edge_dry_air",
+      "function": "vapor_pressure_deficit",
+      "inputs": {
+        "t": [
+          273.15,
+          293.15,
+          313.15
+        ],
+        "rh": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "constants": {
+          "tfrz": 273.15,
+          "hvap": 2501000.0,
+          "hsub": 2834000.0,
+          "mmh2o": 0.018015
+        }
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "0% relative humidity (completely dry air) at various temperatures",
+        "edge_cases": [
+          "maximum_vpd",
+          "zero_humidity"
+        ],
+        "expected_behavior": "VPD should equal saturation vapor pressure (maximum possible VPD)"
+      }
+    },
+    {
+      "name": "test_sat_vap_with_constants_special_3d_array",
+      "function": "sat_vap_with_constants",
+      "inputs": {
+        "t": [
+          [
+            [
+              273.15,
+              283.15
+            ],
+            [
+              293.15,
+              303.15
+            ]
+          ],
+          [
+            [
+              313.15,
+              323.15
+            ],
+            [
+              333.15,
+              343.15
+            ]
+          ]
+        ],
+        "constants": {
+          "tfrz": 273.15,
+          "hvap": 2501000.0,
+          "hsub": 2834000.0,
+          "mmh2o": 0.018015
+        }
+      },
+      "metadata": {
+        "type": "special",
+        "description": "3D array input (2x2x2) representing volumetric atmospheric data",
+        "edge_cases": [],
+        "expected_behavior": "Output shape should match input shape (2, 2, 2), values should span wide range"
+      }
+    }
+  ],
+  "notes": "Test data generation strategy:\n\n1. **Temperature Selection**: Chosen to cover the valid range [198.15K, 373.15K] with emphasis on physically meaningful points:\n   - Freezing point (273.15K): Critical phase transition\n   - Room temperature range (293-303K): Most common conditions\n   - Atmospheric range (250-320K): Typical Earth surface conditions\n   - Boundary values: Test clamping behavior\n\n2. **Relative Humidity**: Selected key values (0%, 30%, 50%, 70%, 90%, 100%) to test:\n   - Saturation (100%): VPD should be zero\n   - Dry air (0%): Maximum VPD\n   - Intermediate values: Linear interpolation behavior\n\n3. **Array Dimensions**: Progressively tested:\n   - 1D arrays: Basic functionality\n   - 2D arrays: Spatial grids (common in atmospheric models)\n   - 3D arrays: Volumetric data (full atmospheric columns)\n\n4. **Physical Realism**:\n   - All temperatures > 0K (absolute requirement)\n   - Temperatures within polynomial validity range for most tests\n   - RH constrained to [0, 100]%\n   - Constants use standard water properties at 1 atm\n\n5. **Edge Case Coverage**:\n   - Phase transition points (freezing)\n   - Saturation conditions (RH=100%)\n   - Dry conditions (RH=0%)\n   - Temperature boundaries\n   - Extreme cold (near absolute zero)\n\n6. **Expected Behaviors**:\n   - Clausius-Clapeyron: es increases exponentially with T\n   - Latent heat decreases with increasing temperature\n   - VPD = es * (1 - RH/100)\n   - All outputs should be non-negative\n   - Shape preservation through all operations\n\nAssumptions:\n- DEFAULT_CONSTANTS values are physically accurate\n- Polynomial approximations valid in specified range\n- JAX broadcasting rules apply\n- Numerical precision sufficient for physical calculations"
+}

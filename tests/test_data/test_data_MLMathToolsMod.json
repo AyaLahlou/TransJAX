@@ -1,0 +1,871 @@
+{
+  "function_name": "MLMathToolsMod",
+  "test_cases": [
+    {
+      "name": "test_hybrid_root_finder_simple_quadratic",
+      "function": "hybrid_root_finder",
+      "inputs": {
+        "func": "lambda x: x**2 - 4.0",
+        "xa": [
+          1.0,
+          1.5,
+          1.8
+        ],
+        "xb": [
+          3.0,
+          2.5,
+          2.2
+        ],
+        "tol": 1e-06,
+        "itmax": 40
+      },
+      "expected_output": {
+        "root": [
+          2.0,
+          2.0,
+          2.0
+        ],
+        "tolerance": 1e-05
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Simple quadratic with known root at x=2, testing convergence from different initial brackets",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_hybrid_root_finder_transcendental",
+      "function": "hybrid_root_finder",
+      "inputs": {
+        "func": "lambda x: jnp.exp(x) - 3*x",
+        "xa": [
+          0.5,
+          1.0,
+          1.2
+        ],
+        "xb": [
+          2.0,
+          2.5,
+          2.0
+        ],
+        "tol": 1e-07,
+        "itmax": 50
+      },
+      "expected_output": {
+        "root": [
+          1.512134,
+          1.512134,
+          1.512134
+        ],
+        "tolerance": 1e-05
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Transcendental equation exp(x) = 3x with root near 1.512",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_zbrent_polynomial_roots",
+      "function": "zbrent",
+      "inputs": {
+        "func": "lambda x: (x - 1.0) * (x - 2.0) * (x - 3.0)",
+        "xa": [
+          0.5,
+          1.5,
+          2.5
+        ],
+        "xb": [
+          1.5,
+          2.5,
+          3.5
+        ],
+        "tol": 1e-08,
+        "itmax": 50,
+        "eps": 1e-08
+      },
+      "expected_output": {
+        "root": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "converged": [
+          true,
+          true,
+          true
+        ],
+        "error": [
+          false,
+          false,
+          false
+        ]
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Cubic polynomial with three known roots, testing bracketing for each",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_zbrent_edge_zero_crossing",
+      "function": "zbrent",
+      "inputs": {
+        "func": "lambda x: x",
+        "xa": [
+          -1.0,
+          -0.5,
+          -0.1
+        ],
+        "xb": [
+          1.0,
+          0.5,
+          0.1
+        ],
+        "tol": 1e-10,
+        "itmax": 50,
+        "eps": 1e-10
+      },
+      "expected_output": {
+        "root": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "converged": [
+          true,
+          true,
+          true
+        ],
+        "error": [
+          false,
+          false,
+          false
+        ]
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Root exactly at zero with symmetric brackets of varying widths",
+        "edge_cases": [
+          "zero_root",
+          "symmetric_bracket"
+        ]
+      }
+    },
+    {
+      "name": "test_quadratic_standard_cases",
+      "function": "quadratic",
+      "inputs": {
+        "a": [
+          1.0,
+          2.0,
+          1.0,
+          -1.0
+        ],
+        "b": [
+          -3.0,
+          -8.0,
+          -4.0,
+          2.0
+        ],
+        "c": [
+          2.0,
+          6.0,
+          4.0,
+          1.0
+        ]
+      },
+      "expected_output": {
+        "r1": [
+          2.0,
+          3.0,
+          2.0,
+          1.0
+        ],
+        "r2": [
+          1.0,
+          1.0,
+          2.0,
+          -1.0
+        ],
+        "tolerance": 1e-06
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Standard quadratic equations with real roots, including negative leading coefficient",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_quadratic_edge_cases",
+      "function": "quadratic",
+      "inputs": {
+        "a": [
+          1.0,
+          1.0,
+          0.001
+        ],
+        "b": [
+          0.0,
+          -2.0,
+          0.0
+        ],
+        "c": [
+          -4.0,
+          1.0,
+          -1e-06
+        ]
+      },
+      "expected_output": {
+        "r1": [
+          2.0,
+          1.0,
+          0.001
+        ],
+        "r2": [
+          -2.0,
+          1.0,
+          -0.001
+        ],
+        "tolerance": 1e-05
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Edge cases: zero b coefficient, repeated root, very small coefficients",
+        "edge_cases": [
+          "zero_linear_term",
+          "repeated_root",
+          "small_magnitude"
+        ]
+      }
+    },
+    {
+      "name": "test_tridiag_simple_system",
+      "function": "tridiag",
+      "inputs": {
+        "a": [
+          0.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "b": [
+          2.0,
+          2.0,
+          2.0,
+          2.0
+        ],
+        "c": [
+          1.0,
+          1.0,
+          1.0,
+          0.0
+        ],
+        "r": [
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ]
+      },
+      "expected_output": {
+        "solution": [
+          -1.0,
+          2.0,
+          0.0,
+          2.0
+        ],
+        "tolerance": 1e-06
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Simple 4x4 tridiagonal system with known solution",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_tridiag_2eq_coupled_system",
+      "function": "tridiag_2eq",
+      "inputs": {
+        "a1": [
+          0.0,
+          -0.1,
+          -0.1,
+          -0.1,
+          -0.1
+        ],
+        "b11": [
+          1.0,
+          1.2,
+          1.2,
+          1.2,
+          1.0
+        ],
+        "b12": [
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05
+        ],
+        "c1": [
+          -0.1,
+          -0.1,
+          -0.1,
+          -0.1,
+          0.0
+        ],
+        "d1": [
+          300.0,
+          295.0,
+          290.0,
+          285.0,
+          280.0
+        ],
+        "a2": [
+          0.0,
+          -0.05,
+          -0.05,
+          -0.05,
+          -0.05
+        ],
+        "b21": [
+          0.02,
+          0.02,
+          0.02,
+          0.02,
+          0.02
+        ],
+        "b22": [
+          1.0,
+          1.1,
+          1.1,
+          1.1,
+          1.0
+        ],
+        "c2": [
+          -0.05,
+          -0.05,
+          -0.05,
+          -0.05,
+          0.0
+        ],
+        "d2": [
+          0.01,
+          0.012,
+          0.014,
+          0.016,
+          0.018
+        ],
+        "n": 5
+      },
+      "expected_output": {
+        "t": [
+          298.0,
+          293.0,
+          288.0,
+          283.0,
+          278.0
+        ],
+        "q": [
+          0.0095,
+          0.0108,
+          0.0125,
+          0.0143,
+          0.0165
+        ],
+        "tolerance": 0.001
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Coupled temperature-vapor system representing atmospheric layers",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_beta_functions_standard",
+      "function": "beta_function",
+      "inputs": {
+        "a": [
+          2.0,
+          3.0,
+          0.5,
+          5.0
+        ],
+        "b": [
+          3.0,
+          2.0,
+          0.5,
+          5.0
+        ]
+      },
+      "expected_output": {
+        "beta": [
+          0.08333,
+          0.08333,
+          3.14159,
+          0.00317
+        ],
+        "tolerance": 0.0001
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Standard beta function values including symmetric cases and fractional parameters",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_beta_distribution_pdf_cdf",
+      "function": "beta_distribution_pdf",
+      "inputs": {
+        "a": [
+          2.0,
+          5.0,
+          0.5,
+          2.0
+        ],
+        "b": [
+          5.0,
+          2.0,
+          0.5,
+          2.0
+        ],
+        "x": [
+          0.3,
+          0.7,
+          0.5,
+          0.0
+        ]
+      },
+      "expected_output": {
+        "pdf": [
+          2.1609,
+          2.1609,
+          0.6366,
+          0.0
+        ],
+        "tolerance": 0.001
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Beta distribution PDF at various points including boundary at x=0",
+        "edge_cases": [
+          "boundary_zero"
+        ]
+      }
+    },
+    {
+      "name": "test_log_gamma_edge_cases",
+      "function": "log_gamma_function",
+      "inputs": {
+        "x": [
+          1.0,
+          2.0,
+          0.5,
+          10.0,
+          100.0,
+          1e-06
+        ]
+      },
+      "expected_output": {
+        "log_gamma": [
+          0.0,
+          0.0,
+          0.5723,
+          12.8018,
+          359.1342,
+          13.8155
+        ],
+        "tolerance": 0.001
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Log gamma function at special points and extreme values (very small and very large)",
+        "edge_cases": [
+          "unit_values",
+          "small_positive",
+          "large_positive"
+        ]
+      }
+    },
+    {
+      "name": "test_hybrid_root_finder_tight_tolerance",
+      "function": "hybrid_root_finder",
+      "inputs": {
+        "func": "lambda x: jnp.sin(x) - 0.5",
+        "xa": [
+          0.3,
+          0.4,
+          0.45
+        ],
+        "xb": [
+          0.7,
+          0.6,
+          0.55
+        ],
+        "tol": 1e-12,
+        "itmax": 100
+      },
+      "expected_output": {
+        "root": [
+          0.5236,
+          0.5236,
+          0.5236
+        ],
+        "tolerance": 1e-10
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Very tight tolerance requirement testing numerical precision limits",
+        "edge_cases": [
+          "high_precision"
+        ]
+      }
+    },
+    {
+      "name": "test_zbrent_no_bracket_error",
+      "function": "zbrent",
+      "inputs": {
+        "func": "lambda x: x**2 + 1.0",
+        "xa": [
+          0.0,
+          -1.0,
+          -2.0
+        ],
+        "xb": [
+          1.0,
+          1.0,
+          2.0
+        ],
+        "tol": 1e-06,
+        "itmax": 50,
+        "eps": 1e-08
+      },
+      "expected_output": {
+        "root": [
+          0.5,
+          0.0,
+          0.0
+        ],
+        "converged": [
+          false,
+          false,
+          false
+        ],
+        "error": [
+          true,
+          true,
+          true
+        ]
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Function with no real roots - should trigger bracketing error",
+        "edge_cases": [
+          "no_root",
+          "bracketing_error"
+        ]
+      }
+    },
+    {
+      "name": "test_tridiag_diagonal_dominant",
+      "function": "tridiag",
+      "inputs": {
+        "a": [
+          0.0,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1
+        ],
+        "b": [
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0
+        ],
+        "c": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.0
+        ],
+        "r": [
+          10.1,
+          10.2,
+          10.2,
+          10.2,
+          10.2,
+          10.1
+        ]
+      },
+      "expected_output": {
+        "solution": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "tolerance": 1e-08
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Strongly diagonally dominant system - numerically stable case",
+        "edge_cases": [
+          "diagonal_dominant"
+        ]
+      }
+    },
+    {
+      "name": "test_beta_distribution_boundary_values",
+      "function": "beta_distribution_cdf",
+      "inputs": {
+        "a": 2.0,
+        "b": 3.0,
+        "x": 0.0
+      },
+      "expected_output": {
+        "cdf": 0.0,
+        "tolerance": 1e-10
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Beta CDF at lower boundary x=0 should be exactly 0",
+        "edge_cases": [
+          "boundary_zero"
+        ]
+      }
+    },
+    {
+      "name": "test_beta_distribution_upper_boundary",
+      "function": "beta_distribution_cdf",
+      "inputs": {
+        "a": 2.0,
+        "b": 3.0,
+        "x": 1.0
+      },
+      "expected_output": {
+        "cdf": 1.0,
+        "tolerance": 1e-10
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Beta CDF at upper boundary x=1 should be exactly 1",
+        "edge_cases": [
+          "boundary_one"
+        ]
+      }
+    },
+    {
+      "name": "test_quadratic_near_zero_discriminant",
+      "function": "quadratic",
+      "inputs": {
+        "a": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "b": [
+          -2.0,
+          -2.000001,
+          -1.999999
+        ],
+        "c": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expected_output": {
+        "r1": [
+          1.0,
+          1.0000005,
+          0.9999995
+        ],
+        "r2": [
+          1.0,
+          1.0000005,
+          0.9999995
+        ],
+        "tolerance": 1e-06
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Near-repeated roots testing numerical stability with small discriminant",
+        "edge_cases": [
+          "near_zero_discriminant",
+          "numerical_stability"
+        ]
+      }
+    },
+    {
+      "name": "test_tridiag_2eq_atmospheric_profile",
+      "function": "tridiag_2eq",
+      "inputs": {
+        "a1": [
+          0.0,
+          -0.05,
+          -0.05,
+          -0.05
+        ],
+        "b11": [
+          1.1,
+          1.15,
+          1.15,
+          1.1
+        ],
+        "b12": [
+          0.01,
+          0.01,
+          0.01,
+          0.01
+        ],
+        "c1": [
+          -0.05,
+          -0.05,
+          -0.05,
+          0.0
+        ],
+        "d1": [
+          288.15,
+          285.0,
+          282.0,
+          279.0
+        ],
+        "a2": [
+          0.0,
+          -0.02,
+          -0.02,
+          -0.02
+        ],
+        "b21": [
+          0.005,
+          0.005,
+          0.005,
+          0.005
+        ],
+        "b22": [
+          1.05,
+          1.08,
+          1.08,
+          1.05
+        ],
+        "c2": [
+          -0.02,
+          -0.02,
+          -0.02,
+          0.0
+        ],
+        "d2": [
+          0.008,
+          0.01,
+          0.012,
+          0.014
+        ],
+        "n": 4
+      },
+      "expected_output": {
+        "t": [
+          286.0,
+          283.0,
+          280.0,
+          277.0
+        ],
+        "q": [
+          0.0075,
+          0.0092,
+          0.011,
+          0.013
+        ],
+        "tolerance": 0.01
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Realistic atmospheric temperature-moisture profile with physical coupling",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_beta_incomplete_cf_convergence",
+      "function": "beta_function_incomplete_cf",
+      "inputs": {
+        "a": [
+          2.0,
+          5.0,
+          0.5
+        ],
+        "b": [
+          3.0,
+          2.0,
+          0.5
+        ],
+        "x": [
+          0.5,
+          0.3,
+          0.9
+        ]
+      },
+      "expected_output": {
+        "cf_value": [
+          0.6875,
+          0.1631,
+          0.9
+        ],
+        "tolerance": 0.0001
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Incomplete beta function continued fraction at various parameter combinations",
+        "edge_cases": []
+      }
+    },
+    {
+      "name": "test_hybrid_root_finder_multiple_points",
+      "function": "hybrid_root_finder",
+      "inputs": {
+        "func": "lambda x: x**3 - x - 2.0",
+        "xa": [
+          1.0,
+          1.2,
+          1.3,
+          1.4,
+          1.45
+        ],
+        "xb": [
+          2.0,
+          1.8,
+          1.7,
+          1.6,
+          1.55
+        ],
+        "tol": 1e-08,
+        "itmax": 60
+      },
+      "expected_output": {
+        "root": [
+          1.5214,
+          1.5214,
+          1.5214,
+          1.5214,
+          1.5214
+        ],
+        "tolerance": 1e-06
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Vectorized root finding with multiple initial brackets converging to same root",
+        "edge_cases": [
+          "vectorized_operation"
+        ]
+      }
+    }
+  ],
+  "notes": "Test data generation methodology:\n\n1. **Root Finding Functions (hybrid_root_finder, zbrent)**:\n   - Used well-known functions with analytical solutions (polynomials, transcendentals)\n   - Varied bracket widths and positions to test convergence behavior\n   - Included edge case with no real roots to test error handling\n   - Tested tight tolerance requirements for numerical precision\n\n2. **Quadratic Solver**:\n   - Standard cases with distinct real roots\n   - Edge cases: zero coefficients, repeated roots, near-zero discriminant\n   - Negative leading coefficient to test sign handling\n   - Very small coefficients to test numerical stability\n\n3. **Tridiagonal Solvers (tridiag, tridiag_2eq)**:\n   - Simple systems with known analytical solutions\n   - Diagonally dominant matrices for numerical stability\n   - Coupled temperature-moisture system mimicking atmospheric physics\n   - Physical constraints: temperatures in Kelvin (>273K), moisture fractions in [0,1]\n\n4. **Beta Functions and Distributions**:\n   - Standard parameter values (a,b > 0)\n   - Boundary cases at x=0 and x=1\n   - Symmetric and asymmetric parameter combinations\n   - Fractional parameters (0.5) to test gamma function accuracy\n   - Large parameters (100) to test numerical stability\n\n5. **Log Gamma Function**:\n   - Special values where gamma is known (1, 2)\n   - Very small positive values (1e-6) near singularity\n   - Large values (100) testing asymptotic behavior\n\n**Physical Realism**:\n- Temperatures kept above 0K (typically 273-300K for atmospheric)\n- Moisture fractions in [0, 1] range\n- Pressure-like coefficients positive\n- Tolerance values realistic for scientific computing (1e-6 to 1e-12)\n\n**Array Dimensions**:\n- Consistent shapes within each test case\n- Varied sizes: 3-6 elements for root finding, 4-6 for tridiagonal\n- Scalar and array inputs tested where function supports both\n\n**Edge Case Coverage**:\n- Zero crossings and boundary values\n- Near-singular conditions (repeated roots, small discriminants)\n- Bracketing failures\n- Extreme magnitudes (very small/large)\n- High precision requirements\n\nAll expected outputs calculated using reference implementations or analytical solutions where available."
+}

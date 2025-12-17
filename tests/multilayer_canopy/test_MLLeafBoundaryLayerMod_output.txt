@@ -1,0 +1,607 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.13, pytest-9.0.2, pluggy-1.6.0 -- /burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /burg-archive/home/mck2199/clm-ml-jax
+configfile: pytest.ini
+plugins: cov-7.0.0, anyio-4.12.0
+collecting ... collected 65 items
+
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_single_patch_single_layer] FAILED [  1%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_multiple_patches_layers] FAILED [  3%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_tropical_conditions] FAILED [  4%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_cold_alpine_conditions] FAILED [  6%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_desert_hot_conditions] FAILED [  7%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_minimal_wind_calm_conditions] FAILED [  9%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_zero_wind_isothermal] FAILED [ 10%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_extreme_temperature_gradient] FAILED [ 12%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_very_small_leaves] FAILED [ 13%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_very_large_leaves_high_wind] FAILED [ 15%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_single_patch_single_layer] FAILED [ 16%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_multiple_patches_layers] FAILED [ 18%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_tropical_conditions] FAILED [ 20%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_cold_alpine_conditions] FAILED [ 21%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_desert_hot_conditions] FAILED [ 23%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_minimal_wind_calm_conditions] FAILED [ 24%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_zero_wind_isothermal] FAILED [ 26%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_extreme_temperature_gradient] FAILED [ 27%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_very_small_leaves] FAILED [ 29%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_very_large_leaves_high_wind] FAILED [ 30%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_single_patch_single_layer] FAILED [ 32%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_multiple_patches_layers] FAILED [ 33%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_tropical_conditions] FAILED [ 35%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_cold_alpine_conditions] FAILED [ 36%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_desert_hot_conditions] FAILED [ 38%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_minimal_wind_calm_conditions] FAILED [ 40%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_zero_wind_isothermal] FAILED [ 41%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_extreme_temperature_gradient] FAILED [ 43%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_very_small_leaves] FAILED [ 44%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_very_large_leaves_high_wind] FAILED [ 46%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_single_patch_single_layer] FAILED [ 47%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_multiple_patches_layers] FAILED [ 49%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_tropical_conditions] FAILED [ 50%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_cold_alpine_conditions] FAILED [ 52%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_desert_hot_conditions] FAILED [ 53%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_minimal_wind_calm_conditions] FAILED [ 55%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_zero_wind_isothermal] FAILED [ 56%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_extreme_temperature_gradient] FAILED [ 58%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_very_small_leaves] FAILED [ 60%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_very_large_leaves_high_wind] FAILED [ 61%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_single_patch_single_layer] FAILED [ 63%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_multiple_patches_layers] FAILED [ 64%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_tropical_conditions] FAILED [ 66%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_cold_alpine_conditions] FAILED [ 67%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_desert_hot_conditions] FAILED [ 69%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_wind_speed_dependency FAILED [ 70%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_leaf_size_dependency FAILED [ 72%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_zero_wind_nonzero_conductance FAILED [ 73%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_isothermal_minimal_conductance FAILED [ 75%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_extreme_temperature_gradient FAILED [ 76%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_gb_type_parameter[0] FAILED [ 78%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_gb_type_parameter[1] FAILED [ 80%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_gb_type_parameter[2] FAILED [ 81%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_gb_type_parameter[3] FAILED [ 83%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_default_params_vs_explicit FAILED [ 84%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_single_patch_multiple_layers FAILED [ 86%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_multiple_patches_single_layer FAILED [ 87%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_symmetry_identical_inputs FAILED [ 89%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_single_patch_single_layer] FAILED [ 90%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_multiple_patches_layers] FAILED [ 92%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_tropical_conditions] FAILED [ 93%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_cold_alpine_conditions] FAILED [ 95%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_desert_hot_conditions] FAILED [ 96%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_test_data_structure PASSED [ 98%]
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_test_coverage_completeness PASSED [100%]/burg-archive/home/mck2199/clm-ml-jax/jax-agents/.venv/lib64/python3.11/site-packages/coverage/control.py:957: CoverageWarning: No data was collected. (no-data-collected); see https://coverage.readthedocs.io/en/7.13.0/messages.html#warning-no-data-collected
+  self._warn("No data was collected.", slug="no-data-collected")
+
+
+=================================== FAILURES ===================================
+__ test_leaf_boundary_layer_output_shapes[nominal_single_patch_single_layer] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+----------------------------- Captured stderr call -----------------------------
+WARNING:2025-12-16 22:27:08,901:jax._src.xla_bridge:854: An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+------------------------------ Captured log call -------------------------------
+WARNING  jax._src.xla_bridge:xla_bridge.py:854 An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+___ test_leaf_boundary_layer_output_shapes[nominal_multiple_patches_layers] ____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_____ test_leaf_boundary_layer_output_shapes[nominal_tropical_conditions] ______
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____ test_leaf_boundary_layer_output_shapes[nominal_cold_alpine_conditions] ____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____ test_leaf_boundary_layer_output_shapes[nominal_desert_hot_conditions] _____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_output_shapes[edge_minimal_wind_calm_conditions] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+______ test_leaf_boundary_layer_output_shapes[edge_zero_wind_isothermal] _______
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_output_shapes[edge_extreme_temperature_gradient] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________ test_leaf_boundary_layer_output_shapes[edge_very_small_leaves] ________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+___ test_leaf_boundary_layer_output_shapes[edge_very_large_leaves_high_wind] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:364: in test_leaf_boundary_layer_output_shapes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_output_dtypes[nominal_single_patch_single_layer] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+___ test_leaf_boundary_layer_output_dtypes[nominal_multiple_patches_layers] ____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_____ test_leaf_boundary_layer_output_dtypes[nominal_tropical_conditions] ______
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____ test_leaf_boundary_layer_output_dtypes[nominal_cold_alpine_conditions] ____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____ test_leaf_boundary_layer_output_dtypes[nominal_desert_hot_conditions] _____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_output_dtypes[edge_minimal_wind_calm_conditions] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+______ test_leaf_boundary_layer_output_dtypes[edge_zero_wind_isothermal] _______
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_output_dtypes[edge_extreme_temperature_gradient] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________ test_leaf_boundary_layer_output_dtypes[edge_very_small_leaves] ________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+___ test_leaf_boundary_layer_output_dtypes[edge_very_large_leaves_high_wind] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:397: in test_leaf_boundary_layer_output_dtypes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_positive_conductances[nominal_single_patch_single_layer] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_positive_conductances[nominal_multiple_patches_layers] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_positive_conductances[nominal_tropical_conditions] __
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_positive_conductances[nominal_cold_alpine_conditions] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_positive_conductances[nominal_desert_hot_conditions] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_positive_conductances[edge_minimal_wind_calm_conditions] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_positive_conductances[edge_zero_wind_isothermal] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_positive_conductances[edge_extreme_temperature_gradient] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____ test_leaf_boundary_layer_positive_conductances[edge_very_small_leaves] ____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_positive_conductances[edge_very_large_leaves_high_wind] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:435: in test_leaf_boundary_layer_positive_conductances
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_finite_values[nominal_single_patch_single_layer] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+___ test_leaf_boundary_layer_finite_values[nominal_multiple_patches_layers] ____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_____ test_leaf_boundary_layer_finite_values[nominal_tropical_conditions] ______
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____ test_leaf_boundary_layer_finite_values[nominal_cold_alpine_conditions] ____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____ test_leaf_boundary_layer_finite_values[nominal_desert_hot_conditions] _____
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_finite_values[edge_minimal_wind_calm_conditions] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+______ test_leaf_boundary_layer_finite_values[edge_zero_wind_isothermal] _______
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_finite_values[edge_extreme_temperature_gradient] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________ test_leaf_boundary_layer_finite_values[edge_very_small_leaves] ________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+___ test_leaf_boundary_layer_finite_values[edge_very_large_leaves_high_wind] ___
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:463: in test_leaf_boundary_layer_finite_values
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_conductance_ordering[nominal_single_patch_single_layer] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:498: in test_leaf_boundary_layer_conductance_ordering
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_conductance_ordering[nominal_multiple_patches_layers] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:498: in test_leaf_boundary_layer_conductance_ordering
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+__ test_leaf_boundary_layer_conductance_ordering[nominal_tropical_conditions] __
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:498: in test_leaf_boundary_layer_conductance_ordering
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_conductance_ordering[nominal_cold_alpine_conditions] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:498: in test_leaf_boundary_layer_conductance_ordering
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_conductance_ordering[nominal_desert_hot_conditions] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:498: in test_leaf_boundary_layer_conductance_ordering
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________________ test_leaf_boundary_layer_wind_speed_dependency ________________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:533: in test_leaf_boundary_layer_wind_speed_dependency
+    base_result = leaf_boundary_layer(**convert_to_jax(base_inputs))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________________ test_leaf_boundary_layer_leaf_size_dependency _________________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:570: in test_leaf_boundary_layer_leaf_size_dependency
+    small_result = leaf_boundary_layer(**convert_to_jax(small_leaf_inputs))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____________ test_leaf_boundary_layer_zero_wind_nonzero_conductance ____________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:604: in test_leaf_boundary_layer_zero_wind_nonzero_conductance
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+___________ test_leaf_boundary_layer_isothermal_minimal_conductance ____________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:635: in test_leaf_boundary_layer_isothermal_minimal_conductance
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____________ test_leaf_boundary_layer_extreme_temperature_gradient _____________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:671: in test_leaf_boundary_layer_extreme_temperature_gradient
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________________ test_leaf_boundary_layer_gb_type_parameter[0] _________________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:723: in test_leaf_boundary_layer_gb_type_parameter
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________________ test_leaf_boundary_layer_gb_type_parameter[1] _________________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:723: in test_leaf_boundary_layer_gb_type_parameter
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________________ test_leaf_boundary_layer_gb_type_parameter[2] _________________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:723: in test_leaf_boundary_layer_gb_type_parameter
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+________________ test_leaf_boundary_layer_gb_type_parameter[3] _________________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:723: in test_leaf_boundary_layer_gb_type_parameter
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_____________ test_leaf_boundary_layer_default_params_vs_explicit ______________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:757: in test_leaf_boundary_layer_default_params_vs_explicit
+    result_default = leaf_boundary_layer(**convert_to_jax(inputs_default))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____________ test_leaf_boundary_layer_single_patch_multiple_layers _____________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:798: in test_leaf_boundary_layer_single_patch_multiple_layers
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+____________ test_leaf_boundary_layer_multiple_patches_single_layer ____________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:828: in test_leaf_boundary_layer_multiple_patches_single_layer
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+______________ test_leaf_boundary_layer_symmetry_identical_inputs ______________
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:858: in test_leaf_boundary_layer_symmetry_identical_inputs
+    result = leaf_boundary_layer(**convert_to_jax(inputs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_reasonable_magnitudes[nominal_single_patch_single_layer] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:897: in test_leaf_boundary_layer_reasonable_magnitudes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_reasonable_magnitudes[nominal_multiple_patches_layers] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:897: in test_leaf_boundary_layer_reasonable_magnitudes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_reasonable_magnitudes[nominal_tropical_conditions] __
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:897: in test_leaf_boundary_layer_reasonable_magnitudes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_reasonable_magnitudes[nominal_cold_alpine_conditions] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:897: in test_leaf_boundary_layer_reasonable_magnitudes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+_ test_leaf_boundary_layer_reasonable_magnitudes[nominal_desert_hot_conditions] _
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:897: in test_leaf_boundary_layer_reasonable_magnitudes
+    result = leaf_boundary_layer(**inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py:49: in leaf_boundary_layer
+    raise NotImplementedError("Module not available for testing")
+E   NotImplementedError: Module not available for testing
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.13-final-0 _______________
+
+Name                                                Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------------------
+src/jax_agents/__init__.py                              6      6     0%   7-14
+src/jax_agents/base_agent.py                          114    114     0%   7-386
+src/jax_agents/prompts/__init__.py                      3      3     0%   3-6
+src/jax_agents/prompts/repair_prompts.py                1      1     0%   11
+src/jax_agents/prompts/test_prompts_simplified.py       1      1     0%   8
+src/jax_agents/prompts/translation_prompts_v2.py        1      1     0%   3
+src/jax_agents/repair_agent.py                        169    169     0%   13-453
+src/jax_agents/test_agent.py                          133    133     0%   11-335
+src/jax_agents/translator.py                          277    277     0%   8-891
+src/jax_agents/utils/__init__.py                        2      2     0%   3-5
+src/jax_agents/utils/config_loader.py                  21     21     0%   3-69
+---------------------------------------------------------------------------------
+TOTAL                                                 728    728     0%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+=========================== short test summary info ============================
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_single_patch_single_layer] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_multiple_patches_layers] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_tropical_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_cold_alpine_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[nominal_desert_hot_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_minimal_wind_calm_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_zero_wind_isothermal] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_extreme_temperature_gradient] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_very_small_leaves] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_shapes[edge_very_large_leaves_high_wind] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_single_patch_single_layer] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_multiple_patches_layers] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_tropical_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_cold_alpine_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[nominal_desert_hot_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_minimal_wind_calm_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_zero_wind_isothermal] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_extreme_temperature_gradient] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_very_small_leaves] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_output_dtypes[edge_very_large_leaves_high_wind] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_single_patch_single_layer] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_multiple_patches_layers] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_tropical_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_cold_alpine_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[nominal_desert_hot_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_minimal_wind_calm_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_zero_wind_isothermal] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_extreme_temperature_gradient] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_very_small_leaves] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_positive_conductances[edge_very_large_leaves_high_wind] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_single_patch_single_layer] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_multiple_patches_layers] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_tropical_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_cold_alpine_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[nominal_desert_hot_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_minimal_wind_calm_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_zero_wind_isothermal] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_extreme_temperature_gradient] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_very_small_leaves] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_finite_values[edge_very_large_leaves_high_wind] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_single_patch_single_layer] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_multiple_patches_layers] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_tropical_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_cold_alpine_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_conductance_ordering[nominal_desert_hot_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_wind_speed_dependency - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_leaf_size_dependency - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_zero_wind_nonzero_conductance - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_isothermal_minimal_conductance - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_extreme_temperature_gradient - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_gb_type_parameter[0] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_gb_type_parameter[1] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_gb_type_parameter[2] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_gb_type_parameter[3] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_default_params_vs_explicit - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_single_patch_multiple_layers - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_multiple_patches_single_layer - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_symmetry_identical_inputs - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_single_patch_single_layer] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_multiple_patches_layers] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_tropical_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_cold_alpine_conditions] - NotImplementedError: Module not available for testing
+FAILED ../tests/multilayer_canopy/test_MLLeafBoundaryLayerMod.py::test_leaf_boundary_layer_reasonable_magnitudes[nominal_desert_hot_conditions] - NotImplementedError: Module not available for testing
+========================= 63 failed, 2 passed in 3.54s =========================

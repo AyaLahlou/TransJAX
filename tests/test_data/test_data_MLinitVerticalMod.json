@@ -1,0 +1,2079 @@
+{
+  "function_name": "multi_function_test_suite",
+  "test_cases": [
+    {
+      "name": "test_beta_cdf_nominal_symmetric",
+      "function": "beta_distribution_cdf",
+      "inputs": {
+        "pbeta": 2.0,
+        "qbeta": 2.0,
+        "x": [
+          [
+            0.0,
+            0.25,
+            0.5,
+            0.75,
+            1.0
+          ]
+        ]
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Symmetric beta distribution (p=q=2) at standard evaluation points",
+        "edge_cases": [],
+        "expected_behavior": "CDF should be symmetric around 0.5, monotonically increasing from 0 to 1"
+      }
+    },
+    {
+      "name": "test_beta_cdf_edge_uniform",
+      "function": "beta_distribution_cdf",
+      "inputs": {
+        "pbeta": 1.0,
+        "qbeta": 1.0,
+        "x": [
+          [
+            0.0,
+            0.1,
+            0.5,
+            0.9,
+            1.0
+          ]
+        ]
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Uniform distribution (p=q=1) which is a special case of beta",
+        "edge_cases": [
+          "uniform_distribution",
+          "boundary_values"
+        ],
+        "expected_behavior": "CDF should equal x (identity function)"
+      }
+    },
+    {
+      "name": "test_beta_cdf_edge_skewed",
+      "function": "beta_distribution_cdf",
+      "inputs": {
+        "pbeta": 0.5,
+        "qbeta": 5.0,
+        "x": [
+          [
+            0.0,
+            0.01,
+            0.05,
+            0.1,
+            0.5,
+            1.0
+          ]
+        ]
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Highly skewed distribution with small pbeta",
+        "edge_cases": [
+          "extreme_skewness",
+          "small_parameter"
+        ],
+        "expected_behavior": "CDF should rise rapidly near 0, flatten near 1"
+      }
+    },
+    {
+      "name": "test_vertical_structure_nominal_tall_canopy",
+      "function": "calculate_vertical_structure",
+      "inputs": {
+        "ztop": [
+          25.0,
+          30.0,
+          20.0
+        ],
+        "zref": [
+          40.0,
+          45.0,
+          35.0
+        ],
+        "nlayer_within": 0,
+        "nlayer_above": 0,
+        "dz_param": 10.0,
+        "dz_tall": 1.0,
+        "dz_short": 0.5,
+        "nlevmlcan": 50
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Tall forest canopies with automatic layer calculation",
+        "edge_cases": [],
+        "expected_behavior": "Should use dz_tall spacing, create layers from 0 to zref"
+      }
+    },
+    {
+      "name": "test_vertical_structure_edge_short_canopy",
+      "function": "calculate_vertical_structure",
+      "inputs": {
+        "ztop": [
+          0.5,
+          1.0,
+          2.0
+        ],
+        "zref": [
+          10.0,
+          10.0,
+          10.0
+        ],
+        "nlayer_within": 0,
+        "nlayer_above": 0,
+        "dz_param": 10.0,
+        "dz_tall": 1.0,
+        "dz_short": 0.5,
+        "nlevmlcan": 50
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Very short canopies (grass/crops) using fine spacing",
+        "edge_cases": [
+          "short_vegetation",
+          "small_ztop"
+        ],
+        "expected_behavior": "Should use dz_short spacing for better resolution"
+      }
+    },
+    {
+      "name": "test_vertical_structure_special_manual_layers",
+      "function": "calculate_vertical_structure",
+      "inputs": {
+        "ztop": [
+          15.0,
+          18.0
+        ],
+        "zref": [
+          30.0,
+          35.0
+        ],
+        "nlayer_within": 10,
+        "nlayer_above": 5,
+        "dz_param": 10.0,
+        "dz_tall": 1.0,
+        "dz_short": 0.5,
+        "nlevmlcan": 50
+      },
+      "metadata": {
+        "type": "special",
+        "description": "User-specified layer counts override automatic calculation",
+        "edge_cases": [
+          "manual_override"
+        ],
+        "expected_behavior": "Should respect nlayer_within and nlayer_above settings"
+      }
+    },
+    {
+      "name": "test_layer_properties_nominal_mixed_forest",
+      "function": "calculate_layer_properties",
+      "inputs": {
+        "zw": [
+          [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0,
+            10.0
+          ],
+          [
+            0.0,
+            0.5,
+            1.0,
+            1.5,
+            2.0,
+            2.5,
+            3.0,
+            3.5,
+            4.0,
+            4.5,
+            5.0
+          ]
+        ],
+        "ztop": [
+          10.0,
+          5.0
+        ],
+        "elai": [
+          5.0,
+          3.0
+        ],
+        "esai": [
+          1.0,
+          0.5
+        ],
+        "ncan": [
+          10,
+          10
+        ],
+        "ntop": [
+          10,
+          10
+        ],
+        "itype": [
+          1,
+          2
+        ],
+        "pft_params": {
+          "pbeta_lai": [
+            2.0,
+            2.5,
+            3.0
+          ],
+          "qbeta_lai": [
+            2.0,
+            2.0,
+            1.5
+          ],
+          "pbeta_sai": [
+            1.5,
+            2.0,
+            2.5
+          ],
+          "qbeta_sai": [
+            1.5,
+            1.5,
+            2.0
+          ]
+        },
+        "n_levels": 10
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Mixed forest with different canopy heights and LAI distributions",
+        "edge_cases": [],
+        "expected_behavior": "LAI and SAI should be distributed according to beta profiles"
+      }
+    },
+    {
+      "name": "test_layer_properties_edge_zero_lai",
+      "function": "calculate_layer_properties",
+      "inputs": {
+        "zw": [
+          [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0
+          ],
+          [
+            0.0,
+            0.5,
+            1.0,
+            1.5,
+            2.0,
+            2.5
+          ]
+        ],
+        "ztop": [
+          5.0,
+          2.5
+        ],
+        "elai": [
+          0.0,
+          0.1
+        ],
+        "esai": [
+          0.0,
+          0.05
+        ],
+        "ncan": [
+          5,
+          5
+        ],
+        "ntop": [
+          5,
+          5
+        ],
+        "itype": [
+          0,
+          1
+        ],
+        "pft_params": {
+          "pbeta_lai": [
+            2.0,
+            2.5
+          ],
+          "qbeta_lai": [
+            2.0,
+            2.0
+          ],
+          "pbeta_sai": [
+            1.5,
+            2.0
+          ],
+          "qbeta_sai": [
+            1.5,
+            1.5
+          ]
+        },
+        "n_levels": 5
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Bare ground and very sparse vegetation",
+        "edge_cases": [
+          "zero_lai",
+          "minimal_vegetation"
+        ],
+        "expected_behavior": "Should handle zero LAI gracefully, minimal SAI distribution"
+      }
+    },
+    {
+      "name": "test_redistribute_plant_area_nominal",
+      "function": "redistribute_plant_area",
+      "inputs": {
+        "dlai": [
+          [
+            0.5,
+            0.8,
+            1.2,
+            1.5,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.3,
+            0.6,
+            0.9,
+            0.7,
+            0.5,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "dsai": [
+          [
+            0.1,
+            0.15,
+            0.2,
+            0.25,
+            0.3,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.05,
+            0.1,
+            0.15,
+            0.1,
+            0.1,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "ntop": [
+          5,
+          5
+        ],
+        "zw": [
+          [
+            0.0,
+            2.0,
+            4.0,
+            6.0,
+            8.0,
+            10.0,
+            12.0,
+            14.0,
+            16.0
+          ],
+          [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0,
+            7.0,
+            8.0
+          ]
+        ],
+        "elai": [
+          5.0,
+          3.0
+        ],
+        "esai": [
+          1.0,
+          0.5
+        ],
+        "dpai_min": 0.01,
+        "lai_tol": 1e-06
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Redistribute LAI/SAI to remove layers below threshold",
+        "edge_cases": [],
+        "expected_behavior": "Total LAI/SAI conserved, small layers merged into neighbors"
+      }
+    },
+    {
+      "name": "test_redistribute_plant_area_edge_thin_layers",
+      "function": "redistribute_plant_area",
+      "inputs": {
+        "dlai": [
+          [
+            0.005,
+            0.008,
+            0.5,
+            1.0,
+            0.006,
+            0.0
+          ],
+          [
+            0.003,
+            0.004,
+            0.3,
+            0.6,
+            0.002,
+            0.0
+          ]
+        ],
+        "dsai": [
+          [
+            0.001,
+            0.002,
+            0.1,
+            0.2,
+            0.001,
+            0.0
+          ],
+          [
+            0.0005,
+            0.001,
+            0.05,
+            0.1,
+            0.0005,
+            0.0
+          ]
+        ],
+        "ntop": [
+          5,
+          5
+        ],
+        "zw": [
+          [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0
+          ],
+          [
+            0.0,
+            0.5,
+            1.0,
+            1.5,
+            2.0,
+            2.5,
+            3.0
+          ]
+        ],
+        "elai": [
+          1.519,
+          0.909
+        ],
+        "esai": [
+          0.304,
+          0.1515
+        ],
+        "dpai_min": 0.01,
+        "lai_tol": 1e-06
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Many layers below dpai_min threshold requiring redistribution",
+        "edge_cases": [
+          "thin_layers",
+          "extensive_merging"
+        ],
+        "expected_behavior": "Multiple thin layers merged, conservation maintained"
+      }
+    },
+    {
+      "name": "test_finalize_vertical_structure_nominal",
+      "function": "finalize_vertical_structure",
+      "inputs": {
+        "dlai": [
+          [
+            0.5,
+            0.8,
+            1.2,
+            1.5,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.3,
+            0.6,
+            0.9,
+            0.7,
+            0.5,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "dsai": [
+          [
+            0.1,
+            0.15,
+            0.2,
+            0.25,
+            0.3,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.05,
+            0.1,
+            0.15,
+            0.1,
+            0.1,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "elai": [
+          5.0,
+          3.0
+        ],
+        "esai": [
+          1.0,
+          0.5
+        ],
+        "ntop": [
+          5,
+          5
+        ],
+        "ncan": [
+          10,
+          10
+        ],
+        "tolerance": 1e-06
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Finalize LAI/SAI distributions and compute fractional profiles",
+        "edge_cases": [],
+        "expected_behavior": "Fractional profiles sum to 1.0, conservation validated"
+      }
+    },
+    {
+      "name": "test_finalize_vertical_structure_edge_single_layer",
+      "function": "finalize_vertical_structure",
+      "inputs": {
+        "dlai": [
+          [
+            2.5,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            1.8,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "dsai": [
+          [
+            0.5,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.3,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "elai": [
+          2.5,
+          1.8
+        ],
+        "esai": [
+          0.5,
+          0.3
+        ],
+        "ntop": [
+          1,
+          1
+        ],
+        "ncan": [
+          5,
+          5
+        ],
+        "tolerance": 1e-06
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "All vegetation concentrated in single layer",
+        "edge_cases": [
+          "single_layer",
+          "concentrated_canopy"
+        ],
+        "expected_behavior": "Fractional profile should be 1.0 in first layer, 0.0 elsewhere"
+      }
+    },
+    {
+      "name": "test_init_vertical_structure_nominal_multi_patch",
+      "function": "init_vertical_structure",
+      "inputs": {
+        "bounds": {
+          "begp": 0,
+          "endp": 3,
+          "begc": 0,
+          "endc": 2,
+          "begg": 0,
+          "endg": 1
+        },
+        "canopystate_inst": {
+          "htop": [
+            15.0,
+            8.0,
+            25.0
+          ],
+          "elai": [
+            4.5,
+            2.8,
+            6.2
+          ],
+          "esai": [
+            0.9,
+            0.5,
+            1.2
+          ]
+        },
+        "patch_state": {
+          "column": [
+            0,
+            0,
+            1
+          ],
+          "gridcell": [
+            0,
+            0,
+            0
+          ],
+          "itype": [
+            1,
+            2,
+            1
+          ]
+        },
+        "pft_params": {
+          "pbeta_lai": [
+            2.0,
+            2.5,
+            3.0
+          ],
+          "qbeta_lai": [
+            2.0,
+            2.0,
+            1.5
+          ],
+          "pbeta_sai": [
+            1.5,
+            2.0,
+            2.5
+          ],
+          "qbeta_sai": [
+            1.5,
+            1.5,
+            2.0
+          ]
+        },
+        "params": {
+          "dz_tall": 1.0,
+          "dz_short": 0.5,
+          "dz_param": 10.0,
+          "nlayer_within": 0,
+          "nlayer_above": 0,
+          "dpai_min": 0.01,
+          "mmh2o": 18.016,
+          "mmdry": 28.966,
+          "wind_forc_min": 0.1,
+          "isun": 0,
+          "isha": 1,
+          "lai_tol": 1e-06,
+          "sai_tol": 1e-06
+        },
+        "nlevmlcan": 50
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Initialize vertical structure for multiple patches with varying canopy heights",
+        "edge_cases": [],
+        "expected_behavior": "Complete MLCanopyType structure with all fields initialized"
+      }
+    },
+    {
+      "name": "test_init_vertical_profiles_nominal",
+      "function": "init_vertical_profiles",
+      "inputs": {
+        "atm2lnd_inst": {
+          "forc_u_grc": [
+            3.5
+          ],
+          "forc_v_grc": [
+            2.0
+          ],
+          "forc_pco2_grc": [
+            40.0
+          ],
+          "forc_t_downscaled_col": [
+            298.15,
+            297.5
+          ],
+          "forc_q_downscaled_col": [
+            0.012,
+            0.011
+          ],
+          "forc_pbot_downscaled_col": [
+            101325.0,
+            101200.0
+          ],
+          "forc_hgt_u": [
+            40.0,
+            35.0,
+            45.0
+          ]
+        },
+        "mlcanopy_inst": {
+          "ncan": [
+            10,
+            8,
+            12
+          ],
+          "ntop": [
+            8,
+            6,
+            10
+          ],
+          "nbot": [
+            1,
+            1,
+            1
+          ],
+          "zref": [
+            40.0,
+            35.0,
+            45.0
+          ],
+          "ztop": [
+            15.0,
+            10.0,
+            20.0
+          ],
+          "zbot": [
+            0.5,
+            0.3,
+            0.8
+          ],
+          "zs": [
+            [
+              1.0,
+              2.0,
+              3.0,
+              4.0,
+              5.0,
+              6.0,
+              7.0,
+              8.0,
+              9.0,
+              10.0
+            ],
+            [
+              0.5,
+              1.0,
+              1.5,
+              2.0,
+              2.5,
+              3.0,
+              3.5,
+              4.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.5,
+              3.0,
+              4.5,
+              6.0,
+              7.5,
+              9.0,
+              10.5,
+              12.0,
+              13.5,
+              15.0,
+              16.5,
+              18.0
+            ]
+          ],
+          "dz": [
+            [
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ],
+            [
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.0,
+              0.0
+            ],
+            [
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5
+            ]
+          ],
+          "zw": [
+            [
+              0.0,
+              1.0,
+              2.0,
+              3.0,
+              4.0,
+              5.0,
+              6.0,
+              7.0,
+              8.0,
+              9.0,
+              10.0
+            ],
+            [
+              0.0,
+              0.5,
+              1.0,
+              1.5,
+              2.0,
+              2.5,
+              3.0,
+              3.5,
+              4.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.5,
+              3.0,
+              4.5,
+              6.0,
+              7.5,
+              9.0,
+              10.5,
+              12.0,
+              13.5,
+              15.0,
+              16.5,
+              18.0
+            ]
+          ],
+          "dlai": [
+            [
+              0.5,
+              0.6,
+              0.7,
+              0.8,
+              0.6,
+              0.5,
+              0.4,
+              0.3,
+              0.0,
+              0.0
+            ],
+            [
+              0.4,
+              0.5,
+              0.6,
+              0.5,
+              0.4,
+              0.3,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.6,
+              0.7,
+              0.8,
+              0.9,
+              0.8,
+              0.7,
+              0.6,
+              0.5,
+              0.4,
+              0.3,
+              0.0,
+              0.0
+            ]
+          ],
+          "dsai": [
+            [
+              0.1,
+              0.12,
+              0.14,
+              0.16,
+              0.12,
+              0.1,
+              0.08,
+              0.06,
+              0.0,
+              0.0
+            ],
+            [
+              0.08,
+              0.1,
+              0.12,
+              0.1,
+              0.08,
+              0.06,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.12,
+              0.14,
+              0.16,
+              0.18,
+              0.16,
+              0.14,
+              0.12,
+              0.1,
+              0.08,
+              0.06,
+              0.0,
+              0.0
+            ]
+          ],
+          "dlai_frac": [
+            [
+              0.1,
+              0.12,
+              0.14,
+              0.16,
+              0.12,
+              0.1,
+              0.08,
+              0.06,
+              0.0,
+              0.0
+            ],
+            [
+              0.13,
+              0.17,
+              0.2,
+              0.17,
+              0.13,
+              0.1,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.09,
+              0.11,
+              0.13,
+              0.14,
+              0.13,
+              0.11,
+              0.09,
+              0.08,
+              0.06,
+              0.05,
+              0.0,
+              0.0
+            ]
+          ],
+          "dsai_frac": [
+            [
+              0.1,
+              0.12,
+              0.14,
+              0.16,
+              0.12,
+              0.1,
+              0.08,
+              0.06,
+              0.0,
+              0.0
+            ],
+            [
+              0.13,
+              0.17,
+              0.2,
+              0.17,
+              0.13,
+              0.1,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.09,
+              0.11,
+              0.13,
+              0.14,
+              0.13,
+              0.11,
+              0.09,
+              0.08,
+              0.06,
+              0.05,
+              0.0,
+              0.0
+            ]
+          ],
+          "wind": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "tair": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "eair": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "cair": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "h2ocan": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "taf": [
+            298.15,
+            297.5,
+            299.0
+          ],
+          "qaf": [
+            0.012,
+            0.011,
+            0.013
+          ],
+          "tg": [
+            295.0,
+            294.5,
+            296.0
+          ],
+          "tleaf": [
+            [
+              [
+                298.0,
+                297.5
+              ],
+              [
+                298.0,
+                297.5
+              ],
+              [
+                298.0,
+                297.5
+              ],
+              [
+                298.0,
+                297.5
+              ],
+              [
+                298.0,
+                297.5
+              ],
+              [
+                298.0,
+                297.5
+              ],
+              [
+                298.0,
+                297.5
+              ],
+              [
+                298.0,
+                297.5
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ],
+            [
+              [
+                297.5,
+                297.0
+              ],
+              [
+                297.5,
+                297.0
+              ],
+              [
+                297.5,
+                297.0
+              ],
+              [
+                297.5,
+                297.0
+              ],
+              [
+                297.5,
+                297.0
+              ],
+              [
+                297.5,
+                297.0
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ],
+            [
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                299.0,
+                298.5
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ]
+          ],
+          "lwp": [
+            [
+              [
+                -1.0,
+                -1.2
+              ],
+              [
+                -1.0,
+                -1.2
+              ],
+              [
+                -1.0,
+                -1.2
+              ],
+              [
+                -1.0,
+                -1.2
+              ],
+              [
+                -1.0,
+                -1.2
+              ],
+              [
+                -1.0,
+                -1.2
+              ],
+              [
+                -1.0,
+                -1.2
+              ],
+              [
+                -1.0,
+                -1.2
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ],
+            [
+              [
+                -0.8,
+                -1.0
+              ],
+              [
+                -0.8,
+                -1.0
+              ],
+              [
+                -0.8,
+                -1.0
+              ],
+              [
+                -0.8,
+                -1.0
+              ],
+              [
+                -0.8,
+                -1.0
+              ],
+              [
+                -0.8,
+                -1.0
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ],
+            [
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                -1.2,
+                -1.5
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ]
+          ]
+        },
+        "patch_state": {
+          "column": [
+            0,
+            0,
+            1
+          ],
+          "gridcell": [
+            0,
+            0,
+            0
+          ],
+          "itype": [
+            1,
+            2,
+            1
+          ]
+        },
+        "params": {
+          "dz_tall": 1.0,
+          "dz_short": 0.5,
+          "dz_param": 10.0,
+          "nlayer_within": 0,
+          "nlayer_above": 0,
+          "dpai_min": 0.01,
+          "mmh2o": 18.016,
+          "mmdry": 28.966,
+          "wind_forc_min": 0.1,
+          "isun": 0,
+          "isha": 1,
+          "lai_tol": 1e-06,
+          "sai_tol": 1e-06
+        }
+      },
+      "metadata": {
+        "type": "nominal",
+        "description": "Initialize vertical profiles (wind, temp, humidity, CO2) from atmospheric forcing",
+        "edge_cases": [],
+        "expected_behavior": "Profiles interpolated from reference height to ground, physically consistent"
+      }
+    },
+    {
+      "name": "test_init_vertical_profiles_edge_extreme_conditions",
+      "function": "init_vertical_profiles",
+      "inputs": {
+        "atm2lnd_inst": {
+          "forc_u_grc": [
+            0.05
+          ],
+          "forc_v_grc": [
+            0.03
+          ],
+          "forc_pco2_grc": [
+            28.0
+          ],
+          "forc_t_downscaled_col": [
+            273.15,
+            310.0
+          ],
+          "forc_q_downscaled_col": [
+            0.001,
+            0.025
+          ],
+          "forc_pbot_downscaled_col": [
+            85000.0,
+            103000.0
+          ],
+          "forc_hgt_u": [
+            50.0,
+            30.0
+          ]
+        },
+        "mlcanopy_inst": {
+          "ncan": [
+            5,
+            8
+          ],
+          "ntop": [
+            4,
+            6
+          ],
+          "nbot": [
+            1,
+            1
+          ],
+          "zref": [
+            50.0,
+            30.0
+          ],
+          "ztop": [
+            8.0,
+            12.0
+          ],
+          "zbot": [
+            0.2,
+            0.5
+          ],
+          "zs": [
+            [
+              1.0,
+              2.0,
+              3.0,
+              4.0,
+              5.0
+            ],
+            [
+              1.5,
+              3.0,
+              4.5,
+              6.0,
+              7.5,
+              9.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "dz": [
+            [
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ],
+            [
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              1.5,
+              0.0,
+              0.0
+            ]
+          ],
+          "zw": [
+            [
+              0.0,
+              1.0,
+              2.0,
+              3.0,
+              4.0,
+              5.0
+            ],
+            [
+              0.0,
+              1.5,
+              3.0,
+              4.5,
+              6.0,
+              7.5,
+              9.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "dlai": [
+            [
+              0.3,
+              0.4,
+              0.5,
+              0.4,
+              0.0
+            ],
+            [
+              0.4,
+              0.5,
+              0.6,
+              0.5,
+              0.4,
+              0.3,
+              0.0,
+              0.0
+            ]
+          ],
+          "dsai": [
+            [
+              0.06,
+              0.08,
+              0.1,
+              0.08,
+              0.0
+            ],
+            [
+              0.08,
+              0.1,
+              0.12,
+              0.1,
+              0.08,
+              0.06,
+              0.0,
+              0.0
+            ]
+          ],
+          "dlai_frac": [
+            [
+              0.2,
+              0.27,
+              0.33,
+              0.27,
+              0.0
+            ],
+            [
+              0.15,
+              0.19,
+              0.23,
+              0.19,
+              0.15,
+              0.11,
+              0.0,
+              0.0
+            ]
+          ],
+          "dsai_frac": [
+            [
+              0.2,
+              0.27,
+              0.33,
+              0.27,
+              0.0
+            ],
+            [
+              0.15,
+              0.19,
+              0.23,
+              0.19,
+              0.15,
+              0.11,
+              0.0,
+              0.0
+            ]
+          ],
+          "wind": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "tair": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "eair": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "cair": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "h2ocan": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "taf": [
+            273.15,
+            310.0
+          ],
+          "qaf": [
+            0.001,
+            0.025
+          ],
+          "tg": [
+            271.0,
+            308.0
+          ],
+          "tleaf": [
+            [
+              [
+                273.0,
+                272.5
+              ],
+              [
+                273.0,
+                272.5
+              ],
+              [
+                273.0,
+                272.5
+              ],
+              [
+                273.0,
+                272.5
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ],
+            [
+              [
+                310.0,
+                309.5
+              ],
+              [
+                310.0,
+                309.5
+              ],
+              [
+                310.0,
+                309.5
+              ],
+              [
+                310.0,
+                309.5
+              ],
+              [
+                310.0,
+                309.5
+              ],
+              [
+                310.0,
+                309.5
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ]
+          ],
+          "lwp": [
+            [
+              [
+                -0.5,
+                -0.7
+              ],
+              [
+                -0.5,
+                -0.7
+              ],
+              [
+                -0.5,
+                -0.7
+              ],
+              [
+                -0.5,
+                -0.7
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ],
+            [
+              [
+                -2.0,
+                -2.5
+              ],
+              [
+                -2.0,
+                -2.5
+              ],
+              [
+                -2.0,
+                -2.5
+              ],
+              [
+                -2.0,
+                -2.5
+              ],
+              [
+                -2.0,
+                -2.5
+              ],
+              [
+                -2.0,
+                -2.5
+              ],
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ]
+          ]
+        },
+        "patch_state": {
+          "column": [
+            0,
+            1
+          ],
+          "gridcell": [
+            0,
+            0
+          ],
+          "itype": [
+            0,
+            3
+          ]
+        },
+        "params": {
+          "dz_tall": 1.0,
+          "dz_short": 0.5,
+          "dz_param": 10.0,
+          "nlayer_within": 0,
+          "nlayer_above": 0,
+          "dpai_min": 0.01,
+          "mmh2o": 18.016,
+          "mmdry": 28.966,
+          "wind_forc_min": 0.1,
+          "isun": 0,
+          "isha": 1,
+          "lai_tol": 1e-06,
+          "sai_tol": 1e-06
+        }
+      },
+      "metadata": {
+        "type": "edge",
+        "description": "Extreme atmospheric conditions: near-freezing vs hot, very low wind, low vs high pressure",
+        "edge_cases": [
+          "extreme_temperature",
+          "low_wind",
+          "pressure_extremes",
+          "humidity_extremes"
+        ],
+        "expected_behavior": "Should handle extreme but physically valid conditions, apply wind_forc_min"
+      }
+    }
+  ],
+  "notes": "Test data generation strategy:\n\n1. **Beta Distribution CDF Tests**: Cover symmetric (p=q), uniform (p=q=1), and skewed distributions. X values span [0,1] including boundaries.\n\n2. **Vertical Structure Tests**: Include tall forests (>10m using dz_tall), short vegetation (<10m using dz_short), and manual layer specification. Patches vary in height to test vectorization.\n\n3. **Layer Properties Tests**: Mixed forest scenarios with different PFT types, plus edge case of zero/minimal LAI for bare ground.\n\n4. **Redistribution Tests**: Nominal case with reasonable LAI/SAI values, plus edge case with many thin layers below dpai_min threshold requiring extensive merging.\n\n5. **Finalization Tests**: Standard multi-layer canopy plus edge case of single-layer concentration.\n\n6. **Initialization Tests**: Full integration tests with realistic multi-patch scenarios. Edge case includes extreme but valid atmospheric conditions (freezing temps, very low wind requiring wind_forc_min application, pressure/humidity extremes).\n\n**Physical Realism**:\n- All temperatures in Kelvin (>0K, typically 270-320K)\n- Specific humidity in [0,1] kg/kg\n- Pressures positive (Pa)\n- Heights non-negative (m)\n- LAI/SAI non-negative (m\u00b2/m\u00b2)\n- Wind speeds \u22650 (m/s)\n- Leaf water potential negative (MPa)\n\n**Array Dimensions**:\n- Consistent within each test case\n- Variable n_patches (1-3) to test vectorization\n- Layer counts vary by canopy height\n- Proper padding with zeros for unused layers\n\n**Edge Cases Covered**:\n- Zero/minimal vegetation\n- Extreme atmospheric conditions\n- Single vs multi-layer canopies\n- Tall vs short vegetation\n- Thin layers requiring redistribution\n- Boundary values (0, 1 for fractions)\n- Low wind speeds\n- Manual vs automatic layer calculation"
+}
