@@ -279,8 +279,8 @@ def initialize_optical_properties(
     
     # Mask out layers outside active canopy range
     layer_indices = jnp.arange(nlevmlcan)
-    is_active = (layer_indices[jnp.newaxis, :] >= (nlevmlcan - nbot[:, jnp.newaxis])) & \
-                (layer_indices[jnp.newaxis, :] <= (nlevmlcan - ntop[:, jnp.newaxis]))
+    is_active = (layer_indices[jnp.newaxis, :] >= ntop[:, jnp.newaxis]) & \
+                (layer_indices[jnp.newaxis, :] <= nbot[:, jnp.newaxis])
     
     # Apply mask
     is_active_3d = is_active[:, :, jnp.newaxis]
