@@ -367,7 +367,7 @@ def calculate_beam_extinction_and_transmittance(
     phi2 = 0.877 * (1.0 - 2.0 * phi1)
     
     # Process each layer
-    def process_layer(ic: int, carry: jnp.ndarray) -> Tuple[jnp.ndarray, Tuple]:
+    def process_layer(carry: jnp.ndarray, ic: int) -> Tuple[jnp.ndarray, Tuple]:
         """Process a single canopy layer."""
         tbi_prev = carry
         
@@ -415,7 +415,7 @@ def calculate_beam_extinction_and_transmittance(
     
     # Process layers from top to bottom
     tbi_init = jnp.ones(n_patches)
-    layer_indices = jnp.arange(n_layers)
+    layer_indices = jnp.arange(n_layers, dtype=jnp.int32)
     _, layer_results = jax.lax.scan(process_layer, tbi_init, layer_indices)
     
     kb, tb, td, tbi, fracsun = layer_results
@@ -629,6 +629,9 @@ def norman_radiation_transfer(
     n_patches = swskyb.shape[0]
     max_equations = 2 * (nlevmlcan + 1)
     
+    # Create patch indices for advanced indexing
+    patch_indices = jnp.arange(n_patches)
+    
     # Initialize flux arrays
     swup = jnp.zeros((n_patches, nlevmlcan + 1, numrad))
     swdn = jnp.zeros((n_patches, nlevmlcan + 1, numrad))
@@ -664,8 +667,14 @@ def norman_radiation_transfer(
         
         # Soil: downward flux
         m = 1
-        refld = (1.0 - td[:, nbot]) * rho[:, nbot, ib]
-        trand = (1.0 - td[:, nbot]) * tau[:, nbot, ib] + td[:, nbot]
+        td_nbot = td[patch_indices, nbot]
+        rho_nbot_ib = rho[patch_indices, nbot, ib]
+        tau_nbot_ib = tau[patch_indices, nbot, ib]
+        tb_nbot = tb[patch_indices, nbot]
+        tbi_nbot = tbi[patch_indices, nbot]
+        
+        refld = (1.0 - td_nbot) * rho_nbot_ib
+        trand = (1.0 - td_nbot) * tau_nbot_ib + td_nbot
         aic = refld - trand * trand / refld
         bic = trand / refld
         
@@ -673,8 +682,8 @@ def norman_radiation_transfer(
         btri = btri.at[:, m, ib].set(1.0)
         ctri = ctri.at[:, m, ib].set(-bic)
         dtri = dtri.at[:, m, ib].set(
-            swskyb[:, ib] * tbi[:, nbot] * (1.0 - tb[:, nbot]) * 
-            (tau[:, nbot, ib] - rho[:, nbot, ib] * bic)
+            swskyb[:, ib] * tbi_nbot * (1.0 - tb_nbot) * 
+            (tau_nbot_ib - rho_nbot_ib * bic)
         )
         
         # Leaf layers (excluding top)
@@ -684,31 +693,37 @@ def norman_radiation_transfer(
             
             # Upward flux
             m = 2 + 2 * ic_offset
-            refld = (1.0 - td[:, ic]) * rho[:, ic, ib]
-            trand = (1.0 - td[:, ic]) * tau[:, ic, ib] + td[:, ic]
+            td_ic = td[patch_indices, ic]
+            rho_ic_ib = rho[patch_indices, ic, ib]
+            tau_ic_ib = tau[patch_indices, ic, ib]
+            tb_ic = tb[patch_indices, ic]
+            tbi_ic = tbi[patch_indices, ic]
+            
+            refld = (1.0 - td_ic) * rho_ic_ib
+            trand = (1.0 - td_ic) * tau_ic_ib + td_ic
             fic = refld - trand * trand / refld
             eic = trand / refld
             
             atri = jnp.where(
-                layer_exists[:, None],
+                layer_exists[:, None, None],
                 atri.at[:, m, ib].set(-eic),
                 atri
             )
             btri = jnp.where(
-                layer_exists[:, None],
+                layer_exists[:, None, None],
                 btri.at[:, m, ib].set(1.0),
                 btri
             )
             ctri = jnp.where(
-                layer_exists[:, None],
+                layer_exists[:, None, None],
                 ctri.at[:, m, ib].set(-fic),
                 ctri
             )
             dtri = jnp.where(
-                layer_exists[:, None],
+                layer_exists[:, None, None],
                 dtri.at[:, m, ib].set(
-                    swskyb[:, ib] * tbi[:, ic] * (1.0 - tb[:, ic]) * 
-                    (rho[:, ic, ib] - tau[:, ic, ib] * eic)
+                    swskyb[:, ib] * tbi_ic * (1.0 - tb_ic) * 
+                    (rho_ic_ib - tau_ic_ib * eic)
                 ),
                 dtri
             )
@@ -716,31 +731,37 @@ def norman_radiation_transfer(
             # Downward flux
             m = 3 + 2 * ic_offset
             ic_plus_1 = ic + 1
-            refld = (1.0 - td[:, ic_plus_1]) * rho[:, ic_plus_1, ib]
-            trand = (1.0 - td[:, ic_plus_1]) * tau[:, ic_plus_1, ib] + td[:, ic_plus_1]
+            td_ic_plus_1 = td[patch_indices, ic_plus_1]
+            rho_ic_plus_1_ib = rho[patch_indices, ic_plus_1, ib]
+            tau_ic_plus_1_ib = tau[patch_indices, ic_plus_1, ib]
+            tb_ic_plus_1 = tb[patch_indices, ic_plus_1]
+            tbi_ic_plus_1 = tbi[patch_indices, ic_plus_1]
+            
+            refld = (1.0 - td_ic_plus_1) * rho_ic_plus_1_ib
+            trand = (1.0 - td_ic_plus_1) * tau_ic_plus_1_ib + td_ic_plus_1
             aic = refld - trand * trand / refld
             bic = trand / refld
             
             atri = jnp.where(
-                layer_exists[:, None],
+                layer_exists[:, None, None],
                 atri.at[:, m, ib].set(-aic),
                 atri
             )
             btri = jnp.where(
-                layer_exists[:, None],
+                layer_exists[:, None, None],
                 btri.at[:, m, ib].set(1.0),
                 btri
             )
             ctri = jnp.where(
-                layer_exists[:, None],
+                layer_exists[:, None, None],
                 ctri.at[:, m, ib].set(-bic),
                 ctri
             )
             dtri = jnp.where(
-                layer_exists[:, None],
+                layer_exists[:, None, None],
                 dtri.at[:, m, ib].set(
-                    swskyb[:, ib] * tbi[:, ic_plus_1] * (1.0 - tb[:, ic_plus_1]) * 
-                    (tau[:, ic_plus_1, ib] - rho[:, ic_plus_1, ib] * bic)
+                    swskyb[:, ib] * tbi_ic_plus_1 * (1.0 - tb_ic_plus_1) * 
+                    (tau_ic_plus_1_ib - rho_ic_plus_1_ib * bic)
                 ),
                 dtri
             )
@@ -750,29 +771,30 @@ def norman_radiation_transfer(
         
         # Upward flux
         m = m + 1
-        refld = (1.0 - td[jnp.arange(n_patches), ic]) * rho[jnp.arange(n_patches), ic, ib]
-        trand = ((1.0 - td[jnp.arange(n_patches), ic]) * 
-                 tau[jnp.arange(n_patches), ic, ib] + 
-                 td[jnp.arange(n_patches), ic])
+        td_ic = td[patch_indices, ic]
+        rho_ic_ib = rho[patch_indices, ic, ib]
+        tau_ic_ib = tau[patch_indices, ic, ib]
+        tb_ic = tb[patch_indices, ic]
+        tbi_ic = tbi[patch_indices, ic]
+        
+        refld = (1.0 - td_ic) * rho_ic_ib
+        trand = (1.0 - td_ic) * tau_ic_ib + td_ic
         fic = refld - trand * trand / refld
         eic = trand / refld
         
-        atri = atri.at[jnp.arange(n_patches), m].set(-eic)
-        btri = btri.at[jnp.arange(n_patches), m].set(1.0)
-        ctri = ctri.at[jnp.arange(n_patches), m].set(-fic)
+        atri = atri.at[patch_indices, m, ib].set(-eic)
+        btri = btri.at[patch_indices, m, ib].set(1.0)
+        ctri = ctri.at[patch_indices, m, ib].set(-fic)
         
-        rhs = (swskyb[:, ib] * tbi[jnp.arange(n_patches), ic] * 
-               (1.0 - tb[jnp.arange(n_patches), ic]) * 
-               (rho[jnp.arange(n_patches), ic, ib] - 
-                tau[jnp.arange(n_patches), ic, ib] * eic))
-        dtri = dtri.at[jnp.arange(n_patches), m].set(rhs)
+        rhs = swskyb[:, ib] * tbi_ic * (1.0 - tb_ic) * (rho_ic_ib - tau_ic_ib * eic)
+        dtri = dtri.at[patch_indices, m, ib].set(rhs)
         
         # Downward flux
         m = m + 1
-        atri = atri.at[jnp.arange(n_patches), m].set(0.0)
-        btri = btri.at[jnp.arange(n_patches), m].set(1.0)
-        ctri = ctri.at[jnp.arange(n_patches), m].set(0.0)
-        dtri = dtri.at[jnp.arange(n_patches), m].set(swskyd[:, ib])
+        atri = atri.at[patch_indices, m, ib].set(0.0)
+        btri = btri.at[patch_indices, m, ib].set(1.0)
+        ctri = ctri.at[patch_indices, m, ib].set(0.0)
+        dtri = dtri.at[patch_indices, m, ib].set(swskyd[:, ib])
         
         # Solve tridiagonal system
         m_array = jnp.full(n_patches, m)
@@ -784,12 +806,12 @@ def norman_radiation_transfer(
         
         # Soil fluxes
         m_extract = m_extract + 1
-        swup = swup.at[jnp.arange(n_patches), 0, ib].set(
-            utri[jnp.arange(n_patches), m_extract]
+        swup = swup.at[patch_indices, 0, ib].set(
+            utri[patch_indices, m_extract]
         )
         m_extract = m_extract + 1
-        swdn = swdn.at[jnp.arange(n_patches), 0, ib].set(
-            utri[jnp.arange(n_patches), m_extract]
+        swdn = swdn.at[patch_indices, 0, ib].set(
+            utri[patch_indices, m_extract]
         )
         
         # Leaf layer fluxes
@@ -799,18 +821,18 @@ def norman_radiation_transfer(
             m_extract = m_extract + 1
             swup_val = jnp.where(
                 valid,
-                utri[jnp.arange(n_patches), m_extract],
-                swup[jnp.arange(n_patches), ic_layer, ib]
+                utri[patch_indices, m_extract],
+                swup[patch_indices, ic_layer, ib]
             )
-            swup = swup.at[jnp.arange(n_patches), ic_layer, ib].set(swup_val)
+            swup = swup.at[patch_indices, ic_layer, ib].set(swup_val)
             
             m_extract = m_extract + 1
             swdn_val = jnp.where(
                 valid,
-                utri[jnp.arange(n_patches), m_extract],
-                swdn[jnp.arange(n_patches), ic_layer, ib]
+                utri[patch_indices, m_extract],
+                swdn[patch_indices, ic_layer, ib]
             )
-            swdn = swdn.at[jnp.arange(n_patches), ic_layer, ib].set(swdn_val)
+            swdn = swdn.at[patch_indices, ic_layer, ib].set(swdn_val)
     
     # Calculate absorption by soil and vegetation
     swsoi = jnp.zeros((n_patches, numrad))
@@ -871,7 +893,8 @@ def norman_radiation_transfer(
     
     # Calculate canopy albedo
     suminc = swskyb + swskyd
-    sumref = swup[:, ntop, :] * swskyb + swup[:, ntop, :] * swskyd
+    swup_ntop = swup[patch_indices, ntop, :]
+    sumref = swup_ntop * swskyb + swup_ntop * swskyd
     albcan = jnp.where(suminc > 0.0, sumref / suminc, 0.0)
     
     # Convert visible band to APAR
@@ -927,6 +950,9 @@ def twostream_radiation_transfer(
         RadiationFluxes containing all radiation fluxes and absorption
     """
     n_patches = swskyb.shape[0]
+    
+    # Create patch indices for advanced indexing
+    patch_indices = jnp.arange(n_patches)
     
     # Extract needed variables
     omega = optical_props.omega
@@ -1131,8 +1157,10 @@ def twostream_radiation_transfer(
     swvegsha = jnp.zeros((n_patches, numrad))
     
     for ic in range(nlevmlcan):
-        sun = swleaf[:, ic, ISUN, :] * fracsun[:, ic:ic+1] * dpai[:, ic:ic+1]
-        sha = swleaf[:, ic, ISHA, :] * (1.0 - fracsun[:, ic:ic+1]) * dpai[:, ic:ic+1]
+        fracsun_ic = fracsun[:, ic:ic+1]
+        dpai_ic = dpai[:, ic:ic+1]
+        sun = swleaf[:, ic, ISUN, :] * fracsun_ic * dpai_ic
+        sha = swleaf[:, ic, ISHA, :] * (1.0 - fracsun_ic) * dpai_ic
         swveg = swveg + sun + sha
         swvegsun = swvegsun + sun
         swvegsha = swvegsha + sha

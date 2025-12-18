@@ -8,25 +8,18 @@ including both Norman and TwoStream radiation transfer methods.
 import pytest
 import jax.numpy as jnp
 import numpy as np
-from collections import namedtuple
 from typing import Dict, Any
 import json
 
-
-# Define namedtuples matching the function signature
-BoundsType = namedtuple('BoundsType', ['begp', 'endp', 'begg', 'endg'])
-PatchState = namedtuple('PatchState', ['itype', 'cosz', 'swskyb', 'swskyd', 'albsoib', 'albsoid'])
-MLCanopyState = namedtuple('MLCanopyState', [
-    'dlai_profile', 'dsai_profile', 'dpai_profile', 
-    'ntop_canopy', 'nbot_canopy', 'ncan_canopy'
-])
-PFTParams = namedtuple('PFTParams', ['rhol', 'taul', 'rhos', 'taus', 'xl', 'clump_fac'])
-OpticalProperties = namedtuple('OpticalProperties', [
-    'rho', 'tau', 'omega', 'kb', 'fracsun', 'tb', 'td', 'tbi', 'avmu', 'betab', 'betad'
-])
-RadiationFluxes = namedtuple('RadiationFluxes', [
-    'swleaf', 'swsoi', 'swveg', 'swvegsun', 'swvegsha', 'albcan', 'apar_sun', 'apar_shade'
-])
+# Import actual translated module
+from multilayer_canopy.MLSolarRadiationMod import (
+    solar_radiation,
+    BoundsType,
+    PatchState,
+    MLCanopyState,
+    PFTParams,
+    RadiationFluxes,
+)
 
 
 # Test data as embedded JSON
@@ -515,31 +508,10 @@ def solar_radiation_function():
     """
     Fixture providing the solar_radiation function.
     
-    Note: This is a placeholder. In actual use, import the real function:
-    from multilayer_canopy.MLSolarRadiationMod import solar_radiation
-    
     Returns:
         The solar_radiation function
     """
-    # Placeholder - replace with actual import
-    def mock_solar_radiation(bounds, num_filter, filter_indices, patch_state,
-                            mlcanopy_state, pft_params, nlevmlcan, 
-                            light_type=1, numrad=2):
-        """Mock function returning properly shaped outputs."""
-        n_patches = bounds.endp - bounds.begp
-        
-        return RadiationFluxes(
-            swleaf=jnp.zeros((n_patches, nlevmlcan, 2, numrad)),
-            swsoi=jnp.zeros((n_patches, numrad)),
-            swveg=jnp.zeros((n_patches, numrad)),
-            swvegsun=jnp.zeros((n_patches, numrad)),
-            swvegsha=jnp.zeros((n_patches, numrad)),
-            albcan=jnp.zeros((n_patches, numrad)),
-            apar_sun=jnp.zeros((n_patches, nlevmlcan)),
-            apar_shade=jnp.zeros((n_patches, nlevmlcan))
-        )
-    
-    return mock_solar_radiation
+    return solar_radiation
 
 
 # Parametrize tests with all test cases
@@ -556,9 +528,11 @@ def get_test_cases(test_data):
 class TestSolarRadiationShapes:
     """Test suite for verifying output shapes of solar_radiation function."""
     
-    @pytest.mark.parametrize("test_case", get_test_cases(json.loads(TEST_DATA_JSON)), 
-                            ids=get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_output_shapes(self, test_case, solar_radiation_function):
+    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
+    def test_output_shapes(self, test_case_name, test_data, solar_radiation_function):
+        """Test output shapes for individual test case."""
+        # Get the converted test case from test_data fixture
+        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
         """
         Test that solar_radiation returns correctly shaped outputs.
         
@@ -600,14 +574,14 @@ class TestSolarRadiationShapes:
 class TestSolarRadiationDtypes:
     """Test suite for verifying data types of solar_radiation outputs."""
     
-    @pytest.mark.parametrize("test_case", get_test_cases(json.loads(TEST_DATA_JSON)), 
-                            ids=get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_output_dtypes(self, test_case, solar_radiation_function):
+    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
+    def test_output_dtypes(self, test_case_name, test_data, solar_radiation_function):
         """
         Test that solar_radiation returns floating point outputs.
         
         All radiation fluxes and albedos should be floating point values.
         """
+        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
         inputs = test_case['inputs']
         result = solar_radiation_function(**inputs)
         
@@ -632,14 +606,14 @@ class TestSolarRadiationDtypes:
 class TestSolarRadiationPhysicalConstraints:
     """Test suite for verifying physical constraints on outputs."""
     
-    @pytest.mark.parametrize("test_case", get_test_cases(json.loads(TEST_DATA_JSON)), 
-                            ids=get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_non_negative_radiation(self, test_case, solar_radiation_function):
+    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
+    def test_non_negative_radiation(self, test_case_name, test_data, solar_radiation_function):
         """
         Test that all radiation fluxes are non-negative.
         
         Physical constraint: Radiation absorption cannot be negative.
         """
+        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
         inputs = test_case['inputs']
         result = solar_radiation_function(**inputs)
         
@@ -658,14 +632,14 @@ class TestSolarRadiationPhysicalConstraints:
         assert jnp.all(result.apar_shade >= 0), \
             f"apar_shade contains negative values for {test_case['name']}"
     
-    @pytest.mark.parametrize("test_case", get_test_cases(json.loads(TEST_DATA_JSON)), 
-                            ids=get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_albedo_bounds(self, test_case, solar_radiation_function):
+    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
+    def test_albedo_bounds(self, test_case_name, test_data, solar_radiation_function):
         """
         Test that canopy albedo is within [0, 1].
         
         Physical constraint: Albedo represents fraction of reflected radiation.
         """
+        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
         inputs = test_case['inputs']
         result = solar_radiation_function(**inputs)
         
@@ -674,14 +648,14 @@ class TestSolarRadiationPhysicalConstraints:
         assert jnp.all(result.albcan <= 1), \
             f"albcan contains values > 1 for {test_case['name']}"
     
-    @pytest.mark.parametrize("test_case", get_test_cases(json.loads(TEST_DATA_JSON)), 
-                            ids=get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_sunlit_shaded_sum(self, test_case, solar_radiation_function):
+    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
+    def test_sunlit_shaded_sum(self, test_case_name, test_data, solar_radiation_function):
         """
         Test that sunlit + shaded absorption equals total vegetation absorption.
         
         Physical constraint: Total canopy absorption is sum of sunlit and shaded.
         """
+        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
         inputs = test_case['inputs']
         result = solar_radiation_function(**inputs)
         
@@ -917,14 +891,14 @@ class TestSolarRadiationMethodComparison:
 class TestSolarRadiationNumericalStability:
     """Test suite for numerical stability and edge conditions."""
     
-    @pytest.mark.parametrize("test_case", get_test_cases(json.loads(TEST_DATA_JSON)), 
-                            ids=get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_no_nan_or_inf(self, test_case, solar_radiation_function):
+    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
+    def test_no_nan_or_inf(self, test_case_name, test_data, solar_radiation_function):
         """
         Test that outputs never contain NaN or Inf values.
         
         This is critical for numerical stability in coupled models.
         """
+        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
         inputs = test_case['inputs']
         result = solar_radiation_function(**inputs)
         
@@ -945,14 +919,14 @@ class TestSolarRadiationNumericalStability:
         assert jnp.all(jnp.isfinite(result.apar_shade)), \
             f"apar_shade contains NaN/Inf for {test_case['name']}"
     
-    @pytest.mark.parametrize("test_case", get_test_cases(json.loads(TEST_DATA_JSON)), 
-                            ids=get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_energy_conservation(self, test_case, solar_radiation_function):
+    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
+    def test_energy_conservation(self, test_case_name, test_data, solar_radiation_function):
         """
         Test energy conservation: absorbed + reflected ≈ incoming.
         
         Within numerical precision, total energy should be conserved.
         """
+        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
         inputs = test_case['inputs']
         result = solar_radiation_function(**inputs)
         

@@ -5,7 +5,7 @@
 # This script runs the complete translation workflow:
 # 1. Translate Fortran modules to JAX (translate_with_json.py)
 # 2. Generate tests for translated modules (generate_tests.py)
-# 3. Run tests and repair failures (repair_agent_example.py)
+# 3. Run tests (optional repair with --repair flag)
 #
 # Usage:
 #   ./run_translation_workflow.sh [OPTIONS]
@@ -74,7 +74,7 @@ ${YELLOW}Usage:${NC}
   $(basename $0) [OPTIONS]
 
 ${YELLOW}Options:${NC}
-  --all                Run complete workflow (translate → test → repair)
+  --all                Run complete workflow (translate → test)
   --translate          Run translation only
   --test               Run test generation only (requires translated modules)
   --repair             Run repair agent only (requires test failures)
@@ -83,7 +83,6 @@ ${YELLOW}Options:${NC}
   --modules MODULES    Comma-separated list of modules (default: clm_varctl,SoilStateType,SoilTemperatureMod)
   --output DIR         Output directory (default: ./translated_modules)
   --skip-tests         Skip test generation
-  --auto-repair        Automatically repair if tests fail
   
   -h, --help           Show this help message
 
@@ -100,13 +99,13 @@ ${YELLOW}Examples:${NC}
   # Interactive mode (prompts for each step)
   $(basename $0) --interactive
 
-  # Translate and auto-repair if tests fail
-  $(basename $0) --all --auto-repair
+  # Run repair agent for failed tests
+  $(basename $0) --repair
 
 ${YELLOW}Workflow Steps:${NC}
   1. ${GREEN}TRANSLATE${NC} - Convert Fortran modules to JAX Python
-  2. ${GREEN}TEST${NC}      - Generate comprehensive test suites
-  3. ${GREEN}REPAIR${NC}    - Fix any failing tests automatically
+  2. ${GREEN}TEST${NC}      - Generate comprehensive test suites and run them
+  3. ${GREEN}REPAIR${NC}    - Fix any failing tests automatically (run separately)
 
 ${YELLOW}Requirements:${NC}
   - Anthropic API key set: export ANTHROPIC_API_KEY="your-key"
@@ -761,12 +760,10 @@ main() {
             run_test_generation "${MODULES[@]}" || exit 1
             
             if run_tests "${MODULES[@]}"; then
-                print_success "All tests passed - no repair needed!"
-            elif [ "$AUTO_REPAIR" = true ]; then
-                run_repair "${MODULES[@]}"
+                print_success "All tests passed!"
             else
-                print_info "Tests failed. Run with --auto-repair to fix automatically"
-                print_info "Or run: $(basename $0) --repair"
+                print_info "Tests completed with some failures."
+                print_info "To repair failed tests, run: $(basename $0) --repair"
             fi
         fi
         exit 0
