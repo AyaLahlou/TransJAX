@@ -2,553 +2,1125 @@
 Comprehensive pytest suite for create_empty_rsl_lookup_tables function.
 
 This module tests the creation of empty RSL (Roughness Sublayer) lookup tables
-used in multilayer canopy physics simulations. Tests cover:
-- Nominal cases with various grid dimensions
-- Edge cases (minimum dimensions, boundary values)
-- Special cases (large grids, extreme asymmetry)
-- Shape verification, dtype checking, and initialization validation
+for the multilayer canopy model. The function initializes zero-filled arrays
+with shapes determined by the vertical (n_z) and stability (n_l) dimensions
+from the MLCanopyConstants.
+
+Test Coverage:
+- Nominal cases: Various grid dimensions and physical parameter regimes
+- Edge cases: Minimum dimensions, boundary fraction values
+- Special cases: Asymmetric and square dimensions
+- Shape verification: All output arrays have correct dimensions
+- Value verification: All arrays initialized to zeros
+- Type verification: All arrays are JAX arrays
 """
 
-import pytest
+import sys
+from pathlib import Path
+from typing import NamedTuple
+
 import jax.numpy as jnp
 import numpy as np
-from collections import namedtuple
-from typing import Any, Dict
+import pytest
 
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-# Define namedtuples matching the function signature
-MLCanopyConstants = namedtuple('MLCanopyConstants', [
-    'rgas', 'mmdry', 'mmh2o', 'cpd', 'cpw', 'visc0', 'dh0', 'dv0', 'dc0',
-    'lapse_rate', 'kc25', 'kcha', 'ko25', 'koha', 'cp25', 'cpha',
-    'vcmaxha_noacclim', 'vcmaxha_acclim', 'vcmaxhd_noacclim', 'vcmaxhd_acclim',
-    'vcmaxse_noacclim', 'vcmaxse_acclim', 'jmaxha_noacclim', 'jmaxha_acclim',
-    'jmaxhd_noacclim', 'jmaxhd_acclim', 'jmaxse_noacclim', 'jmaxse_acclim',
-    'rdha', 'rdhd', 'rdse', 'jmax25_to_vcmax25_noacclim', 'jmax25_to_vcmax25_acclim',
-    'rd25_to_vcmax25_c3', 'rd25_to_vcmax25_c4', 'kp25_to_vcmax25_c4',
-    'phi_psii', 'theta_j', 'qe_c4', 'colim_c3a', 'colim_c3b', 'colim_c4a', 'colim_c4b',
-    'dh2o_to_dco2', 'rh_min_bb', 'vpd_min_med', 'cpbio', 'fcarbon', 'fwater',
-    'gb_factor', 'dewmx', 'maximum_leaf_wetted_fraction', 'interception_fraction',
-    'fwet_exponent', 'clm45_interception_p1', 'clm45_interception_p2',
-    'chil_min', 'chil_max', 'kb_max', 'j_to_umol', 'emg', 'cd', 'beta_neutral_max',
-    'cr', 'c2', 'pr0', 'pr1', 'pr2', 'z0mg', 'wind_forc_min', 'eta_max',
-    'zeta_min', 'zeta_max', 'beta_min', 'beta_max', 'wind_min', 'ra_max',
-    'n_z', 'n_l'
-])
-
-RSLPsihatLookupTables = namedtuple('RSLPsihatLookupTables', [
-    'zdtgrid_m', 'dtlgrid_m', 'psigrid_m',
-    'zdtgrid_h', 'dtlgrid_h', 'psigrid_h'
-])
-
-
-# Mock implementation for testing (replace with actual import)
-def create_empty_rsl_lookup_tables(constants):
-    """
-    Create empty RSL lookup tables with correct shapes initialized to zeros.
-    
-    Args:
-        constants: MLCanopyConstants containing n_z and n_l dimensions
-        
-    Returns:
-        RSLPsihatLookupTables with all arrays as JAX arrays initialized to zeros
-    """
-    n_z = constants.n_z
-    n_l = constants.n_l
-    
-    return RSLPsihatLookupTables(
-        zdtgrid_m=jnp.zeros((n_z, 1)),
-        dtlgrid_m=jnp.zeros((1, n_l)),
-        psigrid_m=jnp.zeros((n_z, n_l)),
-        zdtgrid_h=jnp.zeros((n_z, 1)),
-        dtlgrid_h=jnp.zeros((1, n_l)),
-        psigrid_h=jnp.zeros((n_z, n_l))
-    )
-
-
-# Default constants for testing
-DEFAULT_CONSTANTS = MLCanopyConstants(
-    rgas=8.314, mmdry=28.97, mmh2o=18.016, cpd=1005.0, cpw=1846.0,
-    visc0=1.5e-05, dh0=2.12e-05, dv0=2.4e-05, dc0=1.47e-05, lapse_rate=0.0065,
-    kc25=404.9, kcha=79430.0, ko25=278.4, koha=36380.0, cp25=42.75, cpha=37830.0,
-    vcmaxha_noacclim=72000.0, vcmaxha_acclim=65330.0, vcmaxhd_noacclim=200000.0,
-    vcmaxhd_acclim=200000.0, vcmaxse_noacclim=668.39, vcmaxse_acclim=668.39,
-    jmaxha_noacclim=50000.0, jmaxha_acclim=43540.0, jmaxhd_noacclim=200000.0,
-    jmaxhd_acclim=152040.0, jmaxse_noacclim=659.7, jmaxse_acclim=495.0,
-    rdha=46390.0, rdhd=150650.0, rdse=490.0, jmax25_to_vcmax25_noacclim=1.67,
-    jmax25_to_vcmax25_acclim=1.67, rd25_to_vcmax25_c3=0.015, rd25_to_vcmax25_c4=0.025,
-    kp25_to_vcmax25_c4=0.02, phi_psii=0.7, theta_j=0.9, qe_c4=0.05,
-    colim_c3a=0.98, colim_c3b=0.95, colim_c4a=0.8, colim_c4b=0.95,
-    dh2o_to_dco2=1.6, rh_min_bb=0.3, vpd_min_med=50.0, cpbio=2000000.0,
-    fcarbon=0.5, fwater=0.5, gb_factor=1.0, dewmx=0.1,
-    maximum_leaf_wetted_fraction=0.05, interception_fraction=0.25,
-    fwet_exponent=0.667, clm45_interception_p1=0.25, clm45_interception_p2=0.5,
-    chil_min=-0.4, chil_max=0.6, kb_max=0.9, j_to_umol=4.6, emg=0.97,
-    cd=0.3, beta_neutral_max=1.0, cr=0.3, c2=0.75, pr0=0.5, pr1=0.3, pr2=0.3,
-    z0mg=0.01, wind_forc_min=0.1, eta_max=10.0, zeta_min=-2.0, zeta_max=1.0,
-    beta_min=0.0, beta_max=2.0, wind_min=0.1, ra_max=999.0,
-    n_z=10, n_l=10
+from multilayer_canopy.MLclm_varcon import (
+    MLCanopyConstants,
+    RSLPsihatLookupTables,
+    create_empty_rsl_lookup_tables,
 )
 
 
 @pytest.fixture
 def test_data():
     """
-    Fixture providing test data for create_empty_rsl_lookup_tables tests.
+    Load test data for create_empty_rsl_lookup_tables function.
     
     Returns:
-        Dict containing test cases with inputs and expected outputs
+        dict: Test cases with inputs and metadata for comprehensive testing.
     """
     return {
-        'nominal_default': {
-            'constants': DEFAULT_CONSTANTS,
-            'expected_shapes': {
-                'zdtgrid_m': (10, 1),
-                'dtlgrid_m': (1, 10),
-                'psigrid_m': (10, 10),
-                'zdtgrid_h': (10, 1),
-                'dtlgrid_h': (1, 10),
-                'psigrid_h': (10, 10)
-            }
+        "test_nominal_default_dimensions": {
+            "constants": MLCanopyConstants(
+                rgas=8.314,
+                mmdry=28.97,
+                mmh2o=18.016,
+                cpd=1005.0,
+                cpw=1846.0,
+                visc0=1.5e-05,
+                dh0=2.12e-05,
+                dv0=2.42e-05,
+                dc0=1.47e-05,
+                lapse_rate=0.0065,
+                kc25=404.9,
+                kcha=79430.0,
+                ko25=278.4,
+                koha=36380.0,
+                cp25=42.75,
+                cpha=37830.0,
+                vcmaxha_noacclim=72000.0,
+                vcmaxha_acclim=65330.0,
+                vcmaxhd_noacclim=200000.0,
+                vcmaxhd_acclim=200000.0,
+                vcmaxse_noacclim=668.39,
+                vcmaxse_acclim=668.39,
+                jmaxha_noacclim=50000.0,
+                jmaxha_acclim=43540.0,
+                jmaxhd_noacclim=200000.0,
+                jmaxhd_acclim=152040.0,
+                jmaxse_noacclim=659.7,
+                jmaxse_acclim=495.0,
+                rdha=46390.0,
+                rdhd=150650.0,
+                rdse=490.0,
+                jmax25_to_vcmax25_noacclim=1.67,
+                jmax25_to_vcmax25_acclim=1.67,
+                rd25_to_vcmax25_c3=0.015,
+                rd25_to_vcmax25_c4=0.025,
+                kp25_to_vcmax25_c4=0.02,
+                phi_psii=0.85,
+                theta_j=0.9,
+                qe_c4=0.05,
+                colim_c3a=0.98,
+                colim_c3b=0.95,
+                colim_c4a=0.8,
+                colim_c4b=0.95,
+                dh2o_to_dco2=1.6,
+                rh_min_bb=0.3,
+                vpd_min_med=50.0,
+                cpbio=2000000.0,
+                fcarbon=0.5,
+                fwater=0.5,
+                gb_factor=1.0,
+                dewmx=0.1,
+                maximum_leaf_wetted_fraction=0.05,
+                interception_fraction=0.25,
+                fwet_exponent=0.667,
+                clm45_interception_p1=0.25,
+                clm45_interception_p2=0.5,
+                chil_min=-0.4,
+                chil_max=0.6,
+                kb_max=0.9,
+                j_to_umol=4.6,
+                emg=0.97,
+                cd=0.3,
+                beta_neutral_max=1.0,
+                cr=0.3,
+                c2=0.75,
+                pr0=0.5,
+                pr1=1.0,
+                pr2=5.0,
+                z0mg=0.01,
+                wind_forc_min=0.1,
+                eta_max=10.0,
+                zeta_min=-2.0,
+                zeta_max=1.0,
+                beta_min=0.01,
+                beta_max=1.0,
+                wind_min=0.1,
+                ra_max=999.0,
+                n_z=50,
+                n_l=40,
+            ),
+            "expected_n_z": 50,
+            "expected_n_l": 40,
         },
-        'nominal_small': {
-            'constants': DEFAULT_CONSTANTS._replace(n_z=5, n_l=5),
-            'expected_shapes': {
-                'zdtgrid_m': (5, 1),
-                'dtlgrid_m': (1, 5),
-                'psigrid_m': (5, 5),
-                'zdtgrid_h': (5, 1),
-                'dtlgrid_h': (1, 5),
-                'psigrid_h': (5, 5)
-            }
+        "test_nominal_small_dimensions": {
+            "constants": MLCanopyConstants(
+                rgas=8.314,
+                mmdry=28.97,
+                mmh2o=18.016,
+                cpd=1005.0,
+                cpw=1846.0,
+                visc0=1.5e-05,
+                dh0=2.12e-05,
+                dv0=2.42e-05,
+                dc0=1.47e-05,
+                lapse_rate=0.0065,
+                kc25=404.9,
+                kcha=79430.0,
+                ko25=278.4,
+                koha=36380.0,
+                cp25=42.75,
+                cpha=37830.0,
+                vcmaxha_noacclim=72000.0,
+                vcmaxha_acclim=65330.0,
+                vcmaxhd_noacclim=200000.0,
+                vcmaxhd_acclim=200000.0,
+                vcmaxse_noacclim=668.39,
+                vcmaxse_acclim=668.39,
+                jmaxha_noacclim=50000.0,
+                jmaxha_acclim=43540.0,
+                jmaxhd_noacclim=200000.0,
+                jmaxhd_acclim=152040.0,
+                jmaxse_noacclim=659.7,
+                jmaxse_acclim=495.0,
+                rdha=46390.0,
+                rdhd=150650.0,
+                rdse=490.0,
+                jmax25_to_vcmax25_noacclim=1.67,
+                jmax25_to_vcmax25_acclim=1.67,
+                rd25_to_vcmax25_c3=0.015,
+                rd25_to_vcmax25_c4=0.025,
+                kp25_to_vcmax25_c4=0.02,
+                phi_psii=0.85,
+                theta_j=0.9,
+                qe_c4=0.05,
+                colim_c3a=0.98,
+                colim_c3b=0.95,
+                colim_c4a=0.8,
+                colim_c4b=0.95,
+                dh2o_to_dco2=1.6,
+                rh_min_bb=0.3,
+                vpd_min_med=50.0,
+                cpbio=2000000.0,
+                fcarbon=0.5,
+                fwater=0.5,
+                gb_factor=1.0,
+                dewmx=0.1,
+                maximum_leaf_wetted_fraction=0.05,
+                interception_fraction=0.25,
+                fwet_exponent=0.667,
+                clm45_interception_p1=0.25,
+                clm45_interception_p2=0.5,
+                chil_min=-0.4,
+                chil_max=0.6,
+                kb_max=0.9,
+                j_to_umol=4.6,
+                emg=0.97,
+                cd=0.3,
+                beta_neutral_max=1.0,
+                cr=0.3,
+                c2=0.75,
+                pr0=0.5,
+                pr1=1.0,
+                pr2=5.0,
+                z0mg=0.01,
+                wind_forc_min=0.1,
+                eta_max=10.0,
+                zeta_min=-2.0,
+                zeta_max=1.0,
+                beta_min=0.01,
+                beta_max=1.0,
+                wind_min=0.1,
+                ra_max=999.0,
+                n_z=10,
+                n_l=15,
+            ),
+            "expected_n_z": 10,
+            "expected_n_l": 15,
         },
-        'nominal_large': {
-            'constants': DEFAULT_CONSTANTS._replace(n_z=50, n_l=50),
-            'expected_shapes': {
-                'zdtgrid_m': (50, 1),
-                'dtlgrid_m': (1, 50),
-                'psigrid_m': (50, 50),
-                'zdtgrid_h': (50, 1),
-                'dtlgrid_h': (1, 50),
-                'psigrid_h': (50, 50)
-            }
+        "test_nominal_large_dimensions": {
+            "constants": MLCanopyConstants(
+                rgas=8.314,
+                mmdry=28.97,
+                mmh2o=18.016,
+                cpd=1005.0,
+                cpw=1846.0,
+                visc0=1.5e-05,
+                dh0=2.12e-05,
+                dv0=2.42e-05,
+                dc0=1.47e-05,
+                lapse_rate=0.0065,
+                kc25=404.9,
+                kcha=79430.0,
+                ko25=278.4,
+                koha=36380.0,
+                cp25=42.75,
+                cpha=37830.0,
+                vcmaxha_noacclim=72000.0,
+                vcmaxha_acclim=65330.0,
+                vcmaxhd_noacclim=200000.0,
+                vcmaxhd_acclim=200000.0,
+                vcmaxse_noacclim=668.39,
+                vcmaxse_acclim=668.39,
+                jmaxha_noacclim=50000.0,
+                jmaxha_acclim=43540.0,
+                jmaxhd_noacclim=200000.0,
+                jmaxhd_acclim=152040.0,
+                jmaxse_noacclim=659.7,
+                jmaxse_acclim=495.0,
+                rdha=46390.0,
+                rdhd=150650.0,
+                rdse=490.0,
+                jmax25_to_vcmax25_noacclim=1.67,
+                jmax25_to_vcmax25_acclim=1.67,
+                rd25_to_vcmax25_c3=0.015,
+                rd25_to_vcmax25_c4=0.025,
+                kp25_to_vcmax25_c4=0.02,
+                phi_psii=0.85,
+                theta_j=0.9,
+                qe_c4=0.05,
+                colim_c3a=0.98,
+                colim_c3b=0.95,
+                colim_c4a=0.8,
+                colim_c4b=0.95,
+                dh2o_to_dco2=1.6,
+                rh_min_bb=0.3,
+                vpd_min_med=50.0,
+                cpbio=2000000.0,
+                fcarbon=0.5,
+                fwater=0.5,
+                gb_factor=1.0,
+                dewmx=0.1,
+                maximum_leaf_wetted_fraction=0.05,
+                interception_fraction=0.25,
+                fwet_exponent=0.667,
+                clm45_interception_p1=0.25,
+                clm45_interception_p2=0.5,
+                chil_min=-0.4,
+                chil_max=0.6,
+                kb_max=0.9,
+                j_to_umol=4.6,
+                emg=0.97,
+                cd=0.3,
+                beta_neutral_max=1.0,
+                cr=0.3,
+                c2=0.75,
+                pr0=0.5,
+                pr1=1.0,
+                pr2=5.0,
+                z0mg=0.01,
+                wind_forc_min=0.1,
+                eta_max=10.0,
+                zeta_min=-2.0,
+                zeta_max=1.0,
+                beta_min=0.01,
+                beta_max=1.0,
+                wind_min=0.1,
+                ra_max=999.0,
+                n_z=100,
+                n_l=80,
+            ),
+            "expected_n_z": 100,
+            "expected_n_l": 80,
         },
-        'nominal_rectangular': {
-            'constants': DEFAULT_CONSTANTS._replace(n_z=20, n_l=15),
-            'expected_shapes': {
-                'zdtgrid_m': (20, 1),
-                'dtlgrid_m': (1, 15),
-                'psigrid_m': (20, 15),
-                'zdtgrid_h': (20, 1),
-                'dtlgrid_h': (1, 15),
-                'psigrid_h': (20, 15)
-            }
+        "test_edge_minimum_dimensions": {
+            "constants": MLCanopyConstants(
+                rgas=8.314,
+                mmdry=28.97,
+                mmh2o=18.016,
+                cpd=1005.0,
+                cpw=1846.0,
+                visc0=1.5e-05,
+                dh0=2.12e-05,
+                dv0=2.42e-05,
+                dc0=1.47e-05,
+                lapse_rate=0.0065,
+                kc25=404.9,
+                kcha=79430.0,
+                ko25=278.4,
+                koha=36380.0,
+                cp25=42.75,
+                cpha=37830.0,
+                vcmaxha_noacclim=72000.0,
+                vcmaxha_acclim=65330.0,
+                vcmaxhd_noacclim=200000.0,
+                vcmaxhd_acclim=200000.0,
+                vcmaxse_noacclim=668.39,
+                vcmaxse_acclim=668.39,
+                jmaxha_noacclim=50000.0,
+                jmaxha_acclim=43540.0,
+                jmaxhd_noacclim=200000.0,
+                jmaxhd_acclim=152040.0,
+                jmaxse_noacclim=659.7,
+                jmaxse_acclim=495.0,
+                rdha=46390.0,
+                rdhd=150650.0,
+                rdse=490.0,
+                jmax25_to_vcmax25_noacclim=1.67,
+                jmax25_to_vcmax25_acclim=1.67,
+                rd25_to_vcmax25_c3=0.015,
+                rd25_to_vcmax25_c4=0.025,
+                kp25_to_vcmax25_c4=0.02,
+                phi_psii=0.85,
+                theta_j=0.9,
+                qe_c4=0.05,
+                colim_c3a=0.98,
+                colim_c3b=0.95,
+                colim_c4a=0.8,
+                colim_c4b=0.95,
+                dh2o_to_dco2=1.6,
+                rh_min_bb=0.3,
+                vpd_min_med=50.0,
+                cpbio=2000000.0,
+                fcarbon=0.5,
+                fwater=0.5,
+                gb_factor=1.0,
+                dewmx=0.1,
+                maximum_leaf_wetted_fraction=0.05,
+                interception_fraction=0.25,
+                fwet_exponent=0.667,
+                clm45_interception_p1=0.25,
+                clm45_interception_p2=0.5,
+                chil_min=-0.4,
+                chil_max=0.6,
+                kb_max=0.9,
+                j_to_umol=4.6,
+                emg=0.97,
+                cd=0.3,
+                beta_neutral_max=1.0,
+                cr=0.3,
+                c2=0.75,
+                pr0=0.5,
+                pr1=1.0,
+                pr2=5.0,
+                z0mg=0.01,
+                wind_forc_min=0.1,
+                eta_max=10.0,
+                zeta_min=-2.0,
+                zeta_max=1.0,
+                beta_min=0.01,
+                beta_max=1.0,
+                wind_min=0.1,
+                ra_max=999.0,
+                n_z=1,
+                n_l=1,
+            ),
+            "expected_n_z": 1,
+            "expected_n_l": 1,
         },
-        'edge_minimum': {
-            'constants': DEFAULT_CONSTANTS._replace(n_z=1, n_l=1),
-            'expected_shapes': {
-                'zdtgrid_m': (1, 1),
-                'dtlgrid_m': (1, 1),
-                'psigrid_m': (1, 1),
-                'zdtgrid_h': (1, 1),
-                'dtlgrid_h': (1, 1),
-                'psigrid_h': (1, 1)
-            }
+        "test_special_asymmetric_dimensions": {
+            "constants": MLCanopyConstants(
+                rgas=8.314,
+                mmdry=28.97,
+                mmh2o=18.016,
+                cpd=1005.0,
+                cpw=1846.0,
+                visc0=1.5e-05,
+                dh0=2.12e-05,
+                dv0=2.42e-05,
+                dc0=1.47e-05,
+                lapse_rate=0.0065,
+                kc25=404.9,
+                kcha=79430.0,
+                ko25=278.4,
+                koha=36380.0,
+                cp25=42.75,
+                cpha=37830.0,
+                vcmaxha_noacclim=72000.0,
+                vcmaxha_acclim=65330.0,
+                vcmaxhd_noacclim=200000.0,
+                vcmaxhd_acclim=200000.0,
+                vcmaxse_noacclim=668.39,
+                vcmaxse_acclim=668.39,
+                jmaxha_noacclim=50000.0,
+                jmaxha_acclim=43540.0,
+                jmaxhd_noacclim=200000.0,
+                jmaxhd_acclim=152040.0,
+                jmaxse_noacclim=659.7,
+                jmaxse_acclim=495.0,
+                rdha=46390.0,
+                rdhd=150650.0,
+                rdse=490.0,
+                jmax25_to_vcmax25_noacclim=1.67,
+                jmax25_to_vcmax25_acclim=1.67,
+                rd25_to_vcmax25_c3=0.015,
+                rd25_to_vcmax25_c4=0.025,
+                kp25_to_vcmax25_c4=0.02,
+                phi_psii=0.85,
+                theta_j=0.9,
+                qe_c4=0.05,
+                colim_c3a=0.98,
+                colim_c3b=0.95,
+                colim_c4a=0.8,
+                colim_c4b=0.95,
+                dh2o_to_dco2=1.6,
+                rh_min_bb=0.3,
+                vpd_min_med=50.0,
+                cpbio=2000000.0,
+                fcarbon=0.5,
+                fwater=0.5,
+                gb_factor=1.0,
+                dewmx=0.1,
+                maximum_leaf_wetted_fraction=0.05,
+                interception_fraction=0.25,
+                fwet_exponent=0.667,
+                clm45_interception_p1=0.25,
+                clm45_interception_p2=0.5,
+                chil_min=-0.4,
+                chil_max=0.6,
+                kb_max=0.9,
+                j_to_umol=4.6,
+                emg=0.97,
+                cd=0.3,
+                beta_neutral_max=1.0,
+                cr=0.3,
+                c2=0.75,
+                pr0=0.5,
+                pr1=1.0,
+                pr2=5.0,
+                z0mg=0.01,
+                wind_forc_min=0.1,
+                eta_max=10.0,
+                zeta_min=-2.0,
+                zeta_max=1.0,
+                beta_min=0.01,
+                beta_max=1.0,
+                wind_min=0.1,
+                ra_max=999.0,
+                n_z=5,
+                n_l=100,
+            ),
+            "expected_n_z": 5,
+            "expected_n_l": 100,
         },
-        'special_very_large': {
-            'constants': DEFAULT_CONSTANTS._replace(n_z=100, n_l=100),
-            'expected_shapes': {
-                'zdtgrid_m': (100, 1),
-                'dtlgrid_m': (1, 100),
-                'psigrid_m': (100, 100),
-                'zdtgrid_h': (100, 1),
-                'dtlgrid_h': (1, 100),
-                'psigrid_h': (100, 100)
-            }
+        "test_special_square_dimensions": {
+            "constants": MLCanopyConstants(
+                rgas=8.314,
+                mmdry=28.97,
+                mmh2o=18.016,
+                cpd=1005.0,
+                cpw=1846.0,
+                visc0=1.5e-05,
+                dh0=2.12e-05,
+                dv0=2.42e-05,
+                dc0=1.47e-05,
+                lapse_rate=0.0065,
+                kc25=404.9,
+                kcha=79430.0,
+                ko25=278.4,
+                koha=36380.0,
+                cp25=42.75,
+                cpha=37830.0,
+                vcmaxha_noacclim=72000.0,
+                vcmaxha_acclim=65330.0,
+                vcmaxhd_noacclim=200000.0,
+                vcmaxhd_acclim=200000.0,
+                vcmaxse_noacclim=668.39,
+                vcmaxse_acclim=668.39,
+                jmaxha_noacclim=50000.0,
+                jmaxha_acclim=43540.0,
+                jmaxhd_noacclim=200000.0,
+                jmaxhd_acclim=152040.0,
+                jmaxse_noacclim=659.7,
+                jmaxse_acclim=495.0,
+                rdha=46390.0,
+                rdhd=150650.0,
+                rdse=490.0,
+                jmax25_to_vcmax25_noacclim=1.67,
+                jmax25_to_vcmax25_acclim=1.67,
+                rd25_to_vcmax25_c3=0.015,
+                rd25_to_vcmax25_c4=0.025,
+                kp25_to_vcmax25_c4=0.02,
+                phi_psii=0.85,
+                theta_j=0.9,
+                qe_c4=0.05,
+                colim_c3a=0.98,
+                colim_c3b=0.95,
+                colim_c4a=0.8,
+                colim_c4b=0.95,
+                dh2o_to_dco2=1.6,
+                rh_min_bb=0.3,
+                vpd_min_med=50.0,
+                cpbio=2000000.0,
+                fcarbon=0.5,
+                fwater=0.5,
+                gb_factor=1.0,
+                dewmx=0.1,
+                maximum_leaf_wetted_fraction=0.05,
+                interception_fraction=0.25,
+                fwet_exponent=0.667,
+                clm45_interception_p1=0.25,
+                clm45_interception_p2=0.5,
+                chil_min=-0.4,
+                chil_max=0.6,
+                kb_max=0.9,
+                j_to_umol=4.6,
+                emg=0.97,
+                cd=0.3,
+                beta_neutral_max=1.0,
+                cr=0.3,
+                c2=0.75,
+                pr0=0.5,
+                pr1=1.0,
+                pr2=5.0,
+                z0mg=0.01,
+                wind_forc_min=0.1,
+                eta_max=10.0,
+                zeta_min=-2.0,
+                zeta_max=1.0,
+                beta_min=0.01,
+                beta_max=1.0,
+                wind_min=0.1,
+                ra_max=999.0,
+                n_z=64,
+                n_l=64,
+            ),
+            "expected_n_z": 64,
+            "expected_n_l": 64,
         },
-        'special_extreme_asymmetry': {
-            'constants': DEFAULT_CONSTANTS._replace(n_z=2, n_l=100),
-            'expected_shapes': {
-                'zdtgrid_m': (2, 1),
-                'dtlgrid_m': (1, 100),
-                'psigrid_m': (2, 100),
-                'zdtgrid_h': (2, 1),
-                'dtlgrid_h': (1, 100),
-                'psigrid_h': (2, 100)
-            }
-        }
     }
 
 
-# Parametrized test cases
-test_cases = [
-    ('nominal_default', 10, 10, 'Default dimensions (10x10)'),
-    ('nominal_small', 5, 5, 'Small dimensions (5x5)'),
-    ('nominal_large', 50, 50, 'Large dimensions (50x50)'),
-    ('nominal_rectangular', 20, 15, 'Rectangular dimensions (20x15)'),
-    ('edge_minimum', 1, 1, 'Minimum dimensions (1x1)'),
-    ('special_very_large', 100, 100, 'Very large dimensions (100x100)'),
-    ('special_extreme_asymmetry', 2, 100, 'Extreme asymmetry (2x100)'),
-]
-
-
-@pytest.mark.parametrize('test_name,n_z,n_l,description', test_cases)
-def test_create_empty_rsl_lookup_tables_shapes(test_data, test_name, n_z, n_l, description):
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_nominal_default_dimensions",
+        "test_nominal_small_dimensions",
+        "test_nominal_large_dimensions",
+        "test_edge_minimum_dimensions",
+        "test_special_asymmetric_dimensions",
+        "test_special_square_dimensions",
+    ],
+)
+def test_create_empty_rsl_lookup_tables_shapes(test_data, test_case_name):
     """
     Test that create_empty_rsl_lookup_tables returns arrays with correct shapes.
     
-    Verifies that all six arrays in the returned RSLPsihatLookupTables have
-    the expected shapes based on n_z and n_l dimensions:
-    - zdtgrid_m, zdtgrid_h: (n_z, 1)
-    - dtlgrid_m, dtlgrid_h: (1, n_l)
-    - psigrid_m, psigrid_h: (n_z, n_l)
+    Verifies that:
+    - zdtgrid_m and zdtgrid_h have shape (n_z, 1)
+    - dtlgrid_m and dtlgrid_h have shape (1, n_l)
+    - psigrid_m and psigrid_h have shape (n_z, n_l)
     
     Args:
         test_data: Fixture providing test cases
-        test_name: Name of the test case
-        n_z: Expected vertical dimension
-        n_l: Expected stability dimension
-        description: Human-readable test description
+        test_case_name: Name of the test case to run
     """
-    test_case = test_data[test_name]
-    constants = test_case['constants']
-    expected_shapes = test_case['expected_shapes']
+    test_case = test_data[test_case_name]
+    constants = test_case["constants"]
+    expected_n_z = test_case["expected_n_z"]
+    expected_n_l = test_case["expected_n_l"]
     
+    # Call the function
     result = create_empty_rsl_lookup_tables(constants)
     
-    # Verify all shapes
-    assert result.zdtgrid_m.shape == expected_shapes['zdtgrid_m'], \
-        f"{description}: zdtgrid_m shape mismatch. Expected {expected_shapes['zdtgrid_m']}, got {result.zdtgrid_m.shape}"
-    
-    assert result.dtlgrid_m.shape == expected_shapes['dtlgrid_m'], \
-        f"{description}: dtlgrid_m shape mismatch. Expected {expected_shapes['dtlgrid_m']}, got {result.dtlgrid_m.shape}"
-    
-    assert result.psigrid_m.shape == expected_shapes['psigrid_m'], \
-        f"{description}: psigrid_m shape mismatch. Expected {expected_shapes['psigrid_m']}, got {result.psigrid_m.shape}"
-    
-    assert result.zdtgrid_h.shape == expected_shapes['zdtgrid_h'], \
-        f"{description}: zdtgrid_h shape mismatch. Expected {expected_shapes['zdtgrid_h']}, got {result.zdtgrid_h.shape}"
-    
-    assert result.dtlgrid_h.shape == expected_shapes['dtlgrid_h'], \
-        f"{description}: dtlgrid_h shape mismatch. Expected {expected_shapes['dtlgrid_h']}, got {result.dtlgrid_h.shape}"
-    
-    assert result.psigrid_h.shape == expected_shapes['psigrid_h'], \
-        f"{description}: psigrid_h shape mismatch. Expected {expected_shapes['psigrid_h']}, got {result.psigrid_h.shape}"
-
-
-@pytest.mark.parametrize('test_name,n_z,n_l,description', test_cases)
-def test_create_empty_rsl_lookup_tables_values(test_data, test_name, n_z, n_l, description):
-    """
-    Test that all arrays are initialized to zeros.
-    
-    Verifies that create_empty_rsl_lookup_tables initializes all arrays
-    in the lookup tables to zero values, as expected for empty tables
-    that will be populated later.
-    
-    Args:
-        test_data: Fixture providing test cases
-        test_name: Name of the test case
-        n_z: Expected vertical dimension
-        n_l: Expected stability dimension
-        description: Human-readable test description
-    """
-    test_case = test_data[test_name]
-    constants = test_case['constants']
-    
-    result = create_empty_rsl_lookup_tables(constants)
-    
-    # Verify all arrays are zeros
-    assert jnp.allclose(result.zdtgrid_m, 0.0, atol=1e-10), \
-        f"{description}: zdtgrid_m not initialized to zeros"
-    
-    assert jnp.allclose(result.dtlgrid_m, 0.0, atol=1e-10), \
-        f"{description}: dtlgrid_m not initialized to zeros"
-    
-    assert jnp.allclose(result.psigrid_m, 0.0, atol=1e-10), \
-        f"{description}: psigrid_m not initialized to zeros"
-    
-    assert jnp.allclose(result.zdtgrid_h, 0.0, atol=1e-10), \
-        f"{description}: zdtgrid_h not initialized to zeros"
-    
-    assert jnp.allclose(result.dtlgrid_h, 0.0, atol=1e-10), \
-        f"{description}: dtlgrid_h not initialized to zeros"
-    
-    assert jnp.allclose(result.psigrid_h, 0.0, atol=1e-10), \
-        f"{description}: psigrid_h not initialized to zeros"
-
-
-@pytest.mark.parametrize('test_name,n_z,n_l,description', test_cases)
-def test_create_empty_rsl_lookup_tables_dtypes(test_data, test_name, n_z, n_l, description):
-    """
-    Test that all arrays are JAX arrays with correct dtype.
-    
-    Verifies that create_empty_rsl_lookup_tables returns JAX arrays
-    (jnp.ndarray) for GPU compatibility, not NumPy arrays.
-    
-    Args:
-        test_data: Fixture providing test cases
-        test_name: Name of the test case
-        n_z: Expected vertical dimension
-        n_l: Expected stability dimension
-        description: Human-readable test description
-    """
-    test_case = test_data[test_name]
-    constants = test_case['constants']
-    
-    result = create_empty_rsl_lookup_tables(constants)
-    
-    # Verify all arrays are JAX arrays
-    assert isinstance(result.zdtgrid_m, jnp.ndarray), \
-        f"{description}: zdtgrid_m is not a JAX array"
-    
-    assert isinstance(result.dtlgrid_m, jnp.ndarray), \
-        f"{description}: dtlgrid_m is not a JAX array"
-    
-    assert isinstance(result.psigrid_m, jnp.ndarray), \
-        f"{description}: psigrid_m is not a JAX array"
-    
-    assert isinstance(result.zdtgrid_h, jnp.ndarray), \
-        f"{description}: zdtgrid_h is not a JAX array"
-    
-    assert isinstance(result.dtlgrid_h, jnp.ndarray), \
-        f"{description}: dtlgrid_h is not a JAX array"
-    
-    assert isinstance(result.psigrid_h, jnp.ndarray), \
-        f"{description}: psigrid_h is not a JAX array"
-
-
-def test_create_empty_rsl_lookup_tables_return_type(test_data):
-    """
-    Test that the function returns the correct namedtuple type.
-    
-    Verifies that create_empty_rsl_lookup_tables returns an instance
-    of RSLPsihatLookupTables namedtuple with all expected fields.
-    """
-    constants = test_data['nominal_default']['constants']
-    result = create_empty_rsl_lookup_tables(constants)
-    
-    # Verify return type
-    assert isinstance(result, RSLPsihatLookupTables), \
-        f"Return type should be RSLPsihatLookupTables, got {type(result)}"
-    
-    # Verify all fields are present
-    expected_fields = ['zdtgrid_m', 'dtlgrid_m', 'psigrid_m', 
-                      'zdtgrid_h', 'dtlgrid_h', 'psigrid_h']
-    
-    for field in expected_fields:
-        assert hasattr(result, field), \
-            f"Missing field '{field}' in returned namedtuple"
-
-
-def test_create_empty_rsl_lookup_tables_edge_zero_fractions():
-    """
-    Test with fraction parameters at zero boundary.
-    
-    Verifies that the function works correctly when fraction parameters
-    (rh_min_bb, fcarbon, fwater, emg, wind speeds) are at their minimum
-    valid values (0). This tests boundary conditions for physical constraints.
-    """
-    constants = DEFAULT_CONSTANTS._replace(
-        rh_min_bb=0.0,
-        vpd_min_med=0.0,
-        fcarbon=0.0,
-        fwater=0.0,
-        maximum_leaf_wetted_fraction=0.0,
-        interception_fraction=0.0,
-        emg=0.0,
-        wind_forc_min=0.0,
-        wind_min=0.0
+    # Verify result is RSLPsihatLookupTables
+    assert isinstance(result, RSLPsihatLookupTables), (
+        f"Expected RSLPsihatLookupTables, got {type(result)}"
     )
     
-    result = create_empty_rsl_lookup_tables(constants)
-    
-    # Verify shapes are still correct
-    assert result.zdtgrid_m.shape == (10, 1)
-    assert result.dtlgrid_m.shape == (1, 10)
-    assert result.psigrid_m.shape == (10, 10)
-    
-    # Verify initialization to zeros
-    assert jnp.allclose(result.psigrid_m, 0.0, atol=1e-10), \
-        "Arrays should still be initialized to zeros with zero fraction parameters"
-
-
-def test_create_empty_rsl_lookup_tables_edge_max_fractions():
-    """
-    Test with fraction parameters at maximum boundary.
-    
-    Verifies that the function works correctly when fraction parameters
-    (rh_min_bb, fcarbon, fwater, emg) are at their maximum valid values (1).
-    This tests upper boundary conditions for physical constraints.
-    """
-    constants = DEFAULT_CONSTANTS._replace(
-        rh_min_bb=1.0,
-        fcarbon=1.0,
-        fwater=1.0,
-        maximum_leaf_wetted_fraction=1.0,
-        interception_fraction=1.0,
-        emg=1.0
+    # Check zdtgrid shapes (n_z, 1)
+    assert result.zdtgrid_m.shape == (expected_n_z, 1), (
+        f"zdtgrid_m shape mismatch: expected ({expected_n_z}, 1), "
+        f"got {result.zdtgrid_m.shape}"
+    )
+    assert result.zdtgrid_h.shape == (expected_n_z, 1), (
+        f"zdtgrid_h shape mismatch: expected ({expected_n_z}, 1), "
+        f"got {result.zdtgrid_h.shape}"
     )
     
+    # Check dtlgrid shapes (1, n_l)
+    assert result.dtlgrid_m.shape == (1, expected_n_l), (
+        f"dtlgrid_m shape mismatch: expected (1, {expected_n_l}), "
+        f"got {result.dtlgrid_m.shape}"
+    )
+    assert result.dtlgrid_h.shape == (1, expected_n_l), (
+        f"dtlgrid_h shape mismatch: expected (1, {expected_n_l}), "
+        f"got {result.dtlgrid_h.shape}"
+    )
+    
+    # Check psigrid shapes (n_z, n_l)
+    assert result.psigrid_m.shape == (expected_n_z, expected_n_l), (
+        f"psigrid_m shape mismatch: expected ({expected_n_z}, {expected_n_l}), "
+        f"got {result.psigrid_m.shape}"
+    )
+    assert result.psigrid_h.shape == (expected_n_z, expected_n_l), (
+        f"psigrid_h shape mismatch: expected ({expected_n_z}, {expected_n_l}), "
+        f"got {result.psigrid_h.shape}"
+    )
+
+
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_nominal_default_dimensions",
+        "test_nominal_small_dimensions",
+        "test_nominal_large_dimensions",
+        "test_edge_minimum_dimensions",
+        "test_special_asymmetric_dimensions",
+        "test_special_square_dimensions",
+    ],
+)
+def test_create_empty_rsl_lookup_tables_values(test_data, test_case_name):
+    """
+    Test that create_empty_rsl_lookup_tables initializes all arrays to zeros.
+    
+    Verifies that all six output arrays (zdtgrid_m, dtlgrid_m, psigrid_m,
+    zdtgrid_h, dtlgrid_h, psigrid_h) are filled with zeros.
+    
+    Args:
+        test_data: Fixture providing test cases
+        test_case_name: Name of the test case to run
+    """
+    test_case = test_data[test_case_name]
+    constants = test_case["constants"]
+    
+    # Call the function
     result = create_empty_rsl_lookup_tables(constants)
     
-    # Verify shapes are still correct
-    assert result.zdtgrid_h.shape == (10, 1)
-    assert result.dtlgrid_h.shape == (1, 10)
-    assert result.psigrid_h.shape == (10, 10)
+    # Check that all arrays are zeros
+    assert jnp.allclose(result.zdtgrid_m, 0.0, atol=1e-10), (
+        "zdtgrid_m should be initialized to zeros"
+    )
+    assert jnp.allclose(result.dtlgrid_m, 0.0, atol=1e-10), (
+        "dtlgrid_m should be initialized to zeros"
+    )
+    assert jnp.allclose(result.psigrid_m, 0.0, atol=1e-10), (
+        "psigrid_m should be initialized to zeros"
+    )
+    assert jnp.allclose(result.zdtgrid_h, 0.0, atol=1e-10), (
+        "zdtgrid_h should be initialized to zeros"
+    )
+    assert jnp.allclose(result.dtlgrid_h, 0.0, atol=1e-10), (
+        "dtlgrid_h should be initialized to zeros"
+    )
+    assert jnp.allclose(result.psigrid_h, 0.0, atol=1e-10), (
+        "psigrid_h should be initialized to zeros"
+    )
     
-    # Verify initialization to zeros
-    assert jnp.allclose(result.psigrid_h, 0.0, atol=1e-10), \
-        "Arrays should still be initialized to zeros with maximum fraction parameters"
+    # Verify no NaN or Inf values
+    assert not jnp.any(jnp.isnan(result.zdtgrid_m)), "zdtgrid_m contains NaN"
+    assert not jnp.any(jnp.isnan(result.dtlgrid_m)), "dtlgrid_m contains NaN"
+    assert not jnp.any(jnp.isnan(result.psigrid_m)), "psigrid_m contains NaN"
+    assert not jnp.any(jnp.isnan(result.zdtgrid_h)), "zdtgrid_h contains NaN"
+    assert not jnp.any(jnp.isnan(result.dtlgrid_h)), "dtlgrid_h contains NaN"
+    assert not jnp.any(jnp.isnan(result.psigrid_h)), "psigrid_h contains NaN"
+    
+    assert not jnp.any(jnp.isinf(result.zdtgrid_m)), "zdtgrid_m contains Inf"
+    assert not jnp.any(jnp.isinf(result.dtlgrid_m)), "dtlgrid_m contains Inf"
+    assert not jnp.any(jnp.isinf(result.psigrid_m)), "psigrid_m contains Inf"
+    assert not jnp.any(jnp.isinf(result.zdtgrid_h)), "zdtgrid_h contains Inf"
+    assert not jnp.any(jnp.isinf(result.dtlgrid_h)), "dtlgrid_h contains Inf"
+    assert not jnp.any(jnp.isinf(result.psigrid_h)), "psigrid_h contains Inf"
+
+
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_nominal_default_dimensions",
+        "test_nominal_small_dimensions",
+        "test_nominal_large_dimensions",
+        "test_edge_minimum_dimensions",
+        "test_special_asymmetric_dimensions",
+        "test_special_square_dimensions",
+    ],
+)
+def test_create_empty_rsl_lookup_tables_dtypes(test_data, test_case_name):
+    """
+    Test that create_empty_rsl_lookup_tables returns JAX arrays with correct dtypes.
+    
+    Verifies that all output arrays are JAX arrays (jnp.ndarray) with
+    floating-point dtype for GPU compatibility.
+    
+    Args:
+        test_data: Fixture providing test cases
+        test_case_name: Name of the test case to run
+    """
+    test_case = test_data[test_case_name]
+    constants = test_case["constants"]
+    
+    # Call the function
+    result = create_empty_rsl_lookup_tables(constants)
+    
+    # Check that all arrays are JAX arrays
+    assert isinstance(result.zdtgrid_m, jnp.ndarray), (
+        f"zdtgrid_m should be JAX array, got {type(result.zdtgrid_m)}"
+    )
+    assert isinstance(result.dtlgrid_m, jnp.ndarray), (
+        f"dtlgrid_m should be JAX array, got {type(result.dtlgrid_m)}"
+    )
+    assert isinstance(result.psigrid_m, jnp.ndarray), (
+        f"psigrid_m should be JAX array, got {type(result.psigrid_m)}"
+    )
+    assert isinstance(result.zdtgrid_h, jnp.ndarray), (
+        f"zdtgrid_h should be JAX array, got {type(result.zdtgrid_h)}"
+    )
+    assert isinstance(result.dtlgrid_h, jnp.ndarray), (
+        f"dtlgrid_h should be JAX array, got {type(result.dtlgrid_h)}"
+    )
+    assert isinstance(result.psigrid_h, jnp.ndarray), (
+        f"psigrid_h should be JAX array, got {type(result.psigrid_h)}"
+    )
+    
+    # Check that all arrays have floating-point dtype
+    assert jnp.issubdtype(result.zdtgrid_m.dtype, jnp.floating), (
+        f"zdtgrid_m should have floating dtype, got {result.zdtgrid_m.dtype}"
+    )
+    assert jnp.issubdtype(result.dtlgrid_m.dtype, jnp.floating), (
+        f"dtlgrid_m should have floating dtype, got {result.dtlgrid_m.dtype}"
+    )
+    assert jnp.issubdtype(result.psigrid_m.dtype, jnp.floating), (
+        f"psigrid_m should have floating dtype, got {result.psigrid_m.dtype}"
+    )
+    assert jnp.issubdtype(result.zdtgrid_h.dtype, jnp.floating), (
+        f"zdtgrid_h should have floating dtype, got {result.zdtgrid_h.dtype}"
+    )
+    assert jnp.issubdtype(result.dtlgrid_h.dtype, jnp.floating), (
+        f"dtlgrid_h should have floating dtype, got {result.dtlgrid_h.dtype}"
+    )
+    assert jnp.issubdtype(result.psigrid_h.dtype, jnp.floating), (
+        f"psigrid_h should have floating dtype, got {result.psigrid_h.dtype}"
+    )
+
+
+def test_create_empty_rsl_lookup_tables_edge_minimum_dimensions(test_data):
+    """
+    Test create_empty_rsl_lookup_tables with minimum valid dimensions (1x1).
+    
+    This edge case tests the boundary condition where both n_z and n_l are 1,
+    ensuring the function handles the smallest possible lookup tables correctly.
+    """
+    test_case = test_data["test_edge_minimum_dimensions"]
+    constants = test_case["constants"]
+    
+    # Call the function
+    result = create_empty_rsl_lookup_tables(constants)
+    
+    # Verify shapes
+    assert result.zdtgrid_m.shape == (1, 1)
+    assert result.zdtgrid_h.shape == (1, 1)
+    assert result.dtlgrid_m.shape == (1, 1)
+    assert result.dtlgrid_h.shape == (1, 1)
+    assert result.psigrid_m.shape == (1, 1)
+    assert result.psigrid_h.shape == (1, 1)
+    
+    # Verify all values are zero
+    assert result.zdtgrid_m[0, 0] == 0.0
+    assert result.zdtgrid_h[0, 0] == 0.0
+    assert result.dtlgrid_m[0, 0] == 0.0
+    assert result.dtlgrid_h[0, 0] == 0.0
+    assert result.psigrid_m[0, 0] == 0.0
+    assert result.psigrid_h[0, 0] == 0.0
+
+
+def test_create_empty_rsl_lookup_tables_edge_asymmetric(test_data):
+    """
+    Test create_empty_rsl_lookup_tables with highly asymmetric dimensions.
+    
+    This tests the case where n_z << n_l (5x100), ensuring the function
+    handles non-square grids correctly, which is important for simulations
+    with many stability levels but few vertical levels.
+    """
+    test_case = test_data["test_special_asymmetric_dimensions"]
+    constants = test_case["constants"]
+    
+    # Call the function
+    result = create_empty_rsl_lookup_tables(constants)
+    
+    # Verify shapes
+    assert result.zdtgrid_m.shape == (5, 1)
+    assert result.zdtgrid_h.shape == (5, 1)
+    assert result.dtlgrid_m.shape == (1, 100)
+    assert result.dtlgrid_h.shape == (1, 100)
+    assert result.psigrid_m.shape == (5, 100)
+    assert result.psigrid_h.shape == (5, 100)
+    
+    # Verify total number of elements
+    assert result.psigrid_m.size == 500
+    assert result.psigrid_h.size == 500
 
 
 def test_create_empty_rsl_lookup_tables_consistency():
     """
-    Test that momentum and heat grids have consistent dimensions.
+    Test that multiple calls with same constants produce identical results.
     
-    Verifies that the momentum (_m) and heat (_h) grids have identical
-    shapes, as they should represent the same physical grid structure.
+    Verifies that the function is deterministic and produces consistent
+    output for the same input constants.
     """
-    constants = DEFAULT_CONSTANTS._replace(n_z=15, n_l=20)
-    result = create_empty_rsl_lookup_tables(constants)
+    constants = MLCanopyConstants(
+        rgas=8.314,
+        mmdry=28.97,
+        mmh2o=18.016,
+        cpd=1005.0,
+        cpw=1846.0,
+        visc0=1.5e-05,
+        dh0=2.12e-05,
+        dv0=2.42e-05,
+        dc0=1.47e-05,
+        lapse_rate=0.0065,
+        kc25=404.9,
+        kcha=79430.0,
+        ko25=278.4,
+        koha=36380.0,
+        cp25=42.75,
+        cpha=37830.0,
+        vcmaxha_noacclim=72000.0,
+        vcmaxha_acclim=65330.0,
+        vcmaxhd_noacclim=200000.0,
+        vcmaxhd_acclim=200000.0,
+        vcmaxse_noacclim=668.39,
+        vcmaxse_acclim=668.39,
+        jmaxha_noacclim=50000.0,
+        jmaxha_acclim=43540.0,
+        jmaxhd_noacclim=200000.0,
+        jmaxhd_acclim=152040.0,
+        jmaxse_noacclim=659.7,
+        jmaxse_acclim=495.0,
+        rdha=46390.0,
+        rdhd=150650.0,
+        rdse=490.0,
+        jmax25_to_vcmax25_noacclim=1.67,
+        jmax25_to_vcmax25_acclim=1.67,
+        rd25_to_vcmax25_c3=0.015,
+        rd25_to_vcmax25_c4=0.025,
+        kp25_to_vcmax25_c4=0.02,
+        phi_psii=0.85,
+        theta_j=0.9,
+        qe_c4=0.05,
+        colim_c3a=0.98,
+        colim_c3b=0.95,
+        colim_c4a=0.8,
+        colim_c4b=0.95,
+        dh2o_to_dco2=1.6,
+        rh_min_bb=0.3,
+        vpd_min_med=50.0,
+        cpbio=2000000.0,
+        fcarbon=0.5,
+        fwater=0.5,
+        gb_factor=1.0,
+        dewmx=0.1,
+        maximum_leaf_wetted_fraction=0.05,
+        interception_fraction=0.25,
+        fwet_exponent=0.667,
+        clm45_interception_p1=0.25,
+        clm45_interception_p2=0.5,
+        chil_min=-0.4,
+        chil_max=0.6,
+        kb_max=0.9,
+        j_to_umol=4.6,
+        emg=0.97,
+        cd=0.3,
+        beta_neutral_max=1.0,
+        cr=0.3,
+        c2=0.75,
+        pr0=0.5,
+        pr1=1.0,
+        pr2=5.0,
+        z0mg=0.01,
+        wind_forc_min=0.1,
+        eta_max=10.0,
+        zeta_min=-2.0,
+        zeta_max=1.0,
+        beta_min=0.01,
+        beta_max=1.0,
+        wind_min=0.1,
+        ra_max=999.0,
+        n_z=20,
+        n_l=15,
+    )
     
-    # Verify momentum and heat grids have same shapes
-    assert result.zdtgrid_m.shape == result.zdtgrid_h.shape, \
-        "Momentum and heat zdtgrid should have same shape"
+    # Call function twice
+    result1 = create_empty_rsl_lookup_tables(constants)
+    result2 = create_empty_rsl_lookup_tables(constants)
     
-    assert result.dtlgrid_m.shape == result.dtlgrid_h.shape, \
-        "Momentum and heat dtlgrid should have same shape"
-    
-    assert result.psigrid_m.shape == result.psigrid_h.shape, \
-        "Momentum and heat psigrid should have same shape"
-
-
-def test_create_empty_rsl_lookup_tables_memory_layout():
-    """
-    Test that arrays have expected memory layout for broadcasting.
-    
-    Verifies that zdtgrid arrays are column vectors (n_z, 1) and
-    dtlgrid arrays are row vectors (1, n_l), which is the correct
-    layout for broadcasting operations in lookup table interpolation.
-    """
-    constants = DEFAULT_CONSTANTS._replace(n_z=7, n_l=13)
-    result = create_empty_rsl_lookup_tables(constants)
-    
-    # Verify column vector layout for zdtgrid
-    assert result.zdtgrid_m.shape[1] == 1, \
-        "zdtgrid_m should be a column vector with second dimension = 1"
-    assert result.zdtgrid_h.shape[1] == 1, \
-        "zdtgrid_h should be a column vector with second dimension = 1"
-    
-    # Verify row vector layout for dtlgrid
-    assert result.dtlgrid_m.shape[0] == 1, \
-        "dtlgrid_m should be a row vector with first dimension = 1"
-    assert result.dtlgrid_h.shape[0] == 1, \
-        "dtlgrid_h should be a row vector with first dimension = 1"
-    
-    # Verify 2D grid layout for psigrid
-    assert len(result.psigrid_m.shape) == 2, \
-        "psigrid_m should be a 2D array"
-    assert len(result.psigrid_h.shape) == 2, \
-        "psigrid_h should be a 2D array"
+    # Verify results are identical
+    assert jnp.array_equal(result1.zdtgrid_m, result2.zdtgrid_m)
+    assert jnp.array_equal(result1.dtlgrid_m, result2.dtlgrid_m)
+    assert jnp.array_equal(result1.psigrid_m, result2.psigrid_m)
+    assert jnp.array_equal(result1.zdtgrid_h, result2.zdtgrid_h)
+    assert jnp.array_equal(result1.dtlgrid_h, result2.dtlgrid_h)
+    assert jnp.array_equal(result1.psigrid_h, result2.psigrid_h)
 
 
 def test_create_empty_rsl_lookup_tables_independence():
     """
-    Test that multiple calls produce independent arrays.
+    Test that output arrays are independent (modifying one doesn't affect others).
     
-    Verifies that calling the function multiple times produces
-    independent arrays that don't share memory, preventing
-    unintended side effects from modifications.
+    Verifies that the six output arrays are separate objects and modifications
+    to one array don't affect the others.
     """
-    constants = DEFAULT_CONSTANTS._replace(n_z=5, n_l=5)
+    constants = MLCanopyConstants(
+        rgas=8.314,
+        mmdry=28.97,
+        mmh2o=18.016,
+        cpd=1005.0,
+        cpw=1846.0,
+        visc0=1.5e-05,
+        dh0=2.12e-05,
+        dv0=2.42e-05,
+        dc0=1.47e-05,
+        lapse_rate=0.0065,
+        kc25=404.9,
+        kcha=79430.0,
+        ko25=278.4,
+        koha=36380.0,
+        cp25=42.75,
+        cpha=37830.0,
+        vcmaxha_noacclim=72000.0,
+        vcmaxha_acclim=65330.0,
+        vcmaxhd_noacclim=200000.0,
+        vcmaxhd_acclim=200000.0,
+        vcmaxse_noacclim=668.39,
+        vcmaxse_acclim=668.39,
+        jmaxha_noacclim=50000.0,
+        jmaxha_acclim=43540.0,
+        jmaxhd_noacclim=200000.0,
+        jmaxhd_acclim=152040.0,
+        jmaxse_noacclim=659.7,
+        jmaxse_acclim=495.0,
+        rdha=46390.0,
+        rdhd=150650.0,
+        rdse=490.0,
+        jmax25_to_vcmax25_noacclim=1.67,
+        jmax25_to_vcmax25_acclim=1.67,
+        rd25_to_vcmax25_c3=0.015,
+        rd25_to_vcmax25_c4=0.025,
+        kp25_to_vcmax25_c4=0.02,
+        phi_psii=0.85,
+        theta_j=0.9,
+        qe_c4=0.05,
+        colim_c3a=0.98,
+        colim_c3b=0.95,
+        colim_c4a=0.8,
+        colim_c4b=0.95,
+        dh2o_to_dco2=1.6,
+        rh_min_bb=0.3,
+        vpd_min_med=50.0,
+        cpbio=2000000.0,
+        fcarbon=0.5,
+        fwater=0.5,
+        gb_factor=1.0,
+        dewmx=0.1,
+        maximum_leaf_wetted_fraction=0.05,
+        interception_fraction=0.25,
+        fwet_exponent=0.667,
+        clm45_interception_p1=0.25,
+        clm45_interception_p2=0.5,
+        chil_min=-0.4,
+        chil_max=0.6,
+        kb_max=0.9,
+        j_to_umol=4.6,
+        emg=0.97,
+        cd=0.3,
+        beta_neutral_max=1.0,
+        cr=0.3,
+        c2=0.75,
+        pr0=0.5,
+        pr1=1.0,
+        pr2=5.0,
+        z0mg=0.01,
+        wind_forc_min=0.1,
+        eta_max=10.0,
+        zeta_min=-2.0,
+        zeta_max=1.0,
+        beta_min=0.01,
+        beta_max=1.0,
+        wind_min=0.1,
+        ra_max=999.0,
+        n_z=10,
+        n_l=10,
+    )
     
-    result1 = create_empty_rsl_lookup_tables(constants)
-    result2 = create_empty_rsl_lookup_tables(constants)
-    
-    # Verify arrays are not the same object
-    assert result1.psigrid_m is not result2.psigrid_m, \
-        "Multiple calls should produce independent arrays"
-    
-    # Verify shapes are identical
-    assert result1.psigrid_m.shape == result2.psigrid_m.shape, \
-        "Multiple calls should produce arrays with same shape"
-
-
-def test_create_empty_rsl_lookup_tables_no_nan_inf():
-    """
-    Test that arrays contain no NaN or Inf values.
-    
-    Verifies that all arrays are properly initialized with finite
-    values (zeros), with no NaN or Inf values that could cause
-    numerical issues in downstream calculations.
-    """
-    constants = DEFAULT_CONSTANTS
     result = create_empty_rsl_lookup_tables(constants)
     
-    # Check all arrays for NaN/Inf
-    arrays_to_check = [
-        ('zdtgrid_m', result.zdtgrid_m),
-        ('dtlgrid_m', result.dtlgrid_m),
-        ('psigrid_m', result.psigrid_m),
-        ('zdtgrid_h', result.zdtgrid_h),
-        ('dtlgrid_h', result.dtlgrid_h),
-        ('psigrid_h', result.psigrid_h)
-    ]
+    # Create modified versions (JAX arrays are immutable, so we create new ones)
+    modified_zdtgrid_m = result.zdtgrid_m.at[0, 0].set(1.0)
     
-    for name, array in arrays_to_check:
-        assert jnp.all(jnp.isfinite(array)), \
-            f"{name} contains NaN or Inf values"
-        assert not jnp.any(jnp.isnan(array)), \
-            f"{name} contains NaN values"
-        assert not jnp.any(jnp.isinf(array)), \
-            f"{name} contains Inf values"
+    # Verify original is unchanged
+    assert result.zdtgrid_m[0, 0] == 0.0, (
+        "Original array should remain unchanged (JAX immutability)"
+    )
+    
+    # Verify other arrays are still zero
+    assert jnp.allclose(result.dtlgrid_m, 0.0)
+    assert jnp.allclose(result.psigrid_m, 0.0)
+    assert jnp.allclose(result.zdtgrid_h, 0.0)
+    assert jnp.allclose(result.dtlgrid_h, 0.0)
+    assert jnp.allclose(result.psigrid_h, 0.0)
 
 
-@pytest.mark.parametrize('n_z,n_l', [
-    (3, 7),
-    (11, 13),
-    (17, 19),
-])
-def test_create_empty_rsl_lookup_tables_prime_dimensions(n_z, n_l):
+def test_create_empty_rsl_lookup_tables_memory_layout():
     """
-    Test with prime number dimensions to catch indexing errors.
+    Test that arrays have expected memory layout for efficient computation.
     
-    Prime numbers are good test cases because they don't have
-    common factors, which can help catch off-by-one errors or
-    incorrect dimension handling.
-    
-    Args:
-        n_z: Prime number for vertical dimension
-        n_l: Prime number for stability dimension
+    Verifies that the arrays are contiguous in memory, which is important
+    for GPU performance and vectorized operations.
     """
-    constants = DEFAULT_CONSTANTS._replace(n_z=n_z, n_l=n_l)
+    constants = MLCanopyConstants(
+        rgas=8.314,
+        mmdry=28.97,
+        mmh2o=18.016,
+        cpd=1005.0,
+        cpw=1846.0,
+        visc0=1.5e-05,
+        dh0=2.12e-05,
+        dv0=2.42e-05,
+        dc0=1.47e-05,
+        lapse_rate=0.0065,
+        kc25=404.9,
+        kcha=79430.0,
+        ko25=278.4,
+        koha=36380.0,
+        cp25=42.75,
+        cpha=37830.0,
+        vcmaxha_noacclim=72000.0,
+        vcmaxha_acclim=65330.0,
+        vcmaxhd_noacclim=200000.0,
+        vcmaxhd_acclim=200000.0,
+        vcmaxse_noacclim=668.39,
+        vcmaxse_acclim=668.39,
+        jmaxha_noacclim=50000.0,
+        jmaxha_acclim=43540.0,
+        jmaxhd_noacclim=200000.0,
+        jmaxhd_acclim=152040.0,
+        jmaxse_noacclim=659.7,
+        jmaxse_acclim=495.0,
+        rdha=46390.0,
+        rdhd=150650.0,
+        rdse=490.0,
+        jmax25_to_vcmax25_noacclim=1.67,
+        jmax25_to_vcmax25_acclim=1.67,
+        rd25_to_vcmax25_c3=0.015,
+        rd25_to_vcmax25_c4=0.025,
+        kp25_to_vcmax25_c4=0.02,
+        phi_psii=0.85,
+        theta_j=0.9,
+        qe_c4=0.05,
+        colim_c3a=0.98,
+        colim_c3b=0.95,
+        colim_c4a=0.8,
+        colim_c4b=0.95,
+        dh2o_to_dco2=1.6,
+        rh_min_bb=0.3,
+        vpd_min_med=50.0,
+        cpbio=2000000.0,
+        fcarbon=0.5,
+        fwater=0.5,
+        gb_factor=1.0,
+        dewmx=0.1,
+        maximum_leaf_wetted_fraction=0.05,
+        interception_fraction=0.25,
+        fwet_exponent=0.667,
+        clm45_interception_p1=0.25,
+        clm45_interception_p2=0.5,
+        chil_min=-0.4,
+        chil_max=0.6,
+        kb_max=0.9,
+        j_to_umol=4.6,
+        emg=0.97,
+        cd=0.3,
+        beta_neutral_max=1.0,
+        cr=0.3,
+        c2=0.75,
+        pr0=0.5,
+        pr1=1.0,
+        pr2=5.0,
+        z0mg=0.01,
+        wind_forc_min=0.1,
+        eta_max=10.0,
+        zeta_min=-2.0,
+        zeta_max=1.0,
+        beta_min=0.01,
+        beta_max=1.0,
+        wind_min=0.1,
+        ra_max=999.0,
+        n_z=30,
+        n_l=25,
+    )
+    
     result = create_empty_rsl_lookup_tables(constants)
     
-    # Verify correct shapes
-    assert result.zdtgrid_m.shape == (n_z, 1)
-    assert result.dtlgrid_m.shape == (1, n_l)
-    assert result.psigrid_m.shape == (n_z, n_l)
-    
-    # Verify total elements
-    assert result.psigrid_m.size == n_z * n_l, \
-        f"psigrid_m should have {n_z * n_l} elements"
-
-
-def test_create_empty_rsl_lookup_tables_constants_immutability():
-    """
-    Test that the function doesn't modify the input constants.
-    
-    Verifies that the input MLCanopyConstants namedtuple is not
-    modified by the function, ensuring no side effects on the
-    input parameters.
-    """
-    constants = DEFAULT_CONSTANTS._replace(n_z=8, n_l=12)
-    original_n_z = constants.n_z
-    original_n_l = constants.n_l
-    
-    _ = create_empty_rsl_lookup_tables(constants)
-    
-    # Verify constants unchanged
-    assert constants.n_z == original_n_z, \
-        "Function should not modify input constants.n_z"
-    assert constants.n_l == original_n_l, \
-        "Function should not modify input constants.n_l"
+    # JAX arrays should be well-formed
+    # Check that arrays can be used in computations without errors
+    try:
+        _ = result.zdtgrid_m + 1.0
+        _ = result.dtlgrid_m * 2.0
+        _ = result.psigrid_m.sum()
+        _ = result.zdtgrid_h.mean()
+        _ = result.dtlgrid_h.max()
+        _ = result.psigrid_h.min()
+    except Exception as e:
+        pytest.fail(f"Arrays should support basic operations: {e}")

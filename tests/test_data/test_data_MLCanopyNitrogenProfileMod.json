@@ -280,52 +280,52 @@
           [
             0.88,
             0.77,
-            0.67,
-            0.58,
-            0.5,
-            0.43,
-            0.37,
+            0.68,
+            0.6,
+            0.53,
+            0.47,
+            0.41,
+            0.36,
             0.32,
-            0.27,
-            0.23
+            0.28
           ],
           [
             0.9,
-            0.8,
-            0.71,
-            0.63,
-            0.56,
-            0.5,
-            0.44,
+            0.81,
+            0.73,
+            0.66,
+            0.59,
+            0.53,
+            0.48,
+            0.43,
             0.39,
-            0.35,
-            0.31
+            0.35
           ]
         ],
         "fracsun": [
           [
             0.65,
             0.55,
-            0.45,
-            0.38,
+            0.48,
+            0.42,
+            0.37,
             0.32,
-            0.27,
-            0.23,
-            0.19,
-            0.16,
-            0.13
+            0.28,
+            0.24,
+            0.21,
+            0.18
           ],
           [
             0.7,
             0.6,
-            0.5,
-            0.42,
-            0.35,
-            0.29,
-            0.24,
-            0.2,
-            0.17,
-            0.14
+            0.52,
+            0.45,
+            0.39,
+            0.34,
+            0.3,
+            0.26,
+            0.23,
+            0.2
           ]
         ],
         "clump_fac": [
@@ -568,16 +568,16 @@
           [
             0.92,
             0.84,
-            0.76,
-            0.68,
-            0.6
+            0.77,
+            0.71,
+            0.65
           ],
           [
             0.91,
-            0.82,
-            0.73,
-            0.64,
-            0.55
+            0.83,
+            0.76,
+            0.69,
+            0.63
           ]
         ],
         "fracsun": [
@@ -674,17 +674,17 @@
         "tbi": [
           [
             0.87,
-            0.75,
-            0.64,
-            0.54,
-            0.45
+            0.76,
+            0.66,
+            0.57,
+            0.5
           ],
           [
             0.85,
             0.72,
-            0.6,
-            0.5,
-            0.41
+            0.61,
+            0.52,
+            0.44
           ]
         ],
         "fracsun": [
@@ -724,7 +724,7 @@
       },
       "metadata": {
         "type": "edge",
-        "description": "Extreme hot temperatures (40-45\u00b0C), C4 plants in desert/tropical conditions",
+        "description": "Extreme hot temperatures (40-45\u00b0C), C4 desert/savanna conditions",
         "edge_cases": [
           "extreme_heat",
           "high_temperature_acclimation",
@@ -733,7 +733,7 @@
       }
     },
     {
-      "name": "test_edge_full_shade_zero_transmission",
+      "name": "test_edge_full_shade_no_sunlit",
       "inputs": {
         "vcmaxpft": [
           55.0
@@ -742,15 +742,15 @@
           1
         ],
         "tacclim": [
-          295.15
+          290.15
         ],
         "dpai": [
           [
-            0.8,
-            0.7,
-            0.6,
-            0.5,
-            0.4
+            0.4,
+            0.35,
+            0.3,
+            0.25,
+            0.2
           ]
         ],
         "kb": [
@@ -764,19 +764,19 @@
         ],
         "tbi": [
           [
-            0.5,
-            0.25,
-            0.12,
-            0.06,
+            0.1,
+            0.05,
+            0.02,
+            0.01,
             0.0
           ]
         ],
         "fracsun": [
           [
-            0.4,
-            0.2,
-            0.1,
-            0.05,
+            0.15,
+            0.08,
+            0.03,
+            0.01,
             0.0
           ]
         ],
@@ -787,175 +787,50 @@
           5
         ],
         "lai": [
-          3.0
+          1.5
         ],
         "sai": [
-          0.8
+          0.4
         ],
         "params": null,
         "validate": true
       },
       "metadata": {
         "type": "edge",
-        "description": "Deep canopy with zero transmission in lower layers, fully shaded understory",
+        "description": "Deep shade conditions with minimal sunlit fraction in lower canopy",
         "edge_cases": [
-          "zero_transmission",
-          "zero_fracsun",
-          "full_shade"
+          "minimal_sunlit",
+          "high_extinction",
+          "deep_shade"
         ]
       }
     },
     {
-      "name": "test_special_uniform_clumping_perfect_distribution",
-      "inputs": {
-        "vcmaxpft": [
-          65.0,
-          58.0
-        ],
-        "c3psn": [
-          1,
-          1
-        ],
-        "tacclim": [
-          291.15,
-          294.15
-        ],
-        "dpai": [
-          [
-            0.5,
-            0.5,
-            0.5,
-            0.5,
-            0.5
-          ],
-          [
-            0.6,
-            0.6,
-            0.6,
-            0.6,
-            0.6
-          ]
-        ],
-        "kb": [
-          [
-            0.5,
-            0.5,
-            0.5,
-            0.5,
-            0.5
-          ],
-          [
-            0.5,
-            0.5,
-            0.5,
-            0.5,
-            0.5
-          ]
-        ],
-        "tbi": [
-          [
-            0.9,
-            0.81,
-            0.73,
-            0.66,
-            0.59
-          ],
-          [
-            0.88,
-            0.77,
-            0.68,
-            0.6,
-            0.53
-          ]
-        ],
-        "fracsun": [
-          [
-            0.72,
-            0.64,
-            0.57,
-            0.51,
-            0.45
-          ],
-          [
-            0.7,
-            0.62,
-            0.54,
-            0.48,
-            0.42
-          ]
-        ],
-        "clump_fac": [
-          1.0,
-          1.0
-        ],
-        "ncan": [
-          5,
-          5
-        ],
-        "lai": [
-          2.5,
-          3.0
-        ],
-        "sai": [
-          0.5,
-          0.6
-        ],
-        "params": null,
-        "validate": true
-      },
-      "metadata": {
-        "type": "special",
-        "description": "Perfect uniform foliage distribution (clump_fac=1.0), equal dpai across layers",
-        "edge_cases": [
-          "uniform_clumping",
-          "equal_layer_distribution"
-        ]
-      }
-    },
-    {
-      "name": "test_special_variable_layer_count_asymmetric",
+      "name": "test_special_variable_layer_counts",
       "inputs": {
         "vcmaxpft": [
           60.0,
-          55.0,
           50.0,
-          65.0
+          70.0,
+          45.0
         ],
         "c3psn": [
           1,
           0,
           1,
-          0
+          1
         ],
         "tacclim": [
-          292.15,
+          293.15,
           298.15,
-          287.15,
-          303.15
+          288.15,
+          295.15
         ],
         "dpai": [
           [
-            1.5,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-          ],
-          [
+            0.8,
+            0.6,
             0.4,
-            0.35,
-            0.3,
-            0.25,
             0.2,
             0.0,
             0.0,
@@ -966,19 +841,8 @@
             0.0,
             0.0,
             0.0,
-            0.0
-          ],
-          [
-            0.25,
-            0.22,
-            0.2,
-            0.18,
-            0.16,
-            0.14,
-            0.12,
-            0.1,
-            0.08,
-            0.05,
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -987,20 +851,69 @@
           ],
           [
             0.5,
-            0.48,
-            0.45,
-            0.42,
             0.4,
-            0.38,
-            0.35,
-            0.32,
             0.3,
-            0.28,
-            0.25,
-            0.22,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4,
+            0.3,
             0.2,
-            0.18,
-            0.15
+            0.1,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.3,
+            0.2,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
           ]
         ],
         "kb": [
@@ -1019,9 +932,19 @@
             0.5,
             0.5,
             0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
             0.5
           ],
           [
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
             0.55,
             0.55,
             0.55,
@@ -1053,9 +976,19 @@
             0.48,
             0.48,
             0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
+            0.48,
             0.48
           ],
           [
+            0.52,
+            0.52,
+            0.52,
+            0.52,
+            0.52,
             0.52,
             0.52,
             0.52,
@@ -1075,7 +1008,12 @@
         ],
         "tbi": [
           [
-            0.85,
+            0.89,
+            0.79,
+            0.7,
+            0.62,
+            1.0,
+            1.0,
             1.0,
             1.0,
             1.0,
@@ -1095,8 +1033,35 @@
             0.92,
             0.84,
             0.77,
-            0.7,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.86,
+            0.74,
             0.64,
+            0.55,
+            0.47,
+            0.4,
+            0.34,
+            0.29,
+            0.25,
+            0.21,
             1.0,
             1.0,
             1.0,
@@ -1111,14 +1076,43 @@
           [
             0.94,
             0.88,
-            0.83,
-            0.78,
-            0.73,
-            0.68,
-            0.64,
-            0.6,
-            0.56,
-            0.53,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        ],
+        "fracsun": [
+          [
+            0.72,
+            0.62,
+            0.52,
+            0.42,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
             1.0,
             1.0,
             1.0,
@@ -1126,130 +1120,251 @@
             1.0
           ],
           [
-            0.9,
-            0.81,
-            0.73,
-            0.66,
-            0.59,
-            0.53,
-            0.48,
-            0.43,
-            0.39,
-            0.35,
-            0.31,
-            0.28,
-            0.25,
-            0.23,
-            0.2
-          ]
-        ],
-        "fracsun": [
-          [
             0.75,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
+            0.65,
+            0.55,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.68,
+            0.58,
+            0.5,
+            0.43,
+            0.37,
+            0.32,
+            0.27,
+            0.23,
+            0.2,
+            0.17,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
           ],
           [
             0.78,
             0.7,
-            0.62,
-            0.54,
-            0.46,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-          ],
-          [
-            0.8,
-            0.73,
-            0.67,
-            0.61,
-            0.55,
-            0.5,
-            0.45,
-            0.4,
-            0.36,
-            0.32,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-          ],
-          [
-            0.72,
-            0.65,
-            0.59,
-            0.53,
-            0.48,
-            0.43,
-            0.39,
-            0.35,
-            0.31,
-            0.28,
-            0.25,
-            0.22,
-            0.2,
-            0.18,
-            0.15
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
           ]
         ],
         "clump_fac": [
-          0.9,
-          0.75,
           0.85,
-          0.7
+          0.75,
+          0.8,
+          0.9
         ],
         "ncan": [
-          1,
-          5,
+          4,
+          3,
           10,
-          15
+          2
         ],
         "lai": [
-          1.5,
-          1.5,
-          1.5,
-          5.58
+          2.0,
+          1.2,
+          5.0,
+          0.5
         ],
         "sai": [
+          0.6,
           0.3,
-          0.4,
-          0.5,
-          1.2
+          1.5,
+          0.15
         ],
         "params": null,
         "validate": true
       },
       "metadata": {
         "type": "special",
-        "description": "Four patches with highly variable layer counts (1, 5, 10, 15), testing asymmetric canopy structures",
+        "description": "Four patches with different active layer counts (2, 3, 4, 10) using max 20-layer array",
         "edge_cases": [
           "variable_ncan",
-          "single_layer",
-          "many_layers"
+          "padded_arrays"
+        ]
+      }
+    },
+    {
+      "name": "test_special_uniform_vs_clumped_canopy",
+      "inputs": {
+        "vcmaxpft": [
+          65.0,
+          65.0,
+          65.0
+        ],
+        "c3psn": [
+          1,
+          1,
+          1
+        ],
+        "tacclim": [
+          293.15,
+          293.15,
+          293.15
+        ],
+        "dpai": [
+          [
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.2
+          ],
+          [
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.2
+          ],
+          [
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.2
+          ]
+        ],
+        "kb": [
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ]
+        ],
+        "tbi": [
+          [
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5
+          ],
+          [
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5
+          ],
+          [
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5
+          ]
+        ],
+        "fracsun": [
+          [
+            0.75,
+            0.65,
+            0.55,
+            0.45,
+            0.35
+          ],
+          [
+            0.75,
+            0.65,
+            0.55,
+            0.45,
+            0.35
+          ],
+          [
+            0.75,
+            0.65,
+            0.55,
+            0.45,
+            0.35
+          ]
+        ],
+        "clump_fac": [
+          1.0,
+          0.7,
+          0.5
+        ],
+        "ncan": [
+          5,
+          5,
+          5
+        ],
+        "lai": [
+          2.0,
+          2.0,
+          2.0
+        ],
+        "sai": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "params": null,
+        "validate": true
+      },
+      "metadata": {
+        "type": "special",
+        "description": "Three identical canopies with different clumping factors (uniform=1.0, moderate=0.7, highly clumped=0.5)",
+        "edge_cases": [
+          "clumping_comparison",
+          "uniform_canopy",
+          "highly_clumped"
         ]
       }
     }
   ],
-  "notes": "Test data generation strategy:\n\n1. **Nominal cases (tests 1-3)**: Cover typical operating conditions with physically realistic values. Temperatures range 283-303K (10-30\u00b0C), LAI 1.5-7, mixed C3/C4 pathways, 5-10 canopy layers.\n\n2. **Edge cases (tests 4-8)**:\n   - Zero LAI/SAI: Tests bare ground conditions\n   - Minimal LAI: Tests sparse vegetation with single layer\n   - Extreme cold (253-258K): Tests boreal/arctic conditions near physiological limits\n   - Extreme heat (313-318K): Tests desert/tropical C4 plants at high temperatures\n   - Full shade: Tests deep canopy with zero transmission in lower layers\n\n3. **Special cases (tests 9-10)**:\n   - Uniform clumping: Tests perfect foliage distribution (clump_fac=1.0)\n   - Variable layer count: Tests 1, 5, 10, and 15 layers in single test to verify handling of asymmetric canopy structures\n\n**Physical constraints enforced**:\n- All temperatures > 0K (absolute zero)\n- LAI, SAI, dpai \u2265 0 (non-negative area indices)\n- tbi, fracsun \u2208 [0,1] (transmission fractions)\n- kb \u2265 0 (extinction coefficients)\n- clump_fac \u2208 (0,1] (clumping factor)\n- c3psn \u2208 {0,1} (binary pathway indicator)\n- vcmaxpft > 0 for active photosynthesis\n\n**Array dimensions**: All 2D arrays use shape (n_patches, 15) with padding zeros for unused layers, allowing variable ncan values. The dpai values sum approximately to LAI for each patch (accounting for SAI contribution to total plant area index).\n\n**Validation**: All tests include validate=True to test numerical integration validation. The params field is set to null to test default parameter usage."
+  "notes": "Test data generation strategy:\n\n1. **Nominal cases (tests 1-3)**: Cover typical operational scenarios with physically realistic values. Vcmax25 ranges 40-80 umol/m2/s (typical for vegetation), temperatures 283-303K (10-30\u00b0C), LAI 1-7 m2/m2, 5-10 canopy layers. Mixed C3/C4 pathways to test both photosynthetic types.\n\n2. **Edge cases (tests 4-8)**: \n   - Zero LAI/SAI: Tests bare ground conditions\n   - Minimal LAI: Tests sparse vegetation with single layer\n   - Extreme cold (253-258K / -20 to -15\u00b0C): Tests boreal/arctic conditions and temperature acclimation\n   - Extreme heat (313-318K / 40-45\u00b0C): Tests desert/tropical conditions with C4 plants\n   - Deep shade: Tests high extinction coefficients and minimal sunlit fractions\n\n3. **Special cases (tests 9-10)**:\n   - Variable layer counts: Tests handling of different ncan values with padded arrays (common in batch processing)\n   - Clumping comparison: Tests effect of foliage clumping factor on nitrogen distribution\n\n**Physical constraints enforced**:\n- All temperatures > 0K (absolute zero)\n- Fractions (tbi, fracsun, clump_fac) in [0,1]\n- Non-negative values for LAI, SAI, dpai, kb, vcmaxpft\n- c3psn binary (0 or 1)\n- Consistent array dimensions within each test\n- dpai values sum approximately to LAI+SAI per patch\n- tbi decreases monotonically through canopy (increasing cumulative extinction)\n- fracsun decreases through canopy (less direct beam penetration)\n\n**Array padding**: For variable ncan tests, unused layers are padded with zeros (dpai) or ones (tbi, fracsun) to maintain array shape while being physically neutral.\n\n**Validation enabled**: All tests use validate=True to check numerical integration accuracy."
 }

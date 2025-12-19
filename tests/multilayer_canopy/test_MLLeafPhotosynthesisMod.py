@@ -1,1038 +1,964 @@
 """
-Comprehensive pytest suite for MLLeafPhotosynthesisMod.leaf_photosynthesis function.
+Comprehensive pytest suite for leaf_photosynthesis function from MLLeafPhotosynthesisMod.
 
-This module tests the leaf photosynthesis model including:
-- C3 and C4 photosynthetic pathways
-- Stomatal conductance models (Ball-Berry, Medlyn, SPA)
-- Temperature dependencies and acclimation
-- Water stress effects
-- Multi-layer canopy gradients
-- Edge cases (extreme temperatures, water stress, zero PAR)
+This test suite covers:
+- Nominal cases for C3, C4, and mixed vegetation
+- Edge cases including zero radiation, water stress, temperature extremes
+- Special conditions like high altitude and dense canopy
+- Output shape, dtype, and value validation
+- Physical realism constraints
 """
+
+import sys
+from pathlib import Path
+from typing import Dict, Any
 
 import pytest
 import jax.numpy as jnp
 import numpy as np
-from typing import Dict, Any
-import json
 
-# Import the actual translated module
-from multilayer_canopy.MLLeafPhotosynthesisMod import (
-    leaf_photosynthesis,
-    PhotosynthesisParams,
-    LeafPhotosynthesisState,
-)
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
+from multilayer_canopy.MLLeafPhotosynthesisMod import leaf_photosynthesis, PhotosynthesisParams, LeafPhotosynthesisState
 
-# ============================================================================
-# Fixtures
-# ============================================================================
 
 @pytest.fixture
 def default_params() -> PhotosynthesisParams:
     """
-    Provide default photosynthesis parameters.
+    Fixture providing default PhotosynthesisParams for testing.
     
     Returns:
-        PhotosynthesisParams with standard values for testing
+        PhotosynthesisParams with standard values for physical constants,
+        temperature response parameters, and model configuration.
     """
-    return PhotosynthesisParams()
+    return PhotosynthesisParams(
+        tfrz=273.15,
+        rgas=8.314,
+        kc25=404.9,
+        ko25=278.4,
+        cp25=42.75,
+        kcha=79430.0,
+        koha=36380.0,
+        cpha=37830.0,
+        vcmaxha_noacclim=65330.0,
+        vcmaxha_acclim=65330.0,
+        jmaxha_noacclim=43540.0,
+        jmaxha_acclim=43540.0,
+        vcmaxhd_noacclim=149250.0,
+        vcmaxhd_acclim=149250.0,
+        jmaxhd_noacclim=152040.0,
+        jmaxhd_acclim=152040.0,
+        vcmaxse_noacclim=485.0,
+        vcmaxse_acclim=485.0,
+        jmaxse_noacclim=495.0,
+        jmaxse_acclim=495.0,
+        rdha=46390.0,
+        rdhd=150650.0,
+        rdse=490.0,
+        phi_psii=0.85,
+        theta_j=0.90,
+        vpd_min_med=0.1,
+        rh_min_bb=0.3,
+        dh2o_to_dco2=1.6,
+        qe_c4=0.05,
+        colim_c3a=0.98,
+        colim_c4a=0.80,
+        colim_c4b=10000.0,
+        gs_type=1,  # Ball-Berry
+        acclim_type=0,  # No acclimation
+        gspot_type=1,  # Standard optimization
+        colim_type=0  # Standard co-limitation
+    )
 
 
 @pytest.fixture
 def test_data() -> Dict[str, Any]:
     """
-    Load test data from JSON specification.
+    Fixture providing comprehensive test data for leaf_photosynthesis.
     
     Returns:
-        Dictionary containing all test cases with inputs and metadata
+        Dictionary containing test cases with inputs and metadata.
     """
-    test_data_json = {
-        "function_name": "leaf_photosynthesis",
-        "test_cases": [
-            {
-                "name": "test_nominal_c3_single_patch_single_layer",
-                "inputs": {
-                    "c3psn": [1.0],
-                    "g0_BB": [0.01],
-                    "g1_BB": [9.0],
-                    "g0_MED": [0.0],
-                    "g1_MED": [4.0],
-                    "psi50_gs": [-2.0],
-                    "shape_gs": [3.0],
-                    "gsmin_SPA": [0.001],
-                    "iota_SPA": [750.0],
-                    "tacclim": [298.15],
-                    "ncan": [1],
-                    "dpai": [[2.5]],
-                    "eair": [[1500.0]],
-                    "o2ref": [209.0],
-                    "pref": [101325.0],
-                    "cair": [[[400.0, 400.0]]],
-                    "vcmax25": [[[60.0, 60.0]]],
-                    "jmax25": [[[120.0, 120.0]]],
-                    "kp25": [[[0.0, 0.0]]],
-                    "rd25": [[[1.0, 1.0]]],
-                    "tleaf": [[[298.15, 298.15]]],
-                    "gbv": [[[1.5, 1.5]]],
-                    "gbc": [[[1.0, 1.0]]],
-                    "apar": [[[1000.0, 1000.0]]],
-                    "lwp": [[[-0.5, -0.5]]]
-                },
-                "metadata": {
-                    "type": "nominal",
-                    "description": "Standard C3 photosynthesis with typical temperate conditions",
-                    "edge_cases": []
-                }
+    return {
+        "test_nominal_c3_single_patch_single_layer": {
+            "inputs": {
+                "c3psn": jnp.array([1.0]),
+                "g0_BB": jnp.array([0.01]),
+                "g1_BB": jnp.array([9.0]),
+                "g0_MED": jnp.array([0.0]),
+                "g1_MED": jnp.array([4.0]),
+                "psi50_gs": jnp.array([-2.0]),
+                "shape_gs": jnp.array([3.0]),
+                "gsmin_SPA": jnp.array([0.001]),
+                "iota_SPA": jnp.array([0.0001]),
+                "tacclim": jnp.array([298.15]),
+                "ncan": jnp.array([1]),
+                "dpai": jnp.array([[2.5]]),
+                "eair": jnp.array([[1500.0]]),
+                "o2ref": jnp.array([209.0]),
+                "pref": jnp.array([101325.0]),
+                "cair": jnp.array([[[400.0]]]),
+                "vcmax25": jnp.array([[[60.0]]]),
+                "jmax25": jnp.array([[[120.0]]]),
+                "kp25": jnp.array([[[0.0]]]),
+                "rd25": jnp.array([[[1.2]]]),
+                "tleaf": jnp.array([[[298.15]]]),
+                "gbv": jnp.array([[[1.5]]]),
+                "gbc": jnp.array([[[1.0]]]),
+                "apar": jnp.array([[[1000.0]]]),
+                "lwp": jnp.array([[[-0.5]]]),
             },
-            {
-                "name": "test_nominal_c4_multiple_patches",
-                "inputs": {
-                    "c3psn": [0.0, 0.0, 0.0],
-                    "g0_BB": [0.04, 0.04, 0.04],
-                    "g1_BB": [4.0, 4.0, 4.0],
-                    "g0_MED": [0.0, 0.0, 0.0],
-                    "g1_MED": [1.6, 1.6, 1.6],
-                    "psi50_gs": [-1.5, -1.5, -1.5],
-                    "shape_gs": [2.5, 2.5, 2.5],
-                    "gsmin_SPA": [0.001, 0.001, 0.001],
-                    "iota_SPA": [1000.0, 1000.0, 1000.0],
-                    "tacclim": [303.15, 303.15, 303.15],
-                    "ncan": [2, 2, 2],
-                    "dpai": [[1.5, 1.0], [2.0, 1.5], [1.8, 1.2]],
-                    "eair": [[2000.0, 1800.0], [2100.0, 1900.0], [2050.0, 1850.0]],
-                    "o2ref": [209.0, 209.0, 209.0],
-                    "pref": [101325.0, 101325.0, 101325.0],
-                    "cair": [
-                        [[380.0, 380.0], [370.0, 370.0]],
-                        [[390.0, 390.0], [380.0, 380.0]],
-                        [[385.0, 385.0], [375.0, 375.0]]
-                    ],
-                    "vcmax25": [
-                        [[80.0, 80.0], [70.0, 70.0]],
-                        [[85.0, 85.0], [75.0, 75.0]],
-                        [[82.0, 82.0], [72.0, 72.0]]
-                    ],
-                    "jmax25": [
-                        [[0.0, 0.0], [0.0, 0.0]],
-                        [[0.0, 0.0], [0.0, 0.0]],
-                        [[0.0, 0.0], [0.0, 0.0]]
-                    ],
-                    "kp25": [
-                        [[0.8, 0.8], [0.7, 0.7]],
-                        [[0.85, 0.85], [0.75, 0.75]],
-                        [[0.82, 0.82], [0.72, 0.72]]
-                    ],
-                    "rd25": [
-                        [[1.5, 1.5], [1.3, 1.3]],
-                        [[1.6, 1.6], [1.4, 1.4]],
-                        [[1.55, 1.55], [1.35, 1.35]]
-                    ],
-                    "tleaf": [
-                        [[303.15, 303.15], [302.15, 302.15]],
-                        [[304.15, 304.15], [303.15, 303.15]],
-                        [[303.65, 303.65], [302.65, 302.65]]
-                    ],
-                    "gbv": [
-                        [[2.0, 2.0], [1.8, 1.8]],
-                        [[2.1, 2.1], [1.9, 1.9]],
-                        [[2.05, 2.05], [1.85, 1.85]]
-                    ],
-                    "gbc": [
-                        [[1.3, 1.3], [1.2, 1.2]],
-                        [[1.4, 1.4], [1.25, 1.25]],
-                        [[1.35, 1.35], [1.22, 1.22]]
-                    ],
-                    "apar": [
-                        [[1500.0, 500.0], [800.0, 200.0]],
-                        [[1600.0, 550.0], [850.0, 220.0]],
-                        [[1550.0, 525.0], [825.0, 210.0]]
-                    ],
-                    "lwp": [
-                        [[-0.8, -0.8], [-0.6, -0.6]],
-                        [[-0.9, -0.9], [-0.7, -0.7]],
-                        [[-0.85, -0.85], [-0.65, -0.65]]
-                    ]
-                },
-                "metadata": {
-                    "type": "nominal",
-                    "description": "C4 photosynthesis with multiple patches and layers",
-                    "edge_cases": []
-                }
-            },
-            {
-                "name": "test_edge_zero_par_dark_respiration",
-                "inputs": {
-                    "c3psn": [1.0],
-                    "g0_BB": [0.01],
-                    "g1_BB": [9.0],
-                    "g0_MED": [0.0],
-                    "g1_MED": [4.0],
-                    "psi50_gs": [-2.0],
-                    "shape_gs": [3.0],
-                    "gsmin_SPA": [0.001],
-                    "iota_SPA": [750.0],
-                    "tacclim": [293.15],
-                    "ncan": [1],
-                    "dpai": [[3.0]],
-                    "eair": [[1200.0]],
-                    "o2ref": [209.0],
-                    "pref": [101325.0],
-                    "cair": [[[400.0, 400.0]]],
-                    "vcmax25": [[[50.0, 50.0]]],
-                    "jmax25": [[[100.0, 100.0]]],
-                    "kp25": [[[0.0, 0.0]]],
-                    "rd25": [[[0.8, 0.8]]],
-                    "tleaf": [[[293.15, 293.15]]],
-                    "gbv": [[[1.2, 1.2]]],
-                    "gbc": [[[0.8, 0.8]]],
-                    "apar": [[[0.0, 0.0]]],
-                    "lwp": [[[-1.0, -1.0]]]
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Zero PAR testing dark respiration",
-                    "edge_cases": ["zero_par", "dark_respiration"]
-                }
-            },
-            {
-                "name": "test_edge_severe_water_stress",
-                "inputs": {
-                    "c3psn": [1.0, 0.0],
-                    "g0_BB": [0.01, 0.04],
-                    "g1_BB": [9.0, 4.0],
-                    "g0_MED": [0.0, 0.0],
-                    "g1_MED": [4.0, 1.6],
-                    "psi50_gs": [-1.5, -1.2],
-                    "shape_gs": [4.0, 3.5],
-                    "gsmin_SPA": [0.001, 0.001],
-                    "iota_SPA": [750.0, 1000.0],
-                    "tacclim": [298.15, 303.15],
-                    "ncan": [1, 1],
-                    "dpai": [[2.0], [2.5]],
-                    "eair": [[1000.0], [1500.0]],
-                    "o2ref": [209.0, 209.0],
-                    "pref": [101325.0, 101325.0],
-                    "cair": [[[400.0, 400.0]], [[380.0, 380.0]]],
-                    "vcmax25": [[[55.0, 55.0]], [[75.0, 75.0]]],
-                    "jmax25": [[[110.0, 110.0]], [[0.0, 0.0]]],
-                    "kp25": [[[0.0, 0.0]], [[0.75, 0.75]]],
-                    "rd25": [[[0.9, 0.9]], [[1.4, 1.4]]],
-                    "tleaf": [[[298.15, 298.15]], [[303.15, 303.15]]],
-                    "gbv": [[[1.4, 1.4]], [[1.9, 1.9]]],
-                    "gbc": [[[0.9, 0.9]], [[1.25, 1.25]]],
-                    "apar": [[[800.0, 300.0]], [[1200.0, 400.0]]],
-                    "lwp": [[[-4.5, -4.5]], [[-3.8, -3.8]]]
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Severe water stress testing stomatal closure",
-                    "edge_cases": ["severe_water_stress", "near_wilting_point"]
-                }
-            },
-            {
-                "name": "test_edge_extreme_temperature_cold",
-                "inputs": {
-                    "c3psn": [1.0],
-                    "g0_BB": [0.01],
-                    "g1_BB": [9.0],
-                    "g0_MED": [0.0],
-                    "g1_MED": [4.0],
-                    "psi50_gs": [-2.5],
-                    "shape_gs": [3.0],
-                    "gsmin_SPA": [0.001],
-                    "iota_SPA": [750.0],
-                    "tacclim": [278.15],
-                    "ncan": [1],
-                    "dpai": [[2.0]],
-                    "eair": [[500.0]],
-                    "o2ref": [209.0],
-                    "pref": [101325.0],
-                    "cair": [[[420.0, 420.0]]],
-                    "vcmax25": [[[45.0, 45.0]]],
-                    "jmax25": [[[90.0, 90.0]]],
-                    "kp25": [[[0.0, 0.0]]],
-                    "rd25": [[[0.7, 0.7]]],
-                    "tleaf": [[[278.15, 278.15]]],
-                    "gbv": [[[1.0, 1.0]]],
-                    "gbc": [[[0.7, 0.7]]],
-                    "apar": [[[600.0, 200.0]]],
-                    "lwp": [[[-0.3, -0.3]]]
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Cold temperature (5°C) testing",
-                    "edge_cases": ["cold_temperature", "low_vapor_pressure"]
-                }
-            },
-            {
-                "name": "test_edge_extreme_temperature_hot",
-                "inputs": {
-                    "c3psn": [0.0],
-                    "g0_BB": [0.04],
-                    "g1_BB": [4.0],
-                    "g0_MED": [0.0],
-                    "g1_MED": [1.6],
-                    "psi50_gs": [-1.0],
-                    "shape_gs": [2.0],
-                    "gsmin_SPA": [0.001],
-                    "iota_SPA": [1000.0],
-                    "tacclim": [313.15],
-                    "ncan": [1],
-                    "dpai": [[1.5]],
-                    "eair": [[3500.0]],
-                    "o2ref": [209.0],
-                    "pref": [101325.0],
-                    "cair": [[[360.0, 360.0]]],
-                    "vcmax25": [[[90.0, 90.0]]],
-                    "jmax25": [[[0.0, 0.0]]],
-                    "kp25": [[[0.9, 0.9]]],
-                    "rd25": [[[1.8, 1.8]]],
-                    "tleaf": [[[313.15, 313.15]]],
-                    "gbv": [[[2.5, 2.5]]],
-                    "gbc": [[[1.6, 1.6]]],
-                    "apar": [[[2000.0, 800.0]]],
-                    "lwp": [[[-1.5, -1.5]]]
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Hot temperature (40°C) testing heat stress",
-                    "edge_cases": ["hot_temperature", "high_vapor_pressure", "heat_stress"]
-                }
-            },
-            {
-                "name": "test_edge_minimal_conductance_parameters",
-                "inputs": {
-                    "c3psn": [1.0],
-                    "g0_BB": [0.0],
-                    "g1_BB": [0.0],
-                    "g0_MED": [0.0],
-                    "g1_MED": [0.0],
-                    "psi50_gs": [-2.0],
-                    "shape_gs": [3.0],
-                    "gsmin_SPA": [0.0001],
-                    "iota_SPA": [500.0],
-                    "tacclim": [298.15],
-                    "ncan": [1],
-                    "dpai": [[1.0]],
-                    "eair": [[1500.0]],
-                    "o2ref": [209.0],
-                    "pref": [101325.0],
-                    "cair": [[[400.0, 400.0]]],
-                    "vcmax25": [[[40.0, 40.0]]],
-                    "jmax25": [[[80.0, 80.0]]],
-                    "kp25": [[[0.0, 0.0]]],
-                    "rd25": [[[0.6, 0.6]]],
-                    "tleaf": [[[298.15, 298.15]]],
-                    "gbv": [[[1.0, 1.0]]],
-                    "gbc": [[[0.65, 0.65]]],
-                    "apar": [[[500.0, 100.0]]],
-                    "lwp": [[[-0.5, -0.5]]]
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Minimal stomatal conductance parameters",
-                    "edge_cases": ["zero_conductance_params", "minimal_stomatal_opening"]
-                }
-            },
-            {
-                "name": "test_special_high_elevation_low_pressure",
-                "inputs": {
-                    "c3psn": [1.0, 1.0],
-                    "g0_BB": [0.01, 0.01],
-                    "g1_BB": [9.0, 9.0],
-                    "g0_MED": [0.0, 0.0],
-                    "g1_MED": [4.0, 4.0],
-                    "psi50_gs": [-2.5, -2.5],
-                    "shape_gs": [3.5, 3.5],
-                    "gsmin_SPA": [0.001, 0.001],
-                    "iota_SPA": [750.0, 750.0],
-                    "tacclim": [283.15, 283.15],
-                    "ncan": [1, 1],
-                    "dpai": [[1.5], [1.8]],
-                    "eair": [[800.0], [850.0]],
-                    "o2ref": [209.0, 209.0],
-                    "pref": [70000.0, 70000.0],
-                    "cair": [[[400.0, 400.0]], [[400.0, 400.0]]],
-                    "vcmax25": [[[50.0, 50.0]], [[52.0, 52.0]]],
-                    "jmax25": [[[100.0, 100.0]], [[104.0, 104.0]]],
-                    "kp25": [[[0.0, 0.0]], [[0.0, 0.0]]],
-                    "rd25": [[[0.8, 0.8]], [[0.85, 0.85]]],
-                    "tleaf": [[[283.15, 283.15]], [[283.15, 283.15]]],
-                    "gbv": [[[1.1, 1.1]], [[1.15, 1.15]]],
-                    "gbc": [[[0.75, 0.75]], [[0.78, 0.78]]],
-                    "apar": [[[900.0, 400.0]], [[950.0, 420.0]]],
-                    "lwp": [[[-0.4, -0.4]], [[-0.45, -0.45]]]
-                },
-                "metadata": {
-                    "type": "special",
-                    "description": "High elevation with reduced atmospheric pressure",
-                    "edge_cases": ["low_atmospheric_pressure", "high_elevation"]
-                }
-            },
-            {
-                "name": "test_special_multi_layer_canopy_gradient",
-                "inputs": {
-                    "c3psn": [1.0],
-                    "g0_BB": [0.01],
-                    "g1_BB": [9.0],
-                    "g0_MED": [0.0],
-                    "g1_MED": [4.0],
-                    "psi50_gs": [-2.0],
-                    "shape_gs": [3.0],
-                    "gsmin_SPA": [0.001],
-                    "iota_SPA": [750.0],
-                    "tacclim": [298.15],
-                    "ncan": [5],
-                    "dpai": [[1.0, 1.2, 1.5, 1.0, 0.8]],
-                    "eair": [[1800.0, 1750.0, 1700.0, 1650.0, 1600.0]],
-                    "o2ref": [209.0],
-                    "pref": [101325.0],
-                    "cair": [
-                        [[400.0, 400.0], [395.0, 395.0], [390.0, 390.0],
-                         [385.0, 385.0], [380.0, 380.0]]
-                    ],
-                    "vcmax25": [
-                        [[65.0, 65.0], [60.0, 60.0], [55.0, 55.0],
-                         [50.0, 50.0], [45.0, 45.0]]
-                    ],
-                    "jmax25": [
-                        [[130.0, 130.0], [120.0, 120.0], [110.0, 110.0],
-                         [100.0, 100.0], [90.0, 90.0]]
-                    ],
-                    "kp25": [
-                        [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0],
-                         [0.0, 0.0], [0.0, 0.0]]
-                    ],
-                    "rd25": [
-                        [[1.1, 1.1], [1.0, 1.0], [0.9, 0.9],
-                         [0.8, 0.8], [0.7, 0.7]]
-                    ],
-                    "tleaf": [
-                        [[299.15, 299.15], [298.65, 298.65], [298.15, 298.15],
-                         [297.65, 297.65], [297.15, 297.15]]
-                    ],
-                    "gbv": [
-                        [[1.8, 1.8], [1.6, 1.6], [1.4, 1.4],
-                         [1.2, 1.2], [1.0, 1.0]]
-                    ],
-                    "gbc": [
-                        [[1.2, 1.2], [1.05, 1.05], [0.9, 0.9],
-                         [0.8, 0.8], [0.7, 0.7]]
-                    ],
-                    "apar": [
-                        [[1800.0, 600.0], [1200.0, 400.0], [700.0, 250.0],
-                         [350.0, 120.0], [150.0, 50.0]]
-                    ],
-                    "lwp": [
-                        [[-0.3, -0.3], [-0.4, -0.4], [-0.5, -0.5],
-                         [-0.6, -0.6], [-0.7, -0.7]]
-                    ]
-                },
-                "metadata": {
-                    "type": "special",
-                    "description": "Five-layer canopy with vertical gradients",
-                    "edge_cases": ["multi_layer_gradient", "light_extinction"]
-                }
-            },
-            {
-                "name": "test_special_mixed_c3_c4_comparison",
-                "inputs": {
-                    "c3psn": [1.0, 0.0, 1.0, 0.0],
-                    "g0_BB": [0.01, 0.04, 0.01, 0.04],
-                    "g1_BB": [9.0, 4.0, 9.0, 4.0],
-                    "g0_MED": [0.0, 0.0, 0.0, 0.0],
-                    "g1_MED": [4.0, 1.6, 4.0, 1.6],
-                    "psi50_gs": [-2.0, -1.5, -2.0, -1.5],
-                    "shape_gs": [3.0, 2.5, 3.0, 2.5],
-                    "gsmin_SPA": [0.001, 0.001, 0.001, 0.001],
-                    "iota_SPA": [750.0, 1000.0, 750.0, 1000.0],
-                    "tacclim": [298.15, 303.15, 298.15, 303.15],
-                    "ncan": [1, 1, 1, 1],
-                    "dpai": [[2.5], [2.0], [2.5], [2.0]],
-                    "eair": [[1500.0], [2000.0], [1500.0], [2000.0]],
-                    "o2ref": [209.0, 209.0, 209.0, 209.0],
-                    "pref": [101325.0, 101325.0, 101325.0, 101325.0],
-                    "cair": [
-                        [[400.0, 400.0]], [[380.0, 380.0]],
-                        [[400.0, 400.0]], [[380.0, 380.0]]
-                    ],
-                    "vcmax25": [
-                        [[60.0, 60.0]], [[80.0, 80.0]],
-                        [[60.0, 60.0]], [[80.0, 80.0]]
-                    ],
-                    "jmax25": [
-                        [[120.0, 120.0]], [[0.0, 0.0]],
-                        [[120.0, 120.0]], [[0.0, 0.0]]
-                    ],
-                    "kp25": [
-                        [[0.0, 0.0]], [[0.8, 0.8]],
-                        [[0.0, 0.0]], [[0.8, 0.8]]
-                    ],
-                    "rd25": [
-                        [[1.0, 1.0]], [[1.5, 1.5]],
-                        [[1.0, 1.0]], [[1.5, 1.5]]
-                    ],
-                    "tleaf": [
-                        [[298.15, 298.15]], [[303.15, 303.15]],
-                        [[298.15, 298.15]], [[303.15, 303.15]]
-                    ],
-                    "gbv": [
-                        [[1.5, 1.5]], [[2.0, 2.0]],
-                        [[1.5, 1.5]], [[2.0, 2.0]]
-                    ],
-                    "gbc": [
-                        [[1.0, 1.0]], [[1.3, 1.3]],
-                        [[1.0, 1.0]], [[1.3, 1.3]]
-                    ],
-                    "apar": [
-                        [[1000.0, 300.0]], [[1500.0, 500.0]],
-                        [[1000.0, 300.0]], [[1500.0, 500.0]]
-                    ],
-                    "lwp": [
-                        [[-0.5, -0.5]], [[-0.8, -0.8]],
-                        [[-0.5, -0.5]], [[-0.8, -0.8]]
-                    ]
-                },
-                "metadata": {
-                    "type": "special",
-                    "description": "C3 vs C4 comparison under identical conditions",
-                    "edge_cases": []
+            "metadata": {
+                "type": "nominal",
+                "description": "Standard C3 photosynthesis under optimal conditions",
+                "expected_shapes": {
+                    "n_patches": 1,
+                    "n_layers": 1,
+                    "n_leaf": 1
                 }
             }
-        ]
+        },
+        "test_nominal_c4_multiple_patches": {
+            "inputs": {
+                "c3psn": jnp.array([0.0, 0.0, 0.0]),
+                "g0_BB": jnp.array([0.04, 0.04, 0.04]),
+                "g1_BB": jnp.array([4.0, 4.0, 4.0]),
+                "g0_MED": jnp.array([0.0, 0.0, 0.0]),
+                "g1_MED": jnp.array([1.6, 1.6, 1.6]),
+                "psi50_gs": jnp.array([-1.5, -1.5, -1.5]),
+                "shape_gs": jnp.array([2.5, 2.5, 2.5]),
+                "gsmin_SPA": jnp.array([0.001, 0.001, 0.001]),
+                "iota_SPA": jnp.array([0.0001, 0.0001, 0.0001]),
+                "tacclim": jnp.array([303.15, 303.15, 303.15]),
+                "ncan": jnp.array([2, 2, 2]),
+                "dpai": jnp.array([[1.5, 1.0], [2.0, 1.5], [1.8, 1.2]]),
+                "eair": jnp.array([[1800.0, 1700.0], [1900.0, 1800.0], [1850.0, 1750.0]]),
+                "o2ref": jnp.array([209.0, 209.0, 209.0]),
+                "pref": jnp.array([101325.0, 101325.0, 101325.0]),
+                "cair": jnp.array([[[380.0], [370.0]], [[390.0], [380.0]], [[385.0], [375.0]]]),
+                "vcmax25": jnp.array([[[80.0], [70.0]], [[85.0], [75.0]], [[82.0], [72.0]]]),
+                "jmax25": jnp.array([[[160.0], [140.0]], [[170.0], [150.0]], [[165.0], [145.0]]]),
+                "kp25": jnp.array([[[50.0], [45.0]], [[55.0], [50.0]], [[52.0], [47.0]]]),
+                "rd25": jnp.array([[[1.6], [1.4]], [[1.7], [1.5]], [[1.65], [1.45]]]),
+                "tleaf": jnp.array([[[303.15], [302.15]], [[304.15], [303.15]], [[303.65], [302.65]]]),
+                "gbv": jnp.array([[[2.0], [1.8]], [[2.2], [2.0]], [[2.1], [1.9]]]),
+                "gbc": jnp.array([[[1.3], [1.2]], [[1.4], [1.3]], [[1.35], [1.25]]]),
+                "apar": jnp.array([[[1500.0], [800.0]], [[1600.0], [900.0]], [[1550.0], [850.0]]]),
+                "lwp": jnp.array([[[-0.3], [-0.4]], [[-0.35], [-0.45]], [[-0.32], [-0.42]]]),
+            },
+            "metadata": {
+                "type": "nominal",
+                "description": "C4 photosynthesis with multiple patches and canopy layers",
+                "expected_shapes": {
+                    "n_patches": 3,
+                    "n_layers": 2,
+                    "n_leaf": 1
+                }
+            }
+        },
+        "test_nominal_mixed_c3_c4_multilayer": {
+            "inputs": {
+                "c3psn": jnp.array([1.0, 0.0]),
+                "g0_BB": jnp.array([0.01, 0.04]),
+                "g1_BB": jnp.array([9.0, 4.0]),
+                "g0_MED": jnp.array([0.0, 0.0]),
+                "g1_MED": jnp.array([4.0, 1.6]),
+                "psi50_gs": jnp.array([-2.0, -1.5]),
+                "shape_gs": jnp.array([3.0, 2.5]),
+                "gsmin_SPA": jnp.array([0.001, 0.001]),
+                "iota_SPA": jnp.array([0.0001, 0.0001]),
+                "tacclim": jnp.array([298.15, 303.15]),
+                "ncan": jnp.array([3, 3]),
+                "dpai": jnp.array([[2.0, 1.5, 1.0], [1.8, 1.3, 0.8]]),
+                "eair": jnp.array([[1500.0, 1450.0, 1400.0], [1800.0, 1750.0, 1700.0]]),
+                "o2ref": jnp.array([209.0, 209.0]),
+                "pref": jnp.array([101325.0, 101325.0]),
+                "cair": jnp.array([[[400.0, 410.0], [395.0, 405.0], [390.0, 400.0]], 
+                                   [[380.0, 390.0], [375.0, 385.0], [370.0, 380.0]]]),
+                "vcmax25": jnp.array([[[60.0, 55.0], [50.0, 45.0], [40.0, 35.0]], 
+                                      [[80.0, 75.0], [70.0, 65.0], [60.0, 55.0]]]),
+                "jmax25": jnp.array([[[120.0, 110.0], [100.0, 90.0], [80.0, 70.0]], 
+                                     [[160.0, 150.0], [140.0, 130.0], [120.0, 110.0]]]),
+                "kp25": jnp.array([[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]], 
+                                   [[50.0, 48.0], [45.0, 43.0], [40.0, 38.0]]]),
+                "rd25": jnp.array([[[1.2, 1.1], [1.0, 0.9], [0.8, 0.7]], 
+                                   [[1.6, 1.5], [1.4, 1.3], [1.2, 1.1]]]),
+                "tleaf": jnp.array([[[298.15, 299.15], [297.15, 298.15], [296.15, 297.15]], 
+                                    [[303.15, 304.15], [302.15, 303.15], [301.15, 302.15]]]),
+                "gbv": jnp.array([[[1.5, 1.6], [1.4, 1.5], [1.3, 1.4]], 
+                                  [[2.0, 2.1], [1.9, 2.0], [1.8, 1.9]]]),
+                "gbc": jnp.array([[[1.0, 1.05], [0.95, 1.0], [0.9, 0.95]], 
+                                  [[1.3, 1.35], [1.25, 1.3], [1.2, 1.25]]]),
+                "apar": jnp.array([[[1200.0, 1100.0], [800.0, 700.0], [400.0, 300.0]], 
+                                   [[1500.0, 1400.0], [1000.0, 900.0], [500.0, 400.0]]]),
+                "lwp": jnp.array([[[-0.5, -0.6], [-0.7, -0.8], [-0.9, -1.0]], 
+                                  [[-0.3, -0.4], [-0.5, -0.6], [-0.7, -0.8]]]),
+            },
+            "metadata": {
+                "type": "nominal",
+                "description": "Mixed C3 and C4 vegetation with multiple canopy layers and sunlit/shaded leaves",
+                "expected_shapes": {
+                    "n_patches": 2,
+                    "n_layers": 3,
+                    "n_leaf": 2
+                }
+            }
+        },
+        "test_edge_zero_apar_low_light": {
+            "inputs": {
+                "c3psn": jnp.array([1.0, 1.0]),
+                "g0_BB": jnp.array([0.01, 0.01]),
+                "g1_BB": jnp.array([9.0, 9.0]),
+                "g0_MED": jnp.array([0.0, 0.0]),
+                "g1_MED": jnp.array([4.0, 4.0]),
+                "psi50_gs": jnp.array([-2.0, -2.0]),
+                "shape_gs": jnp.array([3.0, 3.0]),
+                "gsmin_SPA": jnp.array([0.001, 0.001]),
+                "iota_SPA": jnp.array([0.0001, 0.0001]),
+                "tacclim": jnp.array([298.15, 298.15]),
+                "ncan": jnp.array([1, 1]),
+                "dpai": jnp.array([[2.0], [2.0]]),
+                "eair": jnp.array([[1500.0], [1500.0]]),
+                "o2ref": jnp.array([209.0, 209.0]),
+                "pref": jnp.array([101325.0, 101325.0]),
+                "cair": jnp.array([[[400.0]], [[400.0]]]),
+                "vcmax25": jnp.array([[[60.0]], [[60.0]]]),
+                "jmax25": jnp.array([[[120.0]], [[120.0]]]),
+                "kp25": jnp.array([[[0.0]], [[0.0]]]),
+                "rd25": jnp.array([[[1.2]], [[1.2]]]),
+                "tleaf": jnp.array([[[298.15]], [[298.15]]]),
+                "gbv": jnp.array([[[1.5]], [[1.5]]]),
+                "gbc": jnp.array([[[1.0]], [[1.0]]]),
+                "apar": jnp.array([[[0.0]], [[10.0]]]),
+                "lwp": jnp.array([[[-0.5]], [[-0.5]]]),
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Zero and very low PAR conditions testing dark respiration",
+                "edge_cases": ["zero_radiation", "low_light"]
+            }
+        },
+        "test_edge_severe_water_stress": {
+            "inputs": {
+                "c3psn": jnp.array([1.0, 0.0]),
+                "g0_BB": jnp.array([0.01, 0.04]),
+                "g1_BB": jnp.array([9.0, 4.0]),
+                "g0_MED": jnp.array([0.0, 0.0]),
+                "g1_MED": jnp.array([4.0, 1.6]),
+                "psi50_gs": jnp.array([-2.0, -1.5]),
+                "shape_gs": jnp.array([3.0, 2.5]),
+                "gsmin_SPA": jnp.array([0.001, 0.001]),
+                "iota_SPA": jnp.array([0.0001, 0.0001]),
+                "tacclim": jnp.array([298.15, 303.15]),
+                "ncan": jnp.array([1, 1]),
+                "dpai": jnp.array([[2.0], [2.0]]),
+                "eair": jnp.array([[1500.0], [1800.0]]),
+                "o2ref": jnp.array([209.0, 209.0]),
+                "pref": jnp.array([101325.0, 101325.0]),
+                "cair": jnp.array([[[400.0]], [[380.0]]]),
+                "vcmax25": jnp.array([[[60.0]], [[80.0]]]),
+                "jmax25": jnp.array([[[120.0]], [[160.0]]]),
+                "kp25": jnp.array([[[0.0]], [[50.0]]]),
+                "rd25": jnp.array([[[1.2]], [[1.6]]]),
+                "tleaf": jnp.array([[[298.15]], [[303.15]]]),
+                "gbv": jnp.array([[[1.5]], [[2.0]]]),
+                "gbc": jnp.array([[[1.0]], [[1.3]]]),
+                "apar": jnp.array([[[1000.0]], [[1500.0]]]),
+                "lwp": jnp.array([[[-5.0]], [[-4.5]]]),
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Severe water stress with leaf water potential well below psi50_gs",
+                "edge_cases": ["severe_drought", "stomatal_closure"]
+            }
+        },
+        "test_edge_temperature_extremes": {
+            "inputs": {
+                "c3psn": jnp.array([1.0, 1.0, 0.0]),
+                "g0_BB": jnp.array([0.01, 0.01, 0.04]),
+                "g1_BB": jnp.array([9.0, 9.0, 4.0]),
+                "g0_MED": jnp.array([0.0, 0.0, 0.0]),
+                "g1_MED": jnp.array([4.0, 4.0, 1.6]),
+                "psi50_gs": jnp.array([-2.0, -2.0, -1.5]),
+                "shape_gs": jnp.array([3.0, 3.0, 2.5]),
+                "gsmin_SPA": jnp.array([0.001, 0.001, 0.001]),
+                "iota_SPA": jnp.array([0.0001, 0.0001, 0.0001]),
+                "tacclim": jnp.array([278.15, 313.15, 308.15]),
+                "ncan": jnp.array([1, 1, 1]),
+                "dpai": jnp.array([[2.0], [2.0], [2.0]]),
+                "eair": jnp.array([[800.0], [2500.0], [2200.0]]),
+                "o2ref": jnp.array([209.0, 209.0, 209.0]),
+                "pref": jnp.array([101325.0, 101325.0, 101325.0]),
+                "cair": jnp.array([[[400.0]], [[400.0]], [[380.0]]]),
+                "vcmax25": jnp.array([[[60.0]], [[60.0]], [[80.0]]]),
+                "jmax25": jnp.array([[[120.0]], [[120.0]], [[160.0]]]),
+                "kp25": jnp.array([[[0.0]], [[0.0]], [[50.0]]]),
+                "rd25": jnp.array([[[1.2]], [[1.2]], [[1.6]]]),
+                "tleaf": jnp.array([[[278.15]], [[318.15]], [[313.15]]]),
+                "gbv": jnp.array([[[1.5]], [[1.5]], [[2.0]]]),
+                "gbc": jnp.array([[[1.0]], [[1.0]], [[1.3]]]),
+                "apar": jnp.array([[[500.0]], [[1200.0]], [[1500.0]]]),
+                "lwp": jnp.array([[[-0.5]], [[-1.5]], [[-0.8]]]),
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Temperature extremes: cold stress (5°C), heat stress (45°C), and high temperature (40°C)",
+                "edge_cases": ["cold_stress", "heat_stress", "temperature_limits"]
+            }
+        },
+        "test_edge_minimal_conductances": {
+            "inputs": {
+                "c3psn": jnp.array([1.0]),
+                "g0_BB": jnp.array([0.0]),
+                "g1_BB": jnp.array([0.1]),
+                "g0_MED": jnp.array([0.0]),
+                "g1_MED": jnp.array([0.1]),
+                "psi50_gs": jnp.array([-2.0]),
+                "shape_gs": jnp.array([3.0]),
+                "gsmin_SPA": jnp.array([0.0001]),
+                "iota_SPA": jnp.array([1e-05]),
+                "tacclim": jnp.array([298.15]),
+                "ncan": jnp.array([1]),
+                "dpai": jnp.array([[2.0]]),
+                "eair": jnp.array([[1500.0]]),
+                "o2ref": jnp.array([209.0]),
+                "pref": jnp.array([101325.0]),
+                "cair": jnp.array([[[400.0]]]),
+                "vcmax25": jnp.array([[[60.0]]]),
+                "jmax25": jnp.array([[[120.0]]]),
+                "kp25": jnp.array([[[0.0]]]),
+                "rd25": jnp.array([[[1.2]]]),
+                "tleaf": jnp.array([[[298.15]]]),
+                "gbv": jnp.array([[[0.1]]]),
+                "gbc": jnp.array([[[0.05]]]),
+                "apar": jnp.array([[[1000.0]]]),
+                "lwp": jnp.array([[[-0.5]]]),
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Minimal stomatal and boundary layer conductances testing diffusion limitations",
+                "edge_cases": ["minimal_conductance", "diffusion_limited"]
+            }
+        },
+        "test_edge_high_co2_enrichment": {
+            "inputs": {
+                "c3psn": jnp.array([1.0, 0.0]),
+                "g0_BB": jnp.array([0.01, 0.04]),
+                "g1_BB": jnp.array([9.0, 4.0]),
+                "g0_MED": jnp.array([0.0, 0.0]),
+                "g1_MED": jnp.array([4.0, 1.6]),
+                "psi50_gs": jnp.array([-2.0, -1.5]),
+                "shape_gs": jnp.array([3.0, 2.5]),
+                "gsmin_SPA": jnp.array([0.001, 0.001]),
+                "iota_SPA": jnp.array([0.0001, 0.0001]),
+                "tacclim": jnp.array([298.15, 303.15]),
+                "ncan": jnp.array([1, 1]),
+                "dpai": jnp.array([[2.0], [2.0]]),
+                "eair": jnp.array([[1500.0], [1800.0]]),
+                "o2ref": jnp.array([209.0, 209.0]),
+                "pref": jnp.array([101325.0, 101325.0]),
+                "cair": jnp.array([[[1000.0]], [[1200.0]]]),
+                "vcmax25": jnp.array([[[60.0]], [[80.0]]]),
+                "jmax25": jnp.array([[[120.0]], [[160.0]]]),
+                "kp25": jnp.array([[[0.0]], [[50.0]]]),
+                "rd25": jnp.array([[[1.2]], [[1.6]]]),
+                "tleaf": jnp.array([[[298.15]], [[303.15]]]),
+                "gbv": jnp.array([[[1.5]], [[2.0]]]),
+                "gbc": jnp.array([[[1.0]], [[1.3]]]),
+                "apar": jnp.array([[[1000.0]], [[1500.0]]]),
+                "lwp": jnp.array([[[-0.5]], [[-0.3]]]),
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Elevated CO2 concentrations (1000-1200 ppm) testing CO2 saturation effects",
+                "edge_cases": ["high_co2", "co2_saturation"]
+            }
+        },
+        "test_special_high_altitude_low_pressure": {
+            "inputs": {
+                "c3psn": jnp.array([1.0, 1.0]),
+                "g0_BB": jnp.array([0.01, 0.01]),
+                "g1_BB": jnp.array([9.0, 9.0]),
+                "g0_MED": jnp.array([0.0, 0.0]),
+                "g1_MED": jnp.array([4.0, 4.0]),
+                "psi50_gs": jnp.array([-2.0, -2.0]),
+                "shape_gs": jnp.array([3.0, 3.0]),
+                "gsmin_SPA": jnp.array([0.001, 0.001]),
+                "iota_SPA": jnp.array([0.0001, 0.0001]),
+                "tacclim": jnp.array([288.15, 288.15]),
+                "ncan": jnp.array([1, 1]),
+                "dpai": jnp.array([[1.5], [1.5]]),
+                "eair": jnp.array([[1000.0], [1000.0]]),
+                "o2ref": jnp.array([209.0, 209.0]),
+                "pref": jnp.array([70000.0, 60000.0]),
+                "cair": jnp.array([[[400.0]], [[400.0]]]),
+                "vcmax25": jnp.array([[[50.0]], [[50.0]]]),
+                "jmax25": jnp.array([[[100.0]], [[100.0]]]),
+                "kp25": jnp.array([[[0.0]], [[0.0]]]),
+                "rd25": jnp.array([[[1.0]], [[1.0]]]),
+                "tleaf": jnp.array([[[288.15]], [[288.15]]]),
+                "gbv": jnp.array([[[1.2]], [[1.2]]]),
+                "gbc": jnp.array([[[0.8]], [[0.8]]]),
+                "apar": jnp.array([[[1200.0]], [[1200.0]]]),
+                "lwp": jnp.array([[[-0.8]], [[-0.8]]]),
+            },
+            "metadata": {
+                "type": "special",
+                "description": "High altitude conditions with reduced atmospheric pressure (3000m and 4000m elevation)",
+                "edge_cases": ["low_pressure", "high_altitude"]
+            }
+        },
+        "test_special_dense_canopy_deep_shade": {
+            "inputs": {
+                "c3psn": jnp.array([1.0]),
+                "g0_BB": jnp.array([0.01]),
+                "g1_BB": jnp.array([9.0]),
+                "g0_MED": jnp.array([0.0]),
+                "g1_MED": jnp.array([4.0]),
+                "psi50_gs": jnp.array([-2.0]),
+                "shape_gs": jnp.array([3.0]),
+                "gsmin_SPA": jnp.array([0.001]),
+                "iota_SPA": jnp.array([0.0001]),
+                "tacclim": jnp.array([298.15]),
+                "ncan": jnp.array([5]),
+                "dpai": jnp.array([[1.5, 1.5, 1.5, 1.5, 1.5]]),
+                "eair": jnp.array([[1600.0, 1580.0, 1560.0, 1540.0, 1520.0]]),
+                "o2ref": jnp.array([209.0]),
+                "pref": jnp.array([101325.0]),
+                "cair": jnp.array([[[410.0, 400.0], [420.0, 410.0], [430.0, 420.0], [440.0, 430.0], [450.0, 440.0]]]),
+                "vcmax25": jnp.array([[[65.0, 60.0], [55.0, 50.0], [45.0, 40.0], [35.0, 30.0], [25.0, 20.0]]]),
+                "jmax25": jnp.array([[[130.0, 120.0], [110.0, 100.0], [90.0, 80.0], [70.0, 60.0], [50.0, 40.0]]]),
+                "kp25": jnp.array([[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]]),
+                "rd25": jnp.array([[[1.3, 1.2], [1.1, 1.0], [0.9, 0.8], [0.7, 0.6], [0.5, 0.4]]]),
+                "tleaf": jnp.array([[[298.15, 299.15], [297.65, 298.65], [297.15, 298.15], [296.65, 297.65], [296.15, 297.15]]]),
+                "gbv": jnp.array([[[1.6, 1.7], [1.5, 1.6], [1.4, 1.5], [1.3, 1.4], [1.2, 1.3]]]),
+                "gbc": jnp.array([[[1.05, 1.1], [1.0, 1.05], [0.95, 1.0], [0.9, 0.95], [0.85, 0.9]]]),
+                "apar": jnp.array([[[1800.0, 1600.0], [900.0, 700.0], [400.0, 300.0], [150.0, 100.0], [50.0, 30.0]]]),
+                "lwp": jnp.array([[[-0.4, -0.5], [-0.6, -0.7], [-0.8, -0.9], [-1.0, -1.1], [-1.2, -1.3]]]),
+            },
+            "metadata": {
+                "type": "special",
+                "description": "Dense canopy with 5 layers showing strong light gradient and CO2 depletion",
+                "edge_cases": ["deep_shade", "co2_depletion", "dense_canopy"]
+            }
+        },
     }
-    return test_data_json
 
 
-def convert_inputs_to_jax(inputs: Dict[str, Any]) -> Dict[str, jnp.ndarray]:
-    """
-    Convert test input dictionary to JAX arrays.
+class TestLeafPhotosynthesisShapes:
+    """Test suite for verifying output shapes of leaf_photosynthesis function."""
     
-    Args:
-        inputs: Dictionary of input arrays as Python lists
+    @pytest.mark.parametrize("test_case_name", [
+        "test_nominal_c3_single_patch_single_layer",
+        "test_nominal_c4_multiple_patches",
+        "test_nominal_mixed_c3_c4_multilayer",
+    ])
+    def test_output_shapes_nominal(self, test_data, default_params, test_case_name):
+        """
+        Test that leaf_photosynthesis returns correctly shaped outputs for nominal cases.
         
-    Returns:
-        Dictionary with same keys but JAX array values
-    """
-    jax_inputs = {}
-    for key, value in inputs.items():
-        if key != "params":
-            jax_inputs[key] = jnp.array(value)
-    return jax_inputs
-
-
-# ============================================================================
-# Shape Tests
-# ============================================================================
-
-@pytest.mark.parametrize("test_case", [
-    "test_nominal_c3_single_patch_single_layer",
-    "test_nominal_c4_multiple_patches",
-    "test_special_multi_layer_canopy_gradient",
-    "test_special_mixed_c3_c4_comparison"
-])
-def test_leaf_photosynthesis_output_shapes(test_data, default_params, test_case):
-    """
-    Test that output shapes match expected dimensions based on input shapes.
-    
-    Verifies that all output arrays have correct shapes:
-    - Scalar parameters: (n_patches,)
-    - Layer-specific: (n_patches, n_layers)
-    - Leaf-specific: (n_patches, n_layers, n_leaf)
-    """
-    # Get test case
-    case = next(tc for tc in test_data["test_cases"] if tc["name"] == test_case)
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    # Determine expected shapes
-    n_patches = inputs["c3psn"].shape[0]
-    n_layers = inputs["dpai"].shape[1]
-    n_leaf = inputs["cair"].shape[2]
-    
-    # Call function
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Check that btran is patch-level (n_patches,)
-    assert result.btran.shape == (n_patches,), \
-        f"btran shape mismatch: expected {(n_patches,)}, got {result.btran.shape}"
-    
-    # Check 3D output shapes (n_patches, n_layers, n_leaf)
-    # Note: g0 and g1 are broadcast to leaf-level for consistency
-    expected_3d_shape = (n_patches, n_layers, n_leaf)
-    for field in ["g0", "g1", "kc", "ko", "cp", "vcmax", "jmax", "je", "kp", "rd", "ci",
-                  "hs", "vpd", "ceair", "leaf_esat", "gspot", "ac", "aj", "ap",
-                  "agross", "anet", "cs", "gs", "alphapsn"]:
-        field_value = getattr(result, field)
-        assert field_value.shape == expected_3d_shape, \
-            f"{field} shape mismatch: expected {expected_3d_shape}, got {field_value.shape}"
-
-
-# ============================================================================
-# Data Type Tests
-# ============================================================================
-
-def test_leaf_photosynthesis_dtypes(test_data, default_params):
-    """
-    Test that all outputs have correct floating-point data types.
-    
-    Verifies that all output arrays are float32 or float64 (JAX default).
-    """
-    case = test_data["test_cases"][0]  # Use first test case
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Check all fields are floating point
-    for field in result._fields:
-        field_value = getattr(result, field)
-        assert jnp.issubdtype(field_value.dtype, jnp.floating), \
-            f"{field} has non-floating dtype: {field_value.dtype}"
-
-
-# ============================================================================
-# Value Range Tests
-# ============================================================================
-
-@pytest.mark.parametrize("test_case_name", [
-    "test_nominal_c3_single_patch_single_layer",
-    "test_nominal_c4_multiple_patches"
-])
-def test_leaf_photosynthesis_value_ranges(test_data, default_params, test_case_name):
-    """
-    Test that output values are within physically realistic ranges.
-    
-    Checks:
-    - Conductances are non-negative
-    - Temperatures are above absolute zero
-    - Pressures are non-negative
-    - Photosynthesis rates are reasonable
-    """
-    case = next(tc for tc in test_data["test_cases"] if tc["name"] == test_case_name)
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Conductances must be non-negative
-    assert jnp.all(result.gs >= 0.0), "Stomatal conductance must be non-negative"
-    assert jnp.all(result.gspot >= 0.0), "Water stress factor must be non-negative"
-    assert jnp.all(result.gspot <= 1.0), "Water stress factor must be <= 1.0"
-    
-    # Vapor pressures must be non-negative
-    assert jnp.all(result.vpd >= 0.0), "VPD must be non-negative"
-    assert jnp.all(result.ceair >= 0.0), "Canopy air vapor pressure must be non-negative"
-    assert jnp.all(result.leaf_esat >= 0.0), "Leaf saturation vapor pressure must be non-negative"
-    
-    # CO2 concentrations must be non-negative
-    assert jnp.all(result.ci >= 0.0), "Intercellular CO2 must be non-negative"
-    assert jnp.all(result.cs >= 0.0), "Leaf surface CO2 must be non-negative"
-    
-    # Enzyme kinetic parameters must be positive
-    assert jnp.all(result.kc > 0.0), "Michaelis constant for CO2 must be positive"
-    assert jnp.all(result.ko > 0.0), "Michaelis constant for O2 must be positive"
-    assert jnp.all(result.cp >= 0.0), "CO2 compensation point must be non-negative"
-    
-    # Photosynthetic capacities must be non-negative
-    assert jnp.all(result.vcmax >= 0.0), "Vcmax must be non-negative"
-    assert jnp.all(result.rd >= 0.0), "Dark respiration must be non-negative"
-
-
-# ============================================================================
-# Edge Case Tests
-# ============================================================================
-
-def test_leaf_photosynthesis_zero_par(test_data, default_params):
-    """
-    Test photosynthesis with zero PAR (dark conditions).
-    
-    Verifies:
-    - Net photosynthesis is negative (respiration only)
-    - Gross photosynthesis is zero or near-zero
-    - Stomatal conductance is minimal
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_zero_par_dark_respiration")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # With zero PAR, net photosynthesis should be negative (respiration)
-    assert jnp.all(result.anet <= 0.0), \
-        "Net photosynthesis should be negative or zero in darkness"
-    
-    # Gross photosynthesis should be zero or very small
-    assert jnp.all(result.agross <= 1e-6), \
-        "Gross photosynthesis should be near zero with zero PAR"
-    
-    # Respiration should be positive
-    assert jnp.all(result.rd > 0.0), \
-        "Dark respiration should be positive"
-
-
-def test_leaf_photosynthesis_severe_water_stress(test_data, default_params):
-    """
-    Test photosynthesis under severe water stress.
-    
-    Verifies:
-    - Water stress factor (gspot) is very low
-    - Stomatal conductance is reduced
-    - Photosynthesis is reduced compared to well-watered conditions
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_severe_water_stress")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    # Enable water stress for this test
-    params_with_stress = default_params._replace(gspot_type=1)
-    result = leaf_photosynthesis(**inputs, params=params_with_stress)
-    
-    # Water stress factor should be very low
-    assert jnp.all(result.gspot < 0.5), \
-        "Water stress factor should be low under severe stress"
-    
-    # Stomatal conductance should be reduced (more relaxed threshold)
-    assert jnp.all(result.gs < 0.5), \
-        "Stomatal conductance should be reduced under severe water stress"
-    
-    # Photosynthesis should be reduced
-    assert jnp.all(result.anet < 50.0), \
-        "Net photosynthesis should be reduced under severe water stress"
-
-
-def test_leaf_photosynthesis_cold_temperature(test_data, default_params):
-    """
-    Test photosynthesis at cold temperatures (5°C).
-    
-    Verifies:
-    - Enzyme activities are reduced
-    - Photosynthesis rates are lower than at optimal temperature
-    - No numerical instabilities
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_extreme_temperature_cold")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Check for numerical stability (no NaN or Inf)
-    assert jnp.all(jnp.isfinite(result.vcmax)), \
-        "Vcmax should be finite at cold temperatures"
-    assert jnp.all(jnp.isfinite(result.anet)), \
-        "Net photosynthesis should be finite at cold temperatures"
-    
-    # Enzyme activities should be reduced but positive
-    assert jnp.all(result.vcmax > 0.0), \
-        "Vcmax should be positive even at cold temperatures"
-    assert jnp.all(result.vcmax < 100.0), \
-        "Vcmax should be reduced at cold temperatures"
-
-
-def test_leaf_photosynthesis_hot_temperature(test_data, default_params):
-    """
-    Test photosynthesis at hot temperatures (40°C).
-    
-    Verifies:
-    - High temperature inhibition is active
-    - Photosynthesis may be reduced due to heat stress
-    - No numerical instabilities
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_extreme_temperature_hot")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Check for numerical stability
-    assert jnp.all(jnp.isfinite(result.vcmax)), \
-        "Vcmax should be finite at hot temperatures"
-    assert jnp.all(jnp.isfinite(result.anet)), \
-        "Net photosynthesis should be finite at hot temperatures"
-    
-    # Vapor pressure should be high
-    assert jnp.all(result.vpd > 1000.0), \
-        "VPD should be high at hot temperatures with high humidity"
-
-
-def test_leaf_photosynthesis_minimal_conductance(test_data, default_params):
-    """
-    Test photosynthesis with minimal stomatal conductance parameters.
-    
-    Verifies:
-    - Stomatal conductance is very low
-    - Photosynthesis is limited by CO2 diffusion
-    - System remains stable
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_minimal_conductance_parameters")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Stomatal conductance should be minimal
-    assert jnp.all(result.gs < 0.05), \
-        "Stomatal conductance should be very low with minimal parameters"
-    
-    # Intercellular CO2 should be lower than atmospheric
-    assert jnp.all(result.ci < inputs["cair"]), \
-        "Intercellular CO2 should be less than atmospheric with low conductance"
-
-
-# ============================================================================
-# Special Scenario Tests
-# ============================================================================
-
-def test_leaf_photosynthesis_high_elevation(test_data, default_params):
-    """
-    Test photosynthesis at high elevation with reduced atmospheric pressure.
-    
-    Verifies:
-    - Partial pressures are correctly adjusted for low pressure
-    - Photosynthesis responds appropriately to reduced O2/CO2 partial pressures
-    - No numerical issues with low pressure
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_special_high_elevation_low_pressure")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Check for numerical stability
-    assert jnp.all(jnp.isfinite(result.anet)), \
-        "Net photosynthesis should be finite at low pressure"
-    
-    # Photosynthesis should still be positive with adequate light
-    assert jnp.any(result.anet > 0.0), \
-        "Some photosynthesis should occur at high elevation with light"
-
-
-def test_leaf_photosynthesis_multi_layer_gradient(test_data, default_params):
-    """
-    Test photosynthesis with multi-layer canopy showing vertical gradients.
-    
-    Verifies:
-    - Photosynthesis decreases with canopy depth
-    - Light limitation is evident in lower layers
-    - Gradients are smooth and realistic
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_special_multi_layer_canopy_gradient")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Extract single patch results (shape: n_layers, n_leaf)
-    anet_profile = result.anet[0, :, :]
-    
-    # Photosynthesis should generally decrease with depth
-    # (top layers should have higher rates than bottom layers)
-    top_layer_mean = jnp.mean(anet_profile[0, :])
-    bottom_layer_mean = jnp.mean(anet_profile[-1, :])
-    
-    assert top_layer_mean > bottom_layer_mean, \
-        "Top canopy layer should have higher photosynthesis than bottom layer"
-    
-    # Check that sunlit leaves have higher rates than shaded
-    for layer in range(anet_profile.shape[0]):
-        assert anet_profile[layer, 0] >= anet_profile[layer, 1], \
-            f"Sunlit leaf should have >= photosynthesis than shaded in layer {layer}"
-
-
-def test_leaf_photosynthesis_c3_vs_c4_comparison(test_data, default_params):
-    """
-    Test C3 vs C4 photosynthesis under identical conditions.
-    
-    Verifies:
-    - C3 and C4 pathways produce different results
-    - C4 plants have different CO2 compensation points
-    - Both pathways are numerically stable
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_special_mixed_c3_c4_comparison")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Extract C3 and C4 results (patches 0,2 are C3; patches 1,3 are C4)
-    c3_anet = result.anet[[0, 2], :, :]
-    c4_anet = result.anet[[1, 3], :, :]
-    
-    c3_ci = result.ci[[0, 2], :, :]
-    c4_ci = result.ci[[1, 3], :, :]
-    
-    # C3 and C4 should have different intercellular CO2 concentrations
-    assert not jnp.allclose(jnp.mean(c3_ci), jnp.mean(c4_ci), rtol=0.1), \
-        "C3 and C4 should have different intercellular CO2 patterns"
-    
-    # Both should have positive photosynthesis with adequate light
-    assert jnp.all(c3_anet > -5.0), "C3 net photosynthesis should be reasonable"
-    assert jnp.all(c4_anet > -5.0), "C4 net photosynthesis should be reasonable"
-
-
-# ============================================================================
-# Consistency Tests
-# ============================================================================
-
-def test_leaf_photosynthesis_energy_balance(test_data, default_params):
-    """
-    Test that photosynthesis respects basic energy/carbon balance.
-    
-    Verifies:
-    - Net photosynthesis = Gross photosynthesis - Respiration
-    - Gross photosynthesis >= 0
-    - Respiration >= 0
-    """
-    case = test_data["test_cases"][0]  # Use first nominal case
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Check carbon balance: anet = agross - rd
-    calculated_anet = result.agross - result.rd
-    assert jnp.allclose(result.anet, calculated_anet, rtol=1e-5, atol=1e-6), \
-        "Net photosynthesis should equal gross photosynthesis minus respiration"
-    
-    # Gross photosynthesis should be non-negative
-    assert jnp.all(result.agross >= 0.0), \
-        "Gross photosynthesis must be non-negative"
-    
-    # Respiration should be non-negative
-    assert jnp.all(result.rd >= 0.0), \
-        "Dark respiration must be non-negative"
-
-
-def test_leaf_photosynthesis_co2_gradient(test_data, default_params):
-    """
-    Test that CO2 concentration gradient is physically consistent.
-    
-    Verifies:
-    - Atmospheric CO2 >= Leaf surface CO2 >= Intercellular CO2
-    - Gradient direction is correct for photosynthesis
-    """
-    case = test_data["test_cases"][0]  # Use first nominal case
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # CO2 should decrease from atmosphere to intercellular space
-    # (when photosynthesis is occurring)
-    cair = inputs["cair"]
-    
-    # Where photosynthesis is positive, ci should be less than cair
-    positive_psn = result.anet > 0.0
-    if jnp.any(positive_psn):
-        assert jnp.all(result.ci[positive_psn] <= cair[positive_psn]), \
-            "Intercellular CO2 should be <= atmospheric CO2 during photosynthesis"
-
-
-def test_leaf_photosynthesis_stomatal_conductance_limits(test_data, default_params):
-    """
-    Test that stomatal conductance respects minimum and maximum limits.
-    
-    Verifies:
-    - gs >= minimum conductance (g0 or gsmin)
-    - gs responds to environmental conditions
-    - gs is reduced under water stress
-    """
-    # Test with minimal conductance parameters
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_minimal_conductance_parameters")
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    result = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Conductance should be above absolute minimum
-    min_gs = jnp.minimum(inputs["g0_BB"], inputs["gsmin_SPA"])
-    assert jnp.all(result.gs >= min_gs * 0.9), \
-        "Stomatal conductance should be at or above minimum"
-    
-    # Test water stress effect
-    case_stress = next(tc for tc in test_data["test_cases"] 
-                       if tc["name"] == "test_edge_severe_water_stress")
-    inputs_stress = convert_inputs_to_jax(case_stress["inputs"])
-    result_stress = leaf_photosynthesis(**inputs_stress, params=default_params)
-    
-    # Under severe stress, gspot should be low
-    assert jnp.all(result_stress.gspot < 0.5), \
-        "Water stress factor should be low under severe stress"
-
-
-# ============================================================================
-# Numerical Stability Tests
-# ============================================================================
-
-def test_leaf_photosynthesis_no_nan_inf(test_data, default_params):
-    """
-    Test that function produces no NaN or Inf values across all test cases.
-    
-    Verifies numerical stability across diverse conditions.
-    """
-    for case in test_data["test_cases"]:
-        inputs = convert_inputs_to_jax(case["inputs"])
+        Verifies that all output fields in LeafPhotosynthesisState have shapes
+        consistent with input dimensions (n_patches, n_layers, n_leaf).
+        """
+        test_case = test_data[test_case_name]
+        inputs = test_case["inputs"]
+        expected = test_case["metadata"]["expected_shapes"]
+        
         result = leaf_photosynthesis(**inputs, params=default_params)
         
-        # Check all output fields for NaN/Inf
-        for field in result._fields:
+        # Check that result is a LeafPhotosynthesisState
+        assert isinstance(result, LeafPhotosynthesisState), \
+            f"Expected LeafPhotosynthesisState, got {type(result)}"
+        
+        # Expected shapes for different field types
+        patch_shape = (expected["n_patches"],)
+        layer_shape = (expected["n_patches"], expected["n_layers"], expected["n_leaf"])
+        
+        # Fields that should have patch-level shape
+        patch_fields = ["g0", "g1", "btran"]
+        
+        # Fields that should have layer-level shape
+        layer_fields = ["kc", "ko", "cp", "vcmax", "jmax", "je", "kp", "rd", 
+                       "ci", "hs", "vpd", "ceair", "leaf_esat", "gspot",
+                       "ac", "aj", "ap", "agross", "anet", "cs", "gs", "alphapsn"]
+        
+        # Check patch-level fields
+        for field in patch_fields:
             field_value = getattr(result, field)
-            assert jnp.all(jnp.isfinite(field_value)), \
-                f"Field {field} contains NaN or Inf in test case {case['name']}"
+            assert field_value.shape == patch_shape, \
+                f"Field {field} has shape {field_value.shape}, expected {patch_shape}"
+        
+        # Check layer-level fields
+        for field in layer_fields:
+            field_value = getattr(result, field)
+            assert field_value.shape == layer_shape, \
+                f"Field {field} has shape {field_value.shape}, expected {layer_shape}"
+    
+    @pytest.mark.parametrize("test_case_name", [
+        "test_edge_zero_apar_low_light",
+        "test_edge_severe_water_stress",
+        "test_edge_temperature_extremes",
+        "test_special_dense_canopy_deep_shade",
+    ])
+    def test_output_shapes_edge_cases(self, test_data, default_params, test_case_name):
+        """
+        Test that leaf_photosynthesis returns correctly shaped outputs for edge cases.
+        
+        Edge cases include extreme conditions that should still produce valid output shapes.
+        """
+        test_case = test_data[test_case_name]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # Infer expected shapes from inputs
+        n_patches = inputs["c3psn"].shape[0]
+        n_layers = inputs["dpai"].shape[1]
+        n_leaf = inputs["cair"].shape[2]
+        
+        patch_shape = (n_patches,)
+        layer_shape = (n_patches, n_layers, n_leaf)
+        
+        # Verify all fields have correct shapes
+        patch_fields = ["g0", "g1", "btran"]
+        layer_fields = ["kc", "ko", "cp", "vcmax", "jmax", "je", "kp", "rd", 
+                       "ci", "hs", "vpd", "ceair", "leaf_esat", "gspot",
+                       "ac", "aj", "ap", "agross", "anet", "cs", "gs", "alphapsn"]
+        
+        for field in patch_fields:
+            assert getattr(result, field).shape == patch_shape, \
+                f"Edge case {test_case_name}: Field {field} has incorrect shape"
+        
+        for field in layer_fields:
+            assert getattr(result, field).shape == layer_shape, \
+                f"Edge case {test_case_name}: Field {field} has incorrect shape"
 
 
-def test_leaf_photosynthesis_reproducibility(test_data, default_params):
-    """
-    Test that function produces identical results on repeated calls.
+class TestLeafPhotosynthesisDtypes:
+    """Test suite for verifying data types of leaf_photosynthesis outputs."""
     
-    Verifies deterministic behavior.
-    """
-    case = test_data["test_cases"][0]
-    inputs = convert_inputs_to_jax(case["inputs"])
-    
-    # Run twice
-    result1 = leaf_photosynthesis(**inputs, params=default_params)
-    result2 = leaf_photosynthesis(**inputs, params=default_params)
-    
-    # Compare all fields
-    for field in result1._fields:
-        field1 = getattr(result1, field)
-        field2 = getattr(result2, field)
-        assert jnp.allclose(field1, field2, rtol=1e-10, atol=1e-10), \
-            f"Field {field} not reproducible between calls"
+    def test_output_dtypes(self, test_data, default_params):
+        """
+        Test that all output fields have float dtype.
+        
+        All photosynthesis calculations should produce floating-point results.
+        """
+        test_case = test_data["test_nominal_c3_single_patch_single_layer"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # All fields should be float arrays
+        for field_name in result._fields:
+            field_value = getattr(result, field_name)
+            assert jnp.issubdtype(field_value.dtype, jnp.floating), \
+                f"Field {field_name} has dtype {field_value.dtype}, expected floating point"
 
 
-# ============================================================================
-# Integration Tests
-# ============================================================================
+class TestLeafPhotosynthesisValues:
+    """Test suite for verifying output values and physical realism."""
+    
+    def test_nominal_c3_positive_photosynthesis(self, test_data, default_params):
+        """
+        Test that C3 photosynthesis under optimal conditions produces positive net assimilation.
+        
+        With adequate light, water, and temperature, net photosynthesis should exceed
+        respiration, resulting in positive anet.
+        """
+        test_case = test_data["test_nominal_c3_single_patch_single_layer"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # Net assimilation should be positive under optimal conditions
+        assert jnp.all(result.anet > 0), \
+            f"Expected positive net assimilation, got {result.anet}"
+        
+        # Gross assimilation should be greater than net
+        assert jnp.all(result.agross >= result.anet), \
+            "Gross assimilation should be >= net assimilation"
+        
+        # Stomatal conductance should be positive
+        assert jnp.all(result.gs > 0), \
+            f"Expected positive stomatal conductance, got {result.gs}"
+    
+    def test_zero_apar_negative_anet(self, test_data, default_params):
+        """
+        Test that zero PAR results in negative net assimilation (dark respiration).
+        
+        Without light, photosynthesis cannot occur, so net assimilation should equal
+        negative respiration.
+        """
+        test_case = test_data["test_edge_zero_apar_low_light"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # First patch has zero APAR
+        zero_apar_idx = 0
+        assert jnp.all(result.anet[zero_apar_idx, :, :] < 0), \
+            "Expected negative net assimilation (respiration) with zero PAR"
+        
+        # Gross assimilation should be near zero
+        assert jnp.all(result.agross[zero_apar_idx, :, :] < 1.0), \
+            "Expected near-zero gross assimilation with zero PAR"
+    
+    def test_severe_water_stress_reduces_conductance(self, test_data, default_params):
+        """
+        Test that severe water stress significantly reduces stomatal conductance.
+        
+        When leaf water potential is well below psi50_gs, stomatal conductance
+        should be strongly reduced via the btran factor.
+        """
+        test_case = test_data["test_edge_severe_water_stress"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # btran should be very low under severe stress
+        assert jnp.all(result.btran < 0.2), \
+            f"Expected low btran under severe water stress, got {result.btran}"
+        
+        # Stomatal conductance should be reduced
+        # Compare to minimum conductance
+        assert jnp.all(result.gs < 0.1), \
+            f"Expected low stomatal conductance under severe stress, got {result.gs}"
+    
+    def test_temperature_effects_on_kinetics(self, test_data, default_params):
+        """
+        Test that temperature extremes affect enzyme kinetics appropriately.
+        
+        Cold temperatures should reduce enzyme activity, while high temperatures
+        may cause heat stress and reduced photosynthesis.
+        """
+        test_case = test_data["test_edge_temperature_extremes"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # Cold stress (patch 0): reduced vcmax
+        cold_idx = 0
+        # Heat stress (patch 1): potentially reduced photosynthesis
+        heat_idx = 1
+        
+        # Vcmax should be temperature-dependent
+        assert result.vcmax[cold_idx, 0, 0] < result.vcmax[heat_idx, 0, 0], \
+            "Expected lower vcmax at cold temperature"
+        
+        # All vcmax values should be positive
+        assert jnp.all(result.vcmax > 0), \
+            "Vcmax should remain positive at all temperatures"
+    
+    def test_high_co2_increases_ci(self, test_data, default_params):
+        """
+        Test that elevated CO2 increases intercellular CO2 concentration.
+        
+        Higher atmospheric CO2 should lead to higher ci values.
+        """
+        test_case = test_data["test_edge_high_co2_enrichment"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # ci should be elevated with high CO2
+        # For C3 plants, ci is typically 0.6-0.8 of ca
+        # With 1000 ppm CO2, ci should be > 600 ppm
+        assert jnp.all(result.ci > 600.0), \
+            f"Expected elevated ci with high CO2, got {result.ci}"
+    
+    def test_c4_vs_c3_differences(self, test_data, default_params):
+        """
+        Test that C4 plants show expected differences from C3 plants.
+        
+        C4 plants should have:
+        - Non-zero kp (PEP carboxylase activity)
+        - Different ci/ca ratios
+        - Different response to CO2
+        """
+        test_case = test_data["test_nominal_mixed_c3_c4_multilayer"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        c3_idx = 0
+        c4_idx = 1
+        
+        # C4 should have positive kp
+        assert jnp.all(result.kp[c4_idx, :, :] > 0), \
+            "C4 plants should have positive kp"
+        
+        # C3 should have zero kp
+        assert jnp.all(result.kp[c3_idx, :, :] == 0), \
+            "C3 plants should have zero kp"
+        
+        # C4 typically has lower ci/ca ratio than C3
+        c3_ci_ca_ratio = result.ci[c3_idx, 0, 0] / inputs["cair"][c3_idx, 0, 0]
+        c4_ci_ca_ratio = result.ci[c4_idx, 0, 0] / inputs["cair"][c4_idx, 0, 0]
+        
+        assert c4_ci_ca_ratio < c3_ci_ca_ratio, \
+            "C4 plants should have lower ci/ca ratio than C3"
+    
+    def test_physical_constraints(self, test_data, default_params):
+        """
+        Test that outputs satisfy physical constraints.
+        
+        Verifies:
+        - Non-negative rates (gs, agross, rd)
+        - Reasonable ranges for ci, vpd
+        - Energy conservation (agross >= anet)
+        """
+        test_case = test_data["test_nominal_mixed_c3_c4_multilayer"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # Stomatal conductance should be non-negative
+        assert jnp.all(result.gs >= 0), \
+            "Stomatal conductance must be non-negative"
+        
+        # Gross assimilation should be non-negative
+        assert jnp.all(result.agross >= 0), \
+            "Gross assimilation must be non-negative"
+        
+        # Respiration should be non-negative
+        assert jnp.all(result.rd >= 0), \
+            "Respiration must be non-negative"
+        
+        # Gross >= Net (accounting for respiration)
+        assert jnp.all(result.agross >= result.anet), \
+            "Gross assimilation must be >= net assimilation"
+        
+        # ci should be less than ca (for most conditions)
+        for i in range(inputs["cair"].shape[0]):
+            for j in range(inputs["cair"].shape[1]):
+                for k in range(inputs["cair"].shape[2]):
+                    # Allow some tolerance for numerical issues
+                    assert result.ci[i, j, k] <= inputs["cair"][i, j, k] * 1.1, \
+                        f"ci should not greatly exceed ca at [{i},{j},{k}]"
+        
+        # VPD should be non-negative
+        assert jnp.all(result.vpd >= 0), \
+            "VPD must be non-negative"
+        
+        # btran should be in [0, 1]
+        assert jnp.all((result.btran >= 0) & (result.btran <= 1)), \
+            "btran must be in range [0, 1]"
 
-def test_leaf_photosynthesis_full_workflow(test_data, default_params):
-    """
-    Test complete workflow with realistic multi-patch, multi-layer scenario.
+
+class TestLeafPhotosynthesisEdgeCases:
+    """Test suite for edge cases and boundary conditions."""
     
-    Verifies:
-    - Function handles complex inputs correctly
-    - All outputs are physically reasonable
-    - Spatial patterns make sense
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_nominal_c4_multiple_patches")
-    inputs = convert_inputs_to_jax(case["inputs"])
+    def test_minimal_conductances(self, test_data, default_params):
+        """
+        Test behavior with minimal stomatal and boundary layer conductances.
+        
+        Very low conductances should strongly limit photosynthesis through
+        diffusion constraints.
+        """
+        test_case = test_data["test_edge_minimal_conductances"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # With minimal conductances, photosynthesis should be strongly limited
+        # gs should be very low
+        assert jnp.all(result.gs < 0.2), \
+            f"Expected very low gs with minimal conductances, got {result.gs}"
+        
+        # Net assimilation should be reduced
+        assert jnp.all(result.anet < 10.0), \
+            "Expected reduced photosynthesis with minimal conductances"
     
-    result = leaf_photosynthesis(**inputs, params=default_params)
+    def test_high_altitude_low_pressure(self, test_data, default_params):
+        """
+        Test photosynthesis at high altitude with reduced atmospheric pressure.
+        
+        Lower pressure affects partial pressures of gases and may reduce
+        photosynthetic rates.
+        """
+        test_case = test_data["test_special_high_altitude_low_pressure"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # Photosynthesis should still occur but may be reduced
+        # All outputs should be finite and physically reasonable
+        assert jnp.all(jnp.isfinite(result.anet)), \
+            "Net assimilation should be finite at high altitude"
+        
+        assert jnp.all(jnp.isfinite(result.gs)), \
+            "Stomatal conductance should be finite at high altitude"
+        
+        # Compare two altitudes (3000m vs 4000m)
+        # Higher altitude (lower pressure) may have slightly reduced rates
+        assert result.anet[0, 0, 0] >= result.anet[1, 0, 0] * 0.8, \
+            "Photosynthesis at 3000m should not be much less than at 4000m"
     
-    # Check that results vary across patches and layers
-    anet_std = jnp.std(result.anet)
-    assert anet_std > 0.1, \
-        "Net photosynthesis should vary across patches/layers"
+    def test_dense_canopy_light_gradient(self, test_data, default_params):
+        """
+        Test photosynthesis in dense canopy with strong light gradient.
+        
+        Lower canopy layers with very low light should have reduced or negative
+        net assimilation.
+        """
+        test_case = test_data["test_special_dense_canopy_deep_shade"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # Top layer should have positive photosynthesis
+        assert result.anet[0, 0, 0] > 0, \
+            "Top canopy layer should have positive photosynthesis"
+        
+        # Bottom layer with very low light may have negative net assimilation
+        bottom_layer = 4
+        # With 30-50 umol/m2/s PAR, photosynthesis should be very low
+        assert result.anet[0, bottom_layer, 1] < 2.0, \
+            "Deep shade should have very low photosynthesis"
+        
+        # Photosynthesis should generally decrease with depth
+        for layer in range(4):
+            assert result.anet[0, layer, 0] >= result.anet[0, layer + 1, 0] * 0.5, \
+                f"Photosynthesis should decrease with canopy depth (layer {layer})"
     
-    # Check that sunlit leaves generally have higher rates
-    sunlit_mean = jnp.mean(result.anet[:, :, 0])
-    shaded_mean = jnp.mean(result.anet[:, :, 1])
-    assert sunlit_mean >= shaded_mean, \
-        "Sunlit leaves should have >= photosynthesis than shaded on average"
+    def test_no_nan_or_inf_outputs(self, test_data, default_params):
+        """
+        Test that no outputs contain NaN or Inf values across all test cases.
+        
+        Even under extreme conditions, the function should produce finite values.
+        """
+        for test_case_name, test_case in test_data.items():
+            inputs = test_case["inputs"]
+            
+            result = leaf_photosynthesis(**inputs, params=default_params)
+            
+            # Check all fields for NaN or Inf
+            for field_name in result._fields:
+                field_value = getattr(result, field_name)
+                assert jnp.all(jnp.isfinite(field_value)), \
+                    f"Test {test_case_name}: Field {field_name} contains NaN or Inf"
+
+
+class TestLeafPhotosynthesisConsistency:
+    """Test suite for internal consistency checks."""
     
-    # Check that all major outputs are present and reasonable
-    assert jnp.all(result.vcmax > 0.0), "Vcmax should be positive"
-    assert jnp.all(result.gs >= 0.0), "Stomatal conductance should be non-negative"
-    assert jnp.all(result.ci >= 0.0), "Intercellular CO2 should be non-negative"
-    assert jnp.all(result.vpd >= 0.0), "VPD should be non-negative"
+    def test_co_limitation_consistency(self, test_data, default_params):
+        """
+        Test that photosynthesis rates satisfy co-limitation relationships.
+        
+        For C3 plants: agross should be related to min(ac, aj)
+        For C4 plants: agross should be related to min(ac, aj, ap)
+        """
+        test_case = test_data["test_nominal_mixed_c3_c4_multilayer"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        c3_idx = 0
+        c4_idx = 1
+        
+        # For C3: agross should be close to min(ac, aj) - rd
+        c3_min_rate = jnp.minimum(result.ac[c3_idx, 0, 0], result.aj[c3_idx, 0, 0])
+        # Allow some tolerance for co-limitation smoothing
+        assert result.agross[c3_idx, 0, 0] <= c3_min_rate * 1.1, \
+            "C3 gross assimilation should not greatly exceed min(ac, aj)"
+        
+        # For C4: agross should be related to min(ac, aj, ap)
+        c4_min_rate = jnp.minimum(
+            jnp.minimum(result.ac[c4_idx, 0, 0], result.aj[c4_idx, 0, 0]),
+            result.ap[c4_idx, 0, 0]
+        )
+        assert result.agross[c4_idx, 0, 0] <= c4_min_rate * 1.1, \
+            "C4 gross assimilation should not greatly exceed min(ac, aj, ap)"
+    
+    def test_respiration_consistency(self, test_data, default_params):
+        """
+        Test that respiration is consistently applied.
+        
+        Verifies: anet = agross - rd
+        """
+        test_case = test_data["test_nominal_c3_single_patch_single_layer"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # Check anet = agross - rd relationship
+        expected_anet = result.agross - result.rd
+        
+        assert jnp.allclose(result.anet, expected_anet, rtol=1e-5, atol=1e-6), \
+            "Net assimilation should equal gross assimilation minus respiration"
+    
+    def test_conductance_hierarchy(self, test_data, default_params):
+        """
+        Test that conductances follow expected hierarchy.
+        
+        Total conductance should not exceed individual conductances.
+        """
+        test_case = test_data["test_nominal_c3_single_patch_single_layer"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        # Stomatal conductance should be positive
+        assert jnp.all(result.gs > 0), \
+            "Stomatal conductance should be positive"
+        
+        # gs should generally be less than boundary layer conductance
+        # (though not always due to different units and conversions)
+        # Just verify gs is in reasonable range
+        assert jnp.all(result.gs < 10.0), \
+            "Stomatal conductance should be in reasonable range"
+
+
+class TestLeafPhotosynthesisDocumentation:
+    """Test suite for documentation and metadata validation."""
+    
+    def test_function_has_docstring(self):
+        """Test that the leaf_photosynthesis function has documentation."""
+        assert leaf_photosynthesis.__doc__ is not None, \
+            "Function should have a docstring"
+    
+    def test_namedtuple_fields_exist(self, test_data, default_params):
+        """
+        Test that LeafPhotosynthesisState contains all expected fields.
+        
+        Verifies that the output namedtuple has all documented fields.
+        """
+        expected_fields = [
+            "g0", "g1", "btran", "kc", "ko", "cp", "vcmax", "jmax", "je", "kp", "rd",
+            "ci", "hs", "vpd", "ceair", "leaf_esat", "gspot",
+            "ac", "aj", "ap", "agross", "anet", "cs", "gs", "alphapsn"
+        ]
+        
+        test_case = test_data["test_nominal_c3_single_patch_single_layer"]
+        inputs = test_case["inputs"]
+        
+        result = leaf_photosynthesis(**inputs, params=default_params)
+        
+        for field in expected_fields:
+            assert hasattr(result, field), \
+                f"LeafPhotosynthesisState should have field '{field}'"
+    
+    def test_params_namedtuple_fields(self, default_params):
+        """
+        Test that PhotosynthesisParams contains all expected fields.
+        
+        Verifies that the params namedtuple has all documented configuration fields.
+        """
+        expected_fields = [
+            "tfrz", "rgas", "kc25", "ko25", "cp25", "kcha", "koha", "cpha",
+            "vcmaxha_noacclim", "vcmaxha_acclim", "jmaxha_noacclim", "jmaxha_acclim",
+            "vcmaxhd_noacclim", "vcmaxhd_acclim", "jmaxhd_noacclim", "jmaxhd_acclim",
+            "vcmaxse_noacclim", "vcmaxse_acclim", "jmaxse_noacclim", "jmaxse_acclim",
+            "rdha", "rdhd", "rdse", "phi_psii", "theta_j", "vpd_min_med", "rh_min_bb",
+            "dh2o_to_dco2", "qe_c4", "colim_c3a", "colim_c4a", "colim_c4b",
+            "gs_type", "acclim_type", "gspot_type", "colim_type"
+        ]
+        
+        for field in expected_fields:
+            assert hasattr(default_params, field), \
+                f"PhotosynthesisParams should have field '{field}'"
 
 
 if __name__ == "__main__":

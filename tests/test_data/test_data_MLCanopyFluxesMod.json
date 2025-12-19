@@ -798,7 +798,7 @@
         "edge_cases": [
           "extreme_cold",
           "low_humidity",
-          "winter"
+          "snowfall"
         ]
       }
     },
@@ -829,7 +829,7 @@
           ],
           "pref": [
             101325.0,
-            101325.0
+            101300.0
           ],
           "lwsky": [
             360.0,
@@ -1050,15 +1050,14 @@
       },
       "metadata": {
         "type": "special",
-        "description": "Single sub-timestep case testing minimal temporal discretization",
+        "description": "Single sub-timestep case testing minimal iteration logic",
         "edge_cases": [
-          "single_substep",
-          "minimal_temporal_resolution"
+          "single_substep"
         ]
       }
     },
     {
-      "name": "test_special_many_substeps_fine_temporal",
+      "name": "test_special_many_substeps",
       "inputs": {
         "bounds": {
           "begp": 0,
@@ -1074,16 +1073,16 @@
         ],
         "atmospheric_forcing": {
           "tref": [
-            299.15
+            295.15
           ],
           "qref": [
-            0.014
+            0.012
           ],
           "pref": [
             101325.0
           ],
           "lwsky": [
-            355.0
+            350.0
           ],
           "qflx_rain": [
             0.0
@@ -1092,28 +1091,28 @@
             0.0
           ],
           "co2ref": [
-            0.000402
+            0.0004
           ],
           "o2ref": [
             0.209
           ],
           "tacclim": [
-            289.15
+            288.15
           ],
           "uref": [
-            4.0
+            3.5
           ],
           "swskyb_vis": [
-            270.0
+            240.0
           ],
           "swskyd_vis": [
-            160.0
+            140.0
           ],
           "swskyb_nir": [
-            210.0
+            190.0
           ],
           "swskyd_nir": [
-            105.0
+            95.0
           ]
         },
         "canopy_state": {
@@ -1125,11 +1124,11 @@
           ],
           "dlai": [
             [
-              0.26,
-              0.24,
-              0.22,
+              0.25,
+              0.23,
+              0.21,
               0.18,
-              0.1
+              0.13
             ]
           ],
           "dsai": [
@@ -1143,25 +1142,24 @@
           ],
           "dpai": [
             [
-              0.46,
-              0.44,
-              0.42,
+              0.45,
+              0.43,
+              0.41,
               0.38,
-              0.3
+              0.33
             ]
           ]
         },
         "nstep": 200,
-        "dtime": 1800.0,
-        "dtime_substep": 90.0,
+        "dtime": 3600.0,
+        "dtime_substep": 180.0,
         "num_sub_steps": 20
       },
       "metadata": {
         "type": "special",
-        "description": "Many sub-timesteps testing fine temporal resolution and accumulation accuracy",
+        "description": "Many sub-timesteps testing accumulation and iteration stability",
         "edge_cases": [
-          "many_substeps",
-          "fine_temporal_resolution"
+          "many_substeps"
         ]
       }
     },
@@ -1184,29 +1182,29 @@
         ],
         "atmospheric_forcing": {
           "tref": [
-            291.15,
+            290.15,
             292.15,
-            290.15
+            291.15
           ],
           "qref": [
             0.009,
             0.01,
-            0.008
+            0.0095
           ],
           "pref": [
-            95000.0,
-            94500.0,
-            95500.0
+            85000.0,
+            86000.0,
+            85500.0
           ],
           "lwsky": [
             320.0,
-            325.0,
-            315.0
+            330.0,
+            325.0
           ],
           "qflx_rain": [
-            0.0005,
-            0.0006,
-            0.0004
+            0.0,
+            0.0,
+            0.0
           ],
           "qflx_snow": [
             0.0,
@@ -1214,9 +1212,9 @@
             0.0
           ],
           "co2ref": [
-            0.000398,
-            0.0004,
-            0.000396
+            0.00038,
+            0.000385,
+            0.000382
           ],
           "o2ref": [
             0.209,
@@ -1224,66 +1222,66 @@
             0.209
           ],
           "tacclim": [
-            287.15,
-            288.15,
-            286.15
+            285.15,
+            286.15,
+            285.65
           ],
           "uref": [
-            12.0,
             15.0,
-            10.0
+            18.0,
+            16.5
           ],
           "swskyb_vis": [
             180.0,
             200.0,
-            160.0
+            190.0
           ],
           "swskyd_vis": [
             110.0,
             120.0,
-            100.0
+            115.0
           ],
           "swskyb_nir": [
             140.0,
             160.0,
-            120.0
+            150.0
           ],
           "swskyd_nir": [
             70.0,
             80.0,
-            60.0
+            75.0
           ]
         },
         "canopy_state": {
           "lai": [
-            2.8,
-            3.2,
-            2.5
+            2.0,
+            2.5,
+            2.2
           ],
           "sai": [
+            0.6,
             0.7,
-            0.8,
-            0.6
+            0.65
           ],
           "dlai": [
+            [
+              0.35,
+              0.3,
+              0.2,
+              0.1,
+              0.05
+            ],
             [
               0.32,
               0.28,
               0.22,
-              0.13,
-              0.05
-            ],
-            [
-              0.3,
-              0.26,
-              0.22,
-              0.14,
-              0.08
+              0.12,
+              0.06
             ],
             [
               0.34,
-              0.3,
-              0.2,
+              0.29,
+              0.21,
               0.11,
               0.05
             ]
@@ -1297,52 +1295,52 @@
               0.18
             ],
             [
+              0.21,
+              0.21,
               0.2,
-              0.2,
-              0.2,
-              0.2,
-              0.2
+              0.19,
+              0.19
             ],
             [
-              0.24,
               0.22,
+              0.21,
               0.2,
-              0.18,
-              0.16
+              0.19,
+              0.18
             ]
           ],
           "dpai": [
             [
-              0.54,
-              0.5,
-              0.42,
-              0.31,
+              0.57,
+              0.52,
+              0.4,
+              0.28,
               0.23
             ],
             [
-              0.5,
-              0.46,
+              0.53,
+              0.49,
               0.42,
-              0.34,
-              0.28
+              0.31,
+              0.25
             ],
             [
-              0.58,
-              0.52,
-              0.4,
-              0.29,
-              0.21
+              0.56,
+              0.5,
+              0.41,
+              0.3,
+              0.23
             ]
           ]
         },
         "nstep": 750,
         "dtime": 1800.0,
-        "dtime_substep": 225.0,
-        "num_sub_steps": 8
+        "dtime_substep": 450.0,
+        "num_sub_steps": 4
       },
       "metadata": {
         "type": "special",
-        "description": "High elevation conditions with low pressure, high winds, and precipitation",
+        "description": "High elevation conditions with low pressure and high wind speeds",
         "edge_cases": [
           "high_wind",
           "low_pressure",
@@ -1351,7 +1349,7 @@
       }
     },
     {
-      "name": "test_special_hot_dry_desert_conditions",
+      "name": "test_special_hot_humid_tropical",
       "inputs": {
         "bounds": {
           "begp": 0,
@@ -1368,136 +1366,136 @@
         ],
         "atmospheric_forcing": {
           "tref": [
-            313.15,
-            315.15
+            305.15,
+            306.15
           ],
           "qref": [
-            0.003,
-            0.0025
+            0.022,
+            0.024
           ],
           "pref": [
-            99000.0,
-            98800.0
+            101325.0,
+            101300.0
           ],
           "lwsky": [
             420.0,
-            430.0
+            425.0
           ],
           "qflx_rain": [
-            0.0,
-            0.0
+            0.0005,
+            0.0006
           ],
           "qflx_snow": [
             0.0,
             0.0
           ],
           "co2ref": [
-            0.000405,
-            0.000407
+            0.00039,
+            0.000392
           ],
           "o2ref": [
             0.209,
             0.209
           ],
           "tacclim": [
-            308.15,
-            310.15
+            300.15,
+            301.15
           ],
           "uref": [
-            7.0,
-            8.0
+            1.0,
+            1.2
           ],
           "swskyb_vis": [
-            450.0,
-            480.0
-          ],
-          "swskyd_vis": [
-            250.0,
-            270.0
-          ],
-          "swskyb_nir": [
             380.0,
             400.0
           ],
+          "swskyd_vis": [
+            220.0,
+            230.0
+          ],
+          "swskyb_nir": [
+            320.0,
+            340.0
+          ],
           "swskyd_nir": [
-            190.0,
-            200.0
+            160.0,
+            170.0
           ]
         },
         "canopy_state": {
           "lai": [
-            0.8,
-            1.2
+            6.5,
+            7.0
           ],
           "sai": [
-            0.4,
-            0.6
+            1.8,
+            2.0
           ],
           "dlai": [
             [
-              0.5,
-              0.3,
-              0.15,
-              0.05,
-              0.0
+              0.22,
+              0.21,
+              0.2,
+              0.19,
+              0.18
             ],
             [
-              0.45,
-              0.3,
-              0.15,
-              0.08,
-              0.02
+              0.21,
+              0.205,
+              0.2,
+              0.195,
+              0.19
             ]
           ],
           "dsai": [
             [
-              0.4,
-              0.3,
               0.2,
-              0.1,
-              0.0
+              0.2,
+              0.2,
+              0.2,
+              0.2
             ],
             [
-              0.35,
-              0.3,
               0.2,
-              0.1,
-              0.05
+              0.2,
+              0.2,
+              0.2,
+              0.2
             ]
           ],
           "dpai": [
             [
-              0.9,
-              0.6,
-              0.35,
-              0.15,
-              0.0
+              0.42,
+              0.41,
+              0.4,
+              0.39,
+              0.38
             ],
             [
-              0.8,
-              0.6,
-              0.35,
-              0.18,
-              0.07
+              0.41,
+              0.405,
+              0.4,
+              0.395,
+              0.39
             ]
           ]
         },
         "nstep": 600,
         "dtime": 1800.0,
-        "dtime_substep": 450.0,
-        "num_sub_steps": 4
+        "dtime_substep": 300.0,
+        "num_sub_steps": 6
       },
       "metadata": {
         "type": "special",
-        "description": "Hot, dry desert conditions with sparse vegetation, high temperatures, and very low humidity",
+        "description": "Hot and humid tropical conditions with high temperatures, high humidity, and rainfall",
         "edge_cases": [
-          "extreme_heat",
-          "very_low_humidity",
-          "sparse_vegetation",
-          "high_solar"
+          "high_temperature",
+          "high_humidity",
+          "rainfall",
+          "tropical"
         ]
       }
     }
   ],
-  "notes": "Test data generation assumptions and methodology:\n\n1. **Physical Realism**: All temperatures are in Kelvin (>0K), with realistic ranges: winter (253-273K), moderate (283-303K), hot (303-323K). Specific humidity constrained to [0, 0.02] kg/kg for physical validity.\n\n2. **Pressure**: Standard atmospheric pressure ~101325 Pa at sea level, with variations for elevation (94500-102500 Pa range covers sea level to ~1500m).\n\n3. **LAI/SAI Distribution**: Layer fractions (dlai, dsai, dpai) sum to approximately 1.0 across 5 canopy layers, with higher values in upper canopy layers for typical vegetation structure.\n\n4. **Solar Radiation**: Visible and NIR components separated, with beam and diffuse components. Zero for nighttime, typical daytime values 100-500 W/m2 per component. Desert conditions have highest values.\n\n5. **Wind Speed**: Range 1.5-15 m/s covering calm to storm conditions. Higher winds in high-elevation and storm scenarios.\n\n6. **Time Stepping**: dtime=1800s (30 min) is typical. Sub-steps range from 1 (no subdivision) to 20 (fine temporal resolution). dtime_substep = dtime/num_sub_steps.\n\n7. **Edge Cases Covered**:\n   - Zero LAI (bare ground)\n   - Zero solar radiation (nighttime)\n   - Extreme temperatures (cold: 253K, hot: 315K)\n   - Extreme humidity (dry: 0.0025, humid: 0.019 kg/kg)\n   - High LAI (dense canopy: 8-9.5)\n   - Single vs many sub-steps (1 vs 20)\n   - High wind/low pressure (mountain conditions)\n   - Precipitation events (rain/snow)\n\n8. **Array Dimensions**: All arrays within a test case have consistent dimensions. n_patches varies (1-4), n_canopy_layers=5 for all cases.\n\n9. **CO2/O2**: CO2 ranges 395-420 ppm (realistic atmospheric variation), O2 constant at 0.209 (20.9%).\n\n10. **Bounds Structure**: begp/endp define patch range, begc/endc for columns, begg/endg for gridcells. Consistent with filter indices."
+  "notes": "Test data generation assumptions:\n\n1. **Physical Realism**:\n   - All temperatures in Kelvin (>0K), ranging from 253.15K (cold winter) to 306.15K (hot tropical)\n   - Specific humidity (qref) in [0, 1], typically 0.0005-0.024 kg/kg\n   - Pressure values realistic for sea level (101325 Pa) to high elevation (85000 Pa)\n   - LAI values from 0 (bare ground) to 9.5 (dense tropical forest)\n   - SAI typically 20-30% of LAI\n   - Wind speeds from 1.0 m/s (calm) to 18.0 m/s (strong winds)\n   - CO2 concentrations around 380-420 ppm (realistic atmospheric values)\n\n2. **Array Dimensions**:\n   - All canopy profile arrays use 5 layers (n_canopy_layers=5)\n   - dlai, dsai, dpai fractions sum approximately to 1.0 across layers\n   - Filter indices are contiguous starting from 0\n   - Bounds are consistent (begp < endp, etc.)\n\n3. **Test Coverage**:\n   - Nominal cases (50%): Tests 1, 2 cover typical growing season conditions\n   - Edge cases (30%): Tests 3-6 cover zero LAI, nighttime, extreme cold, high LAI\n   - Special cases (20%): Tests 7-10 cover single/many substeps, high elevation, tropical\n\n4. **Time Stepping**:\n   - dtime typically 1800-3600s (30-60 min)\n   - num_sub_steps ranges from 1 to 20\n   - dtime_substep = dtime / num_sub_steps\n   - nstep values vary to test different simulation stages\n\n5. **Radiation**:\n   - Solar radiation split into visible/NIR and beam/diffuse components\n   - Nighttime cases have zero solar radiation\n   - Longwave sky radiation (lwsky) always present (180-425 W/m2)\n\n6. **Precipitation**:\n   - Most cases have zero precipitation for simplicity\n   - Some cases include light rain (0.0002-0.0006 kg/m2/s) or snow\n\n7. **Canopy Structure**:\n   - Layer fractions (dlai, dsai, dpai) typically decrease with depth\n   - Top layers have higher fractions (more exposed to radiation)\n   - Dense canopies have more uniform distributions\n\nAll test cases are designed to be physically realistic and numerically stable while covering a wide range of environmental conditions and edge cases."
 }

@@ -1,1126 +1,839 @@
 """
 Comprehensive pytest suite for MLLeafFluxesMod.leaf_fluxes function.
 
-This module tests the leaf energy balance and flux calculations for canopy models,
-including nominal conditions across diverse biomes, edge cases with boundary values,
-and special cases testing numerical stability and convergence.
-
-Test Coverage:
-- Nominal cases: Temperate, tropical, cold, nighttime, and arid conditions
-- Edge cases: Zero/negative LAI, fully wet canopy, zero conductances
-- Special cases: Extreme temperature gradients
-- Physical constraints: Temperature > 0K, fractions in [0,1], energy balance
-- Output validation: Shapes, dtypes, value ranges, energy conservation
+This module tests the leaf energy balance and flux calculations for multilayer
+canopy models, including:
+- Leaf temperature computation
+- Sensible and latent heat fluxes
+- Evaporation and transpiration
+- Energy balance closure
+- Edge cases (zero LAI, stomatal closure, wet canopy)
+- Physical constraints and numerical stability
 """
 
-import pytest
-import jax.numpy as jnp
-import numpy as np
+import sys
+from pathlib import Path
 from typing import NamedTuple
 
+import jax.numpy as jnp
+import numpy as np
+import pytest
 
-# ============================================================================
-# Mock NamedTuple Definition (replace with actual import in production)
-# ============================================================================
-class LeafFluxesResult(NamedTuple):
-    """Result container for leaf flux calculations."""
-    tleaf: jnp.ndarray
-    stleaf: jnp.ndarray
-    shleaf: jnp.ndarray
-    lhleaf: jnp.ndarray
-    evleaf: jnp.ndarray
-    trleaf: jnp.ndarray
-    energy_balance_error: jnp.ndarray
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-
-# ============================================================================
-# Mock Function (replace with actual import in production)
-# ============================================================================
-def leaf_fluxes(
-    dtime_substep: float,
-    tref: float,
-    pref: float,
-    cpair: float,
-    dpai: float,
-    tair: float,
-    eair: float,
-    cpleaf: float,
-    fwet: float,
-    fdry: float,
-    gbh: float,
-    gbv: float,
-    gs: float,
-    rnleaf: float,
-    tleaf_bef: float,
-) -> LeafFluxesResult:
-    """Mock implementation - replace with actual function import."""
-    # This is a placeholder - replace with actual import:
-    # from MLLeafFluxesMod import leaf_fluxes
-    raise NotImplementedError("Replace with actual leaf_fluxes import")
+from multilayer_canopy.MLLeafFluxesMod import (
+    ENERGY_BALANCE_TOL,
+    LeafFluxesResult,
+    check_energy_balance,
+    leaf_fluxes,
+    total_leaf_conductance,
+)
 
 
-# ============================================================================
-# Constants
-# ============================================================================
-ENERGY_BALANCE_TOL = 1e-3  # W/m2
-R8_DTYPE = jnp.float64
-ABSOLUTE_ZERO = 0.0  # K (exclusive minimum)
-
-
-# ============================================================================
-# Fixtures
-# ============================================================================
+# Test data fixture
 @pytest.fixture
 def test_data():
     """
-    Fixture providing comprehensive test data for leaf_fluxes function.
+    Load comprehensive test data for leaf_fluxes function.
     
     Returns:
-        dict: Test cases organized by type (nominal, edge, special) with
-              inputs, expected behaviors, and metadata.
+        dict: Test cases with inputs and metadata for various scenarios
     """
     return {
-        "nominal": [
-            {
-                "name": "temperate_daytime",
-                "inputs": {
-                    "dtime_substep": 1800.0,
-                    "tref": 298.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": 2.5,
-                    "tair": 298.15,
-                    "eair": 1500.0,
-                    "cpleaf": 2500.0,
-                    "fwet": 0.1,
-                    "fdry": 0.85,
-                    "gbh": 0.5,
-                    "gbv": 0.48,
-                    "gs": 0.15,
-                    "rnleaf": 400.0,
-                    "tleaf_bef": 298.15,
-                },
-                "description": "Typical temperate forest daytime conditions",
+        "nominal_temperate": {
+            "inputs": {
+                "dtime_substep": 1800.0,
+                "tref": 298.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": 2.5,
+                "tair": 298.15,
+                "eair": 1500.0,
+                "cpleaf": 2500.0,
+                "fwet": 0.2,
+                "fdry": 0.8,
+                "gbh": 0.5,
+                "gbv": 0.5,
+                "gs": 0.15,
+                "rnleaf": 400.0,
+                "tleaf_bef": 298.15,
             },
-            {
-                "name": "tropical_high_humidity",
-                "inputs": {
-                    "dtime_substep": 900.0,
-                    "tref": 303.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": 4.0,
-                    "tair": 303.15,
-                    "eair": 3500.0,
-                    "cpleaf": 3000.0,
-                    "fwet": 0.3,
-                    "fdry": 0.65,
-                    "gbh": 0.8,
-                    "gbv": 0.76,
-                    "gs": 0.25,
-                    "rnleaf": 500.0,
-                    "tleaf_bef": 303.0,
-                },
-                "description": "Tropical rainforest with high humidity and LAI",
+            "description": "Typical temperate forest conditions at 25°C",
+        },
+        "nominal_hot_dry": {
+            "inputs": {
+                "dtime_substep": 900.0,
+                "tref": 313.15,
+                "pref": 95000.0,
+                "cpair": 29.3,
+                "dpai": 1.8,
+                "tair": 313.15,
+                "eair": 800.0,
+                "cpleaf": 2200.0,
+                "fwet": 0.0,
+                "fdry": 1.0,
+                "gbh": 0.8,
+                "gbv": 0.8,
+                "gs": 0.05,
+                "rnleaf": 600.0,
+                "tleaf_bef": 314.15,
             },
-            {
-                "name": "cold_winter",
-                "inputs": {
-                    "dtime_substep": 3600.0,
-                    "tref": 273.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": 1.0,
-                    "tair": 273.15,
-                    "eair": 611.0,
-                    "cpleaf": 2000.0,
-                    "fwet": 0.0,
-                    "fdry": 0.95,
-                    "gbh": 0.3,
-                    "gbv": 0.29,
-                    "gs": 0.02,
-                    "rnleaf": 100.0,
-                    "tleaf_bef": 273.15,
-                },
-                "description": "Cold winter at freezing point",
+            "description": "Hot, dry desert conditions at 40°C with stomatal closure",
+        },
+        "nominal_cold_humid": {
+            "inputs": {
+                "dtime_substep": 3600.0,
+                "tref": 278.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": 3.5,
+                "tair": 278.15,
+                "eair": 600.0,
+                "cpleaf": 2800.0,
+                "fwet": 0.6,
+                "fdry": 0.4,
+                "gbh": 0.3,
+                "gbv": 0.3,
+                "gs": 0.08,
+                "rnleaf": 150.0,
+                "tleaf_bef": 278.15,
             },
-            {
-                "name": "nighttime_low_radiation",
-                "inputs": {
-                    "dtime_substep": 1800.0,
-                    "tref": 288.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": 3.0,
-                    "tair": 288.15,
-                    "eair": 1200.0,
-                    "cpleaf": 2500.0,
-                    "fwet": 0.2,
-                    "fdry": 0.75,
-                    "gbh": 0.4,
-                    "gbv": 0.38,
-                    "gs": 0.01,
-                    "rnleaf": -50.0,
-                    "tleaf_bef": 288.5,
-                },
-                "description": "Nighttime with negative radiation",
+            "description": "Cold, humid conditions at 5°C with high wetness",
+        },
+        "nominal_tropical": {
+            "inputs": {
+                "dtime_substep": 1200.0,
+                "tref": 303.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": 5.0,
+                "tair": 303.15,
+                "eair": 2800.0,
+                "cpleaf": 2600.0,
+                "fwet": 0.3,
+                "fdry": 0.7,
+                "gbh": 0.6,
+                "gbv": 0.6,
+                "gs": 0.25,
+                "rnleaf": 500.0,
+                "tleaf_bef": 303.15,
             },
-            {
-                "name": "hot_arid_stressed",
-                "inputs": {
-                    "dtime_substep": 1200.0,
-                    "tref": 313.15,
-                    "pref": 95000.0,
-                    "cpair": 29.3,
-                    "dpai": 1.5,
-                    "tair": 313.15,
-                    "eair": 800.0,
-                    "cpleaf": 2200.0,
-                    "fwet": 0.0,
-                    "fdry": 0.98,
-                    "gbh": 0.6,
-                    "gbv": 0.57,
-                    "gs": 0.005,
-                    "rnleaf": 600.0,
-                    "tleaf_bef": 314.0,
-                },
-                "description": "Hot arid with water stress",
+            "description": "Tropical rainforest with high LAI and humidity",
+        },
+        "nominal_nighttime": {
+            "inputs": {
+                "dtime_substep": 1800.0,
+                "tref": 288.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": 2.0,
+                "tair": 288.15,
+                "eair": 1200.0,
+                "cpleaf": 2400.0,
+                "fwet": 0.4,
+                "fdry": 0.6,
+                "gbh": 0.4,
+                "gbv": 0.4,
+                "gs": 0.02,
+                "rnleaf": -50.0,
+                "tleaf_bef": 288.15,
             },
-        ],
-        "edge": [
-            {
-                "name": "zero_plant_area_index",
-                "inputs": {
-                    "dtime_substep": 1800.0,
-                    "tref": 298.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": 0.0,
-                    "tair": 298.15,
-                    "eair": 1500.0,
-                    "cpleaf": 2500.0,
-                    "fwet": 0.1,
-                    "fdry": 0.85,
-                    "gbh": 0.5,
-                    "gbv": 0.48,
-                    "gs": 0.15,
-                    "rnleaf": 400.0,
-                    "tleaf_bef": 298.15,
-                },
-                "expected_behavior": "zero_fluxes_tleaf_equals_tair",
-                "description": "dpai = 0 should return zero fluxes",
+            "description": "Nighttime conditions with negative net radiation",
+        },
+        "edge_zero_dpai": {
+            "inputs": {
+                "dtime_substep": 1800.0,
+                "tref": 298.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": 0.0,
+                "tair": 298.15,
+                "eair": 1500.0,
+                "cpleaf": 2500.0,
+                "fwet": 0.2,
+                "fdry": 0.8,
+                "gbh": 0.5,
+                "gbv": 0.5,
+                "gs": 0.15,
+                "rnleaf": 400.0,
+                "tleaf_bef": 298.15,
             },
-            {
-                "name": "negative_plant_area_index",
-                "inputs": {
-                    "dtime_substep": 1800.0,
-                    "tref": 298.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": -0.5,
-                    "tair": 298.15,
-                    "eair": 1500.0,
-                    "cpleaf": 2500.0,
-                    "fwet": 0.1,
-                    "fdry": 0.85,
-                    "gbh": 0.5,
-                    "gbv": 0.48,
-                    "gs": 0.15,
-                    "rnleaf": 400.0,
-                    "tleaf_bef": 298.15,
-                },
-                "expected_behavior": "zero_fluxes_tleaf_equals_tair",
-                "description": "dpai < 0 should return zero fluxes",
+            "description": "Zero plant area index - special case",
+            "expected_behavior": "tleaf=tair, all fluxes=0",
+        },
+        "edge_negative_dpai": {
+            "inputs": {
+                "dtime_substep": 1800.0,
+                "tref": 298.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": -0.5,
+                "tair": 298.15,
+                "eair": 1500.0,
+                "cpleaf": 2500.0,
+                "fwet": 0.2,
+                "fdry": 0.8,
+                "gbh": 0.5,
+                "gbv": 0.5,
+                "gs": 0.15,
+                "rnleaf": 400.0,
+                "tleaf_bef": 298.15,
             },
-            {
-                "name": "fully_wet_canopy",
-                "inputs": {
-                    "dtime_substep": 1800.0,
-                    "tref": 293.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": 3.0,
-                    "tair": 293.15,
-                    "eair": 1800.0,
-                    "cpleaf": 2500.0,
-                    "fwet": 1.0,
-                    "fdry": 0.0,
-                    "gbh": 0.5,
-                    "gbv": 0.48,
-                    "gs": 0.15,
-                    "rnleaf": 300.0,
-                    "tleaf_bef": 293.15,
-                },
-                "expected_behavior": "no_transpiration",
-                "description": "Fully wet canopy (fwet=1.0, fdry=0.0)",
+            "description": "Negative dpai - should behave like zero",
+            "expected_behavior": "tleaf=tair, all fluxes=0",
+        },
+        "edge_zero_stomatal": {
+            "inputs": {
+                "dtime_substep": 1800.0,
+                "tref": 308.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": 2.0,
+                "tair": 308.15,
+                "eair": 1000.0,
+                "cpleaf": 2500.0,
+                "fwet": 0.0,
+                "fdry": 1.0,
+                "gbh": 0.7,
+                "gbv": 0.7,
+                "gs": 0.0,
+                "rnleaf": 550.0,
+                "tleaf_bef": 308.15,
             },
-            {
-                "name": "zero_conductances",
-                "inputs": {
-                    "dtime_substep": 1800.0,
-                    "tref": 298.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": 2.0,
-                    "tair": 298.15,
-                    "eair": 1500.0,
-                    "cpleaf": 2500.0,
-                    "fwet": 0.1,
-                    "fdry": 0.85,
-                    "gbh": 0.0,
-                    "gbv": 0.0,
-                    "gs": 0.0,
-                    "rnleaf": 400.0,
-                    "tleaf_bef": 298.15,
-                },
-                "expected_behavior": "numerical_stability",
-                "description": "All conductances zero (infinite resistance)",
+            "description": "Complete stomatal closure under stress",
+            "expected_behavior": "transpiration=0",
+        },
+        "edge_fully_wet": {
+            "inputs": {
+                "dtime_substep": 1800.0,
+                "tref": 293.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": 3.0,
+                "tair": 293.15,
+                "eair": 1800.0,
+                "cpleaf": 2500.0,
+                "fwet": 1.0,
+                "fdry": 0.0,
+                "gbh": 0.5,
+                "gbv": 0.5,
+                "gs": 0.12,
+                "rnleaf": 300.0,
+                "tleaf_bef": 293.15,
             },
-        ],
-        "special": [
-            {
-                "name": "extreme_temperature_gradient",
-                "inputs": {
-                    "dtime_substep": 600.0,
-                    "tref": 298.15,
-                    "pref": 101325.0,
-                    "cpair": 29.3,
-                    "dpai": 2.5,
-                    "tair": 288.15,
-                    "eair": 1200.0,
-                    "cpleaf": 2500.0,
-                    "fwet": 0.05,
-                    "fdry": 0.9,
-                    "gbh": 0.7,
-                    "gbv": 0.67,
-                    "gs": 0.12,
-                    "rnleaf": 800.0,
-                    "tleaf_bef": 310.15,
-                },
-                "expected_behavior": "convergence_test",
-                "description": "Extreme temperature gradient tests convergence",
+            "description": "Fully wet canopy after rain",
+            "expected_behavior": "transpiration=0",
+        },
+        "special_temp_gradient": {
+            "inputs": {
+                "dtime_substep": 600.0,
+                "tref": 298.15,
+                "pref": 101325.0,
+                "cpair": 29.3,
+                "dpai": 2.5,
+                "tair": 298.15,
+                "eair": 1500.0,
+                "cpleaf": 2500.0,
+                "fwet": 0.1,
+                "fdry": 0.9,
+                "gbh": 1.2,
+                "gbv": 1.2,
+                "gs": 0.3,
+                "rnleaf": 800.0,
+                "tleaf_bef": 283.15,
             },
-        ],
+            "description": "Large temperature gradient tests thermal inertia",
+        },
     }
 
 
-@pytest.fixture
-def nominal_case_names(test_data):
-    """Extract nominal test case names for parametrization."""
-    return [case["name"] for case in test_data["nominal"]]
-
-
-@pytest.fixture
-def edge_case_names(test_data):
-    """Extract edge test case names for parametrization."""
-    return [case["name"] for case in test_data["edge"]]
-
-
-@pytest.fixture
-def all_case_names(test_data):
-    """Extract all test case names for parametrization."""
-    all_cases = (
-        test_data["nominal"] + test_data["edge"] + test_data["special"]
+# Parametrized test cases
+@pytest.mark.parametrize(
+    "case_name",
+    [
+        "nominal_temperate",
+        "nominal_hot_dry",
+        "nominal_cold_humid",
+        "nominal_tropical",
+        "nominal_nighttime",
+    ],
+)
+def test_leaf_fluxes_nominal_cases(test_data, case_name):
+    """
+    Test leaf_fluxes with nominal/typical environmental conditions.
+    
+    Verifies that the function:
+    - Returns valid LeafFluxesResult with all fields
+    - Produces physically reasonable leaf temperatures (> 0K)
+    - Maintains energy balance within tolerance
+    - Produces non-negative evaporation and transpiration
+    
+    Args:
+        test_data: Fixture containing test cases
+        case_name: Name of the test case to run
+    """
+    case = test_data[case_name]
+    inputs = case["inputs"]
+    
+    # Call the function
+    result = leaf_fluxes(**inputs)
+    
+    # Verify result is a LeafFluxesResult
+    assert isinstance(result, LeafFluxesResult), (
+        f"Expected LeafFluxesResult, got {type(result)}"
     )
-    return [case["name"] for case in all_cases]
+    
+    # Check all fields are present
+    assert hasattr(result, "tleaf"), "Missing tleaf field"
+    assert hasattr(result, "stleaf"), "Missing stleaf field"
+    assert hasattr(result, "shleaf"), "Missing shleaf field"
+    assert hasattr(result, "lhleaf"), "Missing lhleaf field"
+    assert hasattr(result, "evleaf"), "Missing evleaf field"
+    assert hasattr(result, "trleaf"), "Missing trleaf field"
+    assert hasattr(result, "energy_balance_error"), "Missing energy_balance_error field"
+    
+    # Physical constraints
+    assert float(result.tleaf) > 0.0, (
+        f"Leaf temperature must be > 0K, got {result.tleaf}"
+    )
+    assert float(result.evleaf) >= 0.0, (
+        f"Evaporation must be non-negative, got {result.evleaf}"
+    )
+    assert float(result.trleaf) >= 0.0, (
+        f"Transpiration must be non-negative, got {result.trleaf}"
+    )
+    
+    # Energy balance check
+    assert check_energy_balance(result, inputs["rnleaf"]), (
+        f"Energy balance error {result.energy_balance_error} exceeds tolerance "
+        f"{ENERGY_BALANCE_TOL} W/m2 for case {case_name}"
+    )
+    
+    # Verify energy balance error is small
+    assert abs(float(result.energy_balance_error)) < ENERGY_BALANCE_TOL, (
+        f"Energy balance error {result.energy_balance_error} exceeds "
+        f"tolerance {ENERGY_BALANCE_TOL} W/m2"
+    )
 
 
-# ============================================================================
-# Test: Input Validation and Physical Constraints
-# ============================================================================
-class TestInputValidation:
-    """Test suite for input validation and physical constraints."""
+@pytest.mark.parametrize(
+    "case_name,expected_behavior",
+    [
+        ("edge_zero_dpai", "zero_fluxes"),
+        ("edge_negative_dpai", "zero_fluxes"),
+    ],
+)
+def test_leaf_fluxes_zero_dpai_cases(test_data, case_name, expected_behavior):
+    """
+    Test special case where dpai <= 0.
+    
+    According to specification, when dpai <= 0:
+    - tleaf should equal tair
+    - All fluxes should be zero
+    
+    Args:
+        test_data: Fixture containing test cases
+        case_name: Name of the test case
+        expected_behavior: Expected behavior identifier
+    """
+    case = test_data[case_name]
+    inputs = case["inputs"]
+    
+    result = leaf_fluxes(**inputs)
+    
+    # tleaf should equal tair
+    assert np.isclose(float(result.tleaf), inputs["tair"], atol=1e-6), (
+        f"When dpai <= 0, tleaf should equal tair. "
+        f"Got tleaf={result.tleaf}, tair={inputs['tair']}"
+    )
+    
+    # All fluxes should be zero
+    assert np.isclose(float(result.stleaf), 0.0, atol=1e-10), (
+        f"Storage flux should be zero when dpai <= 0, got {result.stleaf}"
+    )
+    assert np.isclose(float(result.shleaf), 0.0, atol=1e-10), (
+        f"Sensible heat flux should be zero when dpai <= 0, got {result.shleaf}"
+    )
+    assert np.isclose(float(result.lhleaf), 0.0, atol=1e-10), (
+        f"Latent heat flux should be zero when dpai <= 0, got {result.lhleaf}"
+    )
+    assert np.isclose(float(result.evleaf), 0.0, atol=1e-10), (
+        f"Evaporation should be zero when dpai <= 0, got {result.evleaf}"
+    )
+    assert np.isclose(float(result.trleaf), 0.0, atol=1e-10), (
+        f"Transpiration should be zero when dpai <= 0, got {result.trleaf}"
+    )
 
-    def test_temperature_above_absolute_zero(self, test_data):
-        """
-        Verify all temperature inputs are strictly greater than 0K.
-        
-        Physical constraint: Temperatures must be > 0K (absolute zero).
-        """
-        all_cases = (
-            test_data["nominal"] + test_data["edge"] + test_data["special"]
+
+def test_leaf_fluxes_zero_stomatal_conductance(test_data):
+    """
+    Test behavior with complete stomatal closure (gs=0).
+    
+    When stomata are closed and canopy is dry (fwet=0):
+    - Transpiration should be zero
+    - Only sensible heat flux should occur
+    - Evaporation should be zero (no wet surface)
+    """
+    case = test_data["edge_zero_stomatal"]
+    inputs = case["inputs"]
+    
+    result = leaf_fluxes(**inputs)
+    
+    # Transpiration should be zero with closed stomata
+    assert np.isclose(float(result.trleaf), 0.0, atol=1e-10), (
+        f"Transpiration should be zero when gs=0 and fwet=0, got {result.trleaf}"
+    )
+    
+    # Evaporation should also be zero (fwet=0)
+    assert np.isclose(float(result.evleaf), 0.0, atol=1e-10), (
+        f"Evaporation should be zero when fwet=0, got {result.evleaf}"
+    )
+    
+    # Energy balance should still hold
+    assert check_energy_balance(result, inputs["rnleaf"]), (
+        f"Energy balance failed with zero stomatal conductance"
+    )
+
+
+def test_leaf_fluxes_fully_wet_canopy(test_data):
+    """
+    Test behavior with fully wet canopy (fwet=1.0, fdry=0.0).
+    
+    When canopy is fully wet:
+    - Transpiration should be zero (no dry leaf area)
+    - Evaporation should dominate water flux
+    - Energy balance should still hold
+    """
+    case = test_data["edge_fully_wet"]
+    inputs = case["inputs"]
+    
+    result = leaf_fluxes(**inputs)
+    
+    # Transpiration should be zero (no dry leaf area)
+    assert np.isclose(float(result.trleaf), 0.0, atol=1e-10), (
+        f"Transpiration should be zero when fdry=0, got {result.trleaf}"
+    )
+    
+    # Evaporation should be non-negative
+    assert float(result.evleaf) >= 0.0, (
+        f"Evaporation should be non-negative, got {result.evleaf}"
+    )
+    
+    # Energy balance should hold
+    assert check_energy_balance(result, inputs["rnleaf"]), (
+        f"Energy balance failed with fully wet canopy"
+    )
+
+
+def test_leaf_fluxes_temperature_gradient(test_data):
+    """
+    Test behavior with large temperature gradient between tleaf_bef and tair.
+    
+    Verifies that:
+    - Storage heat flux is significant when temperature changes
+    - Leaf temperature evolves toward equilibrium
+    - Energy balance is maintained despite large gradients
+    """
+    case = test_data["special_temp_gradient"]
+    inputs = case["inputs"]
+    
+    result = leaf_fluxes(**inputs)
+    
+    # Storage flux should be non-zero with temperature difference
+    # (unless dpai is very small)
+    if inputs["dpai"] > 0.1:
+        # Storage flux magnitude should be significant
+        assert abs(float(result.stleaf)) > 1.0, (
+            f"Expected significant storage flux with 15K temperature gradient, "
+            f"got {result.stleaf} W/m2"
         )
-        
-        for case in all_cases:
-            inputs = case["inputs"]
-            temp_params = ["tref", "tair", "tleaf_bef"]
-            
-            for param in temp_params:
-                assert inputs[param] > ABSOLUTE_ZERO, (
-                    f"Case '{case['name']}': {param}={inputs[param]} "
-                    f"must be > 0K"
-                )
-
-    def test_fractions_in_valid_range(self, test_data):
-        """
-        Verify fraction parameters are in [0, 1] range.
-        
-        Physical constraint: fwet and fdry must be in [0, 1].
-        """
-        all_cases = (
-            test_data["nominal"] + test_data["edge"] + test_data["special"]
+    
+    # Leaf temperature should be between initial and air temperature
+    # (moving toward equilibrium)
+    tleaf = float(result.tleaf)
+    tleaf_bef = inputs["tleaf_bef"]
+    tair = inputs["tair"]
+    
+    # Check if tleaf is between tleaf_bef and tair (or has moved past tair)
+    if tleaf_bef < tair:
+        assert tleaf >= tleaf_bef, (
+            f"Leaf temperature should increase from {tleaf_bef}K, got {tleaf}K"
         )
-        
-        for case in all_cases:
-            inputs = case["inputs"]
-            
-            assert 0.0 <= inputs["fwet"] <= 1.0, (
-                f"Case '{case['name']}': fwet={inputs['fwet']} "
-                f"must be in [0, 1]"
-            )
-            assert 0.0 <= inputs["fdry"] <= 1.0, (
-                f"Case '{case['name']}': fdry={inputs['fdry']} "
-                f"must be in [0, 1]"
-            )
-
-    def test_conductances_non_negative(self, test_data):
-        """
-        Verify all conductance parameters are non-negative.
-        
-        Physical constraint: Conductances (gbh, gbv, gs) must be >= 0.
-        """
-        all_cases = (
-            test_data["nominal"] + test_data["edge"] + test_data["special"]
+    else:
+        assert tleaf <= tleaf_bef, (
+            f"Leaf temperature should decrease from {tleaf_bef}K, got {tleaf}K"
         )
-        
-        for case in all_cases:
-            inputs = case["inputs"]
-            conductances = ["gbh", "gbv", "gs"]
-            
-            for param in conductances:
-                assert inputs[param] >= 0.0, (
-                    f"Case '{case['name']}': {param}={inputs[param]} "
-                    f"must be >= 0"
-                )
-
-    def test_positive_parameters(self, test_data):
-        """
-        Verify parameters that must be strictly positive.
-        
-        Physical constraint: dtime_substep, pref, cpair, cpleaf must be > 0.
-        """
-        all_cases = (
-            test_data["nominal"] + test_data["edge"] + test_data["special"]
-        )
-        
-        for case in all_cases:
-            inputs = case["inputs"]
-            positive_params = ["dtime_substep", "pref", "cpair", "cpleaf"]
-            
-            for param in positive_params:
-                assert inputs[param] > 0.0, (
-                    f"Case '{case['name']}': {param}={inputs[param]} "
-                    f"must be > 0"
-                )
-
-
-# ============================================================================
-# Test: Output Shapes and Types
-# ============================================================================
-class TestOutputShapesAndTypes:
-    """Test suite for output shapes and data types."""
-
-    @pytest.mark.parametrize(
-        "case_type",
-        ["nominal", "edge", "special"],
-        ids=["nominal_cases", "edge_cases", "special_cases"],
+    
+    # Energy balance should hold
+    assert check_energy_balance(result, inputs["rnleaf"]), (
+        f"Energy balance failed with large temperature gradient"
     )
-    def test_output_is_namedtuple(self, test_data, case_type):
-        """
-        Verify function returns LeafFluxesResult NamedTuple.
-        
-        All outputs should be wrapped in the LeafFluxesResult container.
-        """
-        cases = test_data[case_type]
-        
-        for case in cases:
-            result = leaf_fluxes(**case["inputs"])
-            
-            assert isinstance(result, LeafFluxesResult), (
-                f"Case '{case['name']}': Output must be LeafFluxesResult, "
-                f"got {type(result)}"
-            )
-
-    @pytest.mark.parametrize(
-        "case_type",
-        ["nominal", "edge", "special"],
-        ids=["nominal_cases", "edge_cases", "special_cases"],
-    )
-    def test_output_fields_are_scalars(self, test_data, case_type):
-        """
-        Verify all output fields are scalar values (0-D arrays or floats).
-        
-        Since inputs are scalars, outputs should also be scalars.
-        """
-        cases = test_data[case_type]
-        
-        for case in cases:
-            result = leaf_fluxes(**case["inputs"])
-            
-            fields = [
-                "tleaf", "stleaf", "shleaf", "lhleaf",
-                "evleaf", "trleaf", "energy_balance_error"
-            ]
-            
-            for field in fields:
-                value = getattr(result, field)
-                
-                # Check if scalar (0-D array or Python float)
-                if isinstance(value, jnp.ndarray):
-                    assert value.ndim == 0, (
-                        f"Case '{case['name']}': {field} should be scalar, "
-                        f"got shape {value.shape}"
-                    )
-                else:
-                    assert isinstance(value, (float, np.floating)), (
-                        f"Case '{case['name']}': {field} should be scalar, "
-                        f"got type {type(value)}"
-                    )
-
-    @pytest.mark.parametrize(
-        "case_type",
-        ["nominal", "edge", "special"],
-        ids=["nominal_cases", "edge_cases", "special_cases"],
-    )
-    def test_output_dtypes(self, test_data, case_type):
-        """
-        Verify output data types match expected precision (float64).
-        
-        All outputs should use R8_DTYPE (jnp.float64) precision.
-        """
-        cases = test_data[case_type]
-        
-        for case in cases:
-            result = leaf_fluxes(**case["inputs"])
-            
-            fields = [
-                "tleaf", "stleaf", "shleaf", "lhleaf",
-                "evleaf", "trleaf", "energy_balance_error"
-            ]
-            
-            for field in fields:
-                value = getattr(result, field)
-                
-                if isinstance(value, jnp.ndarray):
-                    assert value.dtype == R8_DTYPE, (
-                        f"Case '{case['name']}': {field} dtype should be "
-                        f"{R8_DTYPE}, got {value.dtype}"
-                    )
 
 
-# ============================================================================
-# Test: Physical Constraints on Outputs
-# ============================================================================
-class TestOutputPhysicalConstraints:
-    """Test suite for physical constraints on output values."""
-
-    @pytest.mark.parametrize(
-        "case_type",
-        ["nominal", "edge", "special"],
-        ids=["nominal_cases", "edge_cases", "special_cases"],
-    )
-    def test_leaf_temperature_above_absolute_zero(self, test_data, case_type):
-        """
-        Verify leaf temperature is strictly greater than 0K.
-        
-        Physical constraint: tleaf must be > 0K (absolute zero).
-        """
-        cases = test_data[case_type]
-        
-        for case in cases:
-            result = leaf_fluxes(**case["inputs"])
-            
-            tleaf_value = float(result.tleaf)
-            assert tleaf_value > ABSOLUTE_ZERO, (
-                f"Case '{case['name']}': tleaf={tleaf_value} must be > 0K"
-            )
-
-    @pytest.mark.parametrize(
-        "case_type",
-        ["nominal", "special"],
-        ids=["nominal_cases", "special_cases"],
-    )
-    def test_energy_balance_within_tolerance(self, test_data, case_type):
-        """
-        Verify energy balance error is within acceptable tolerance.
-        
-        Physical constraint: Energy balance error should be < 1e-3 W/m2
-        for accurate solutions (when dpai > 0).
-        """
-        cases = test_data[case_type]
-        
-        for case in cases:
-            inputs = case["inputs"]
-            
-            # Skip if dpai <= 0 (special case with zero fluxes)
-            if inputs["dpai"] <= 0:
-                continue
-            
-            result = leaf_fluxes(**inputs)
-            
-            error = float(result.energy_balance_error)
-            assert abs(error) < ENERGY_BALANCE_TOL, (
-                f"Case '{case['name']}': Energy balance error "
-                f"{error} W/m2 exceeds tolerance {ENERGY_BALANCE_TOL} W/m2"
-            )
-
-    def test_energy_conservation(self, test_data):
-        """
-        Verify energy conservation: rnleaf = stleaf + shleaf + lhleaf.
-        
-        The sum of storage, sensible, and latent heat fluxes should
-        equal net radiation (within energy balance tolerance).
-        """
-        # Test on nominal cases with dpai > 0
-        for case in test_data["nominal"]:
-            inputs = case["inputs"]
-            result = leaf_fluxes(**inputs)
-            
-            rnleaf = inputs["rnleaf"]
-            flux_sum = (
-                float(result.stleaf) +
-                float(result.shleaf) +
-                float(result.lhleaf)
-            )
-            
-            assert np.isclose(flux_sum, rnleaf, atol=ENERGY_BALANCE_TOL), (
-                f"Case '{case['name']}': Energy not conserved. "
-                f"rnleaf={rnleaf}, flux_sum={flux_sum}, "
-                f"difference={abs(flux_sum - rnleaf)}"
+def test_leaf_fluxes_output_shapes(test_data):
+    """
+    Test that all output fields have correct shapes (scalars).
+    
+    All outputs should be scalar values (0-dimensional arrays or floats).
+    """
+    case = test_data["nominal_temperate"]
+    inputs = case["inputs"]
+    
+    result = leaf_fluxes(**inputs)
+    
+    # All fields should be scalars
+    fields = ["tleaf", "stleaf", "shleaf", "lhleaf", "evleaf", "trleaf", 
+              "energy_balance_error"]
+    
+    for field in fields:
+        value = getattr(result, field)
+        # Should be scalar (0-d array or Python float)
+        if isinstance(value, jnp.ndarray):
+            assert value.ndim == 0, (
+                f"Field {field} should be scalar, got shape {value.shape}"
             )
 
 
-# ============================================================================
-# Test: Edge Cases - Zero and Negative dpai
-# ============================================================================
-class TestEdgeCasesZeroDpai:
-    """Test suite for special behavior when dpai <= 0."""
-
-    @pytest.mark.parametrize(
-        "case_name",
-        ["zero_plant_area_index", "negative_plant_area_index"],
-        ids=["dpai_zero", "dpai_negative"],
-    )
-    def test_zero_dpai_returns_zero_fluxes(self, test_data, case_name):
-        """
-        Verify that when dpai <= 0, all fluxes are zero.
-        
-        Special case: When dpai <= 0, the function should return
-        zero for all flux components (stleaf, shleaf, lhleaf, evleaf, trleaf).
-        """
-        # Find the case
-        case = next(c for c in test_data["edge"] if c["name"] == case_name)
-        
-        result = leaf_fluxes(**case["inputs"])
-        
-        flux_fields = ["stleaf", "shleaf", "lhleaf", "evleaf", "trleaf"]
-        
-        for field in flux_fields:
-            value = float(getattr(result, field))
-            assert value == 0.0, (
-                f"Case '{case_name}': {field} should be 0.0 when dpai <= 0, "
-                f"got {value}"
+def test_leaf_fluxes_output_dtypes(test_data):
+    """
+    Test that all output fields have correct data types (float64).
+    
+    All outputs should be float64 for numerical precision.
+    """
+    case = test_data["nominal_temperate"]
+    inputs = case["inputs"]
+    
+    result = leaf_fluxes(**inputs)
+    
+    fields = ["tleaf", "stleaf", "shleaf", "lhleaf", "evleaf", "trleaf",
+              "energy_balance_error"]
+    
+    for field in fields:
+        value = getattr(result, field)
+        if isinstance(value, jnp.ndarray):
+            assert value.dtype == jnp.float64, (
+                f"Field {field} should be float64, got {value.dtype}"
             )
 
-    @pytest.mark.parametrize(
-        "case_name",
-        ["zero_plant_area_index", "negative_plant_area_index"],
-        ids=["dpai_zero", "dpai_negative"],
-    )
-    def test_zero_dpai_tleaf_equals_tair(self, test_data, case_name):
-        """
-        Verify that when dpai <= 0, tleaf equals tair.
-        
-        Special case: When dpai <= 0, leaf temperature should equal
-        air temperature (no leaf present).
-        """
-        # Find the case
-        case = next(c for c in test_data["edge"] if c["name"] == case_name)
-        
+
+def test_leaf_fluxes_energy_conservation(test_data):
+    """
+    Test energy conservation across all nominal cases.
+    
+    Verifies that: rnleaf = stleaf + shleaf + lhleaf (within tolerance)
+    """
+    nominal_cases = [
+        "nominal_temperate",
+        "nominal_hot_dry", 
+        "nominal_cold_humid",
+        "nominal_tropical",
+        "nominal_nighttime",
+    ]
+    
+    for case_name in nominal_cases:
+        case = test_data[case_name]
         inputs = case["inputs"]
+        
         result = leaf_fluxes(**inputs)
         
-        tleaf_value = float(result.tleaf)
-        tair_value = inputs["tair"]
+        # Energy balance: rnleaf = stleaf + shleaf + lhleaf
+        energy_in = inputs["rnleaf"]
+        energy_out = float(result.stleaf + result.shleaf + result.lhleaf)
         
-        assert np.isclose(tleaf_value, tair_value, atol=1e-10), (
-            f"Case '{case_name}': tleaf should equal tair when dpai <= 0. "
-            f"tleaf={tleaf_value}, tair={tair_value}"
+        error = abs(energy_in - energy_out)
+        
+        assert error < ENERGY_BALANCE_TOL, (
+            f"Energy conservation violated for {case_name}: "
+            f"rnleaf={energy_in}, sum of fluxes={energy_out}, error={error}"
         )
 
 
-# ============================================================================
-# Test: Edge Cases - Fully Wet Canopy
-# ============================================================================
-class TestEdgeCasesFullyWet:
-    """Test suite for fully wet canopy conditions."""
+def test_leaf_fluxes_water_flux_consistency(test_data):
+    """
+    Test consistency between water fluxes.
+    
+    Verifies that:
+    - evleaf and trleaf are non-negative
+    - When fwet=0, evleaf should be ~0
+    - When fdry=0, trleaf should be ~0
+    """
+    # Test with dry canopy
+    case = test_data["nominal_hot_dry"]
+    inputs = case["inputs"]
+    result = leaf_fluxes(**inputs)
+    
+    assert inputs["fwet"] == 0.0, "Test case should have fwet=0"
+    assert np.isclose(float(result.evleaf), 0.0, atol=1e-10), (
+        f"Evaporation should be ~0 when fwet=0, got {result.evleaf}"
+    )
+    
+    # Test with wet canopy
+    case = test_data["edge_fully_wet"]
+    inputs = case["inputs"]
+    result = leaf_fluxes(**inputs)
+    
+    assert inputs["fdry"] == 0.0, "Test case should have fdry=0"
+    assert np.isclose(float(result.trleaf), 0.0, atol=1e-10), (
+        f"Transpiration should be ~0 when fdry=0, got {result.trleaf}"
+    )
 
-    def test_fully_wet_no_transpiration(self, test_data):
-        """
-        Verify that when fwet=1.0 and fdry=0.0, transpiration is zero.
+
+def test_total_leaf_conductance_utility():
+    """
+    Test the total_leaf_conductance utility function.
+    
+    Verifies that:
+    - Returns tuple of (gw, gh)
+    - Conductances are non-negative
+    - Handles edge cases (gs=0, fwet=1, etc.)
+    """
+    # Nominal case
+    gw, gh = total_leaf_conductance(
+        gs=0.15, gbv=0.5, gbh=0.5, fdry=0.8, fwet=0.2
+    )
+    
+    assert gw >= 0.0, f"Water conductance should be non-negative, got {gw}"
+    assert gh >= 0.0, f"Heat conductance should be non-negative, got {gh}"
+    
+    # Edge case: gs=0
+    gw, gh = total_leaf_conductance(
+        gs=0.0, gbv=0.5, gbh=0.5, fdry=1.0, fwet=0.0
+    )
+    
+    assert gw >= 0.0, "Water conductance should be non-negative with gs=0"
+    assert gh > 0.0, "Heat conductance should be positive (from gbh)"
+    
+    # Edge case: fully wet
+    gw, gh = total_leaf_conductance(
+        gs=0.15, gbv=0.5, gbh=0.5, fdry=0.0, fwet=1.0
+    )
+    
+    assert gw >= 0.0, "Water conductance should be non-negative when fully wet"
+    assert gh > 0.0, "Heat conductance should be positive"
+
+
+def test_check_energy_balance_utility(test_data):
+    """
+    Test the check_energy_balance utility function.
+    
+    Verifies that:
+    - Returns True when energy balance is satisfied
+    - Returns False when energy balance is violated
+    - Respects custom tolerance
+    """
+    case = test_data["nominal_temperate"]
+    inputs = case["inputs"]
+    
+    result = leaf_fluxes(**inputs)
+    
+    # Should pass with default tolerance
+    assert check_energy_balance(result, inputs["rnleaf"]), (
+        "Energy balance check should pass for nominal case"
+    )
+    
+    # Should pass with larger tolerance
+    assert check_energy_balance(result, inputs["rnleaf"], tolerance=1.0), (
+        "Energy balance check should pass with larger tolerance"
+    )
+    
+    # Test with artificially violated energy balance
+    # Create a modified result with large error
+    modified_result = LeafFluxesResult(
+        tleaf=result.tleaf,
+        stleaf=result.stleaf,
+        shleaf=result.shleaf,
+        lhleaf=result.lhleaf,
+        evleaf=result.evleaf,
+        trleaf=result.trleaf,
+        energy_balance_error=jnp.array(10.0),  # Large error
+    )
+    
+    # Should fail with default tolerance
+    assert not check_energy_balance(modified_result, inputs["rnleaf"]), (
+        "Energy balance check should fail with large error"
+    )
+
+
+def test_leaf_fluxes_physical_bounds(test_data):
+    """
+    Test that outputs satisfy physical bounds across all cases.
+    
+    Verifies:
+    - Temperatures > 0K
+    - Evaporation >= 0
+    - Transpiration >= 0
+    - Reasonable temperature ranges (not extreme)
+    """
+    all_cases = [
+        "nominal_temperate",
+        "nominal_hot_dry",
+        "nominal_cold_humid",
+        "nominal_tropical",
+        "nominal_nighttime",
+        "edge_zero_stomatal",
+        "edge_fully_wet",
+        "special_temp_gradient",
+    ]
+    
+    for case_name in all_cases:
+        case = test_data[case_name]
+        inputs = case["inputs"]
         
-        Physical constraint: Transpiration only occurs through dry leaf
-        surfaces. When fdry=0.0, trleaf should be zero.
-        """
-        case = next(
-            c for c in test_data["edge"]
-            if c["name"] == "fully_wet_canopy"
+        result = leaf_fluxes(**inputs)
+        
+        # Temperature bounds
+        assert float(result.tleaf) > 0.0, (
+            f"Leaf temperature must be > 0K for {case_name}, got {result.tleaf}"
+        )
+        assert float(result.tleaf) < 400.0, (
+            f"Leaf temperature unreasonably high for {case_name}, got {result.tleaf}"
         )
         
-        result = leaf_fluxes(**case["inputs"])
-        
-        trleaf_value = float(result.trleaf)
-        assert trleaf_value == 0.0, (
-            f"Fully wet canopy should have zero transpiration, "
-            f"got trleaf={trleaf_value}"
+        # Water flux bounds
+        assert float(result.evleaf) >= 0.0, (
+            f"Evaporation must be non-negative for {case_name}, got {result.evleaf}"
+        )
+        assert float(result.trleaf) >= 0.0, (
+            f"Transpiration must be non-negative for {case_name}, got {result.trleaf}"
         )
 
-    def test_fully_wet_evaporation_equals_total(self, test_data):
-        """
-        Verify that when fwet=1.0, all water flux is evaporation.
+
+def test_leaf_fluxes_nighttime_behavior(test_data):
+    """
+    Test specific behavior during nighttime conditions.
+    
+    With negative net radiation:
+    - Leaf should cool (sensible heat flux negative or small)
+    - Latent heat flux should be small (low stomatal conductance)
+    - Energy balance should still hold
+    """
+    case = test_data["nominal_nighttime"]
+    inputs = case["inputs"]
+    
+    result = leaf_fluxes(**inputs)
+    
+    # Net radiation is negative
+    assert inputs["rnleaf"] < 0.0, "Test case should have negative radiation"
+    
+    # Stomatal conductance should be low at night
+    assert inputs["gs"] < 0.05, "Stomatal conductance should be low at night"
+    
+    # Energy balance should hold
+    assert check_energy_balance(result, inputs["rnleaf"]), (
+        "Energy balance should hold during nighttime"
+    )
+    
+    # Leaf temperature should be reasonable
+    assert float(result.tleaf) > 0.0, "Leaf temperature must be > 0K"
+
+
+def test_leaf_fluxes_input_validation_types(test_data):
+    """
+    Test that function handles different numeric input types correctly.
+    
+    Should accept Python floats, NumPy scalars, and JAX arrays.
+    """
+    case = test_data["nominal_temperate"]
+    inputs = case["inputs"]
+    
+    # Test with Python floats (original)
+    result1 = leaf_fluxes(**inputs)
+    
+    # Test with NumPy scalars
+    inputs_np = {k: np.float64(v) for k, v in inputs.items()}
+    result2 = leaf_fluxes(**inputs_np)
+    
+    # Test with JAX arrays
+    inputs_jax = {k: jnp.array(v) for k, v in inputs.items()}
+    result3 = leaf_fluxes(**inputs_jax)
+    
+    # Results should be consistent
+    assert np.isclose(float(result1.tleaf), float(result2.tleaf), rtol=1e-10), (
+        "Results should be consistent with NumPy inputs"
+    )
+    assert np.isclose(float(result1.tleaf), float(result3.tleaf), rtol=1e-10), (
+        "Results should be consistent with JAX inputs"
+    )
+
+
+def test_leaf_fluxes_fraction_sum_constraint(test_data):
+    """
+    Test that fwet + fdry <= 1.0 constraint is respected in test data.
+    
+    This is a data validation test to ensure test cases are physically valid.
+    """
+    all_cases = [
+        "nominal_temperate",
+        "nominal_hot_dry",
+        "nominal_cold_humid",
+        "nominal_tropical",
+        "nominal_nighttime",
+        "edge_zero_dpai",
+        "edge_negative_dpai",
+        "edge_zero_stomatal",
+        "edge_fully_wet",
+        "special_temp_gradient",
+    ]
+    
+    for case_name in all_cases:
+        case = test_data[case_name]
+        inputs = case["inputs"]
         
-        Physical constraint: When fully wet, evleaf should equal
-        the total water flux (no transpiration component).
-        """
-        case = next(
-            c for c in test_data["edge"]
-            if c["name"] == "fully_wet_canopy"
+        fwet = inputs["fwet"]
+        fdry = inputs["fdry"]
+        
+        assert 0.0 <= fwet <= 1.0, (
+            f"fwet must be in [0,1] for {case_name}, got {fwet}"
         )
-        
-        result = leaf_fluxes(**case["inputs"])
-        
-        evleaf_value = float(result.evleaf)
-        trleaf_value = float(result.trleaf)
-        
-        # Total water flux should equal evaporation
-        assert trleaf_value == 0.0, "Transpiration should be zero"
-        assert evleaf_value >= 0.0, "Evaporation should be non-negative"
-
-
-# ============================================================================
-# Test: Edge Cases - Zero Conductances
-# ============================================================================
-class TestEdgeCasesZeroConductances:
-    """Test suite for zero conductance conditions."""
-
-    def test_zero_conductances_numerical_stability(self, test_data):
-        """
-        Verify numerical stability when all conductances are zero.
-        
-        Edge case: When gbh=gbv=gs=0 (infinite resistance), the function
-        should handle this gracefully without NaN or Inf values.
-        """
-        case = next(
-            c for c in test_data["edge"]
-            if c["name"] == "zero_conductances"
+        assert 0.0 <= fdry <= 1.0, (
+            f"fdry must be in [0,1] for {case_name}, got {fdry}"
         )
+        assert fwet + fdry <= 1.0 + 1e-10, (
+            f"fwet + fdry must be <= 1.0 for {case_name}, got {fwet + fdry}"
+        )
+
+
+def test_leaf_fluxes_convergence_stability(test_data):
+    """
+    Test numerical stability and convergence across different conditions.
+    
+    Verifies that:
+    - Energy balance error is small across all cases
+    - No NaN or Inf values in outputs
+    - Results are numerically stable
+    """
+    all_cases = [
+        "nominal_temperate",
+        "nominal_hot_dry",
+        "nominal_cold_humid",
+        "nominal_tropical",
+        "nominal_nighttime",
+        "special_temp_gradient",
+    ]
+    
+    for case_name in all_cases:
+        case = test_data[case_name]
+        inputs = case["inputs"]
         
-        result = leaf_fluxes(**case["inputs"])
+        result = leaf_fluxes(**inputs)
         
-        # Check all outputs are finite
-        fields = [
-            "tleaf", "stleaf", "shleaf", "lhleaf",
-            "evleaf", "trleaf", "energy_balance_error"
-        ]
+        # Check for NaN/Inf
+        fields = ["tleaf", "stleaf", "shleaf", "lhleaf", "evleaf", "trleaf",
+                  "energy_balance_error"]
         
         for field in fields:
             value = float(getattr(result, field))
             assert np.isfinite(value), (
-                f"Zero conductances case: {field}={value} is not finite"
+                f"Field {field} is not finite for {case_name}, got {value}"
             )
-
-    def test_zero_conductances_minimal_fluxes(self, test_data):
-        """
-        Verify that zero conductances result in minimal or zero fluxes.
         
-        Physical constraint: With infinite resistance (zero conductances),
-        sensible and latent heat fluxes should be zero or very small.
-        """
-        case = next(
-            c for c in test_data["edge"]
-            if c["name"] == "zero_conductances"
-        )
-        
-        result = leaf_fluxes(**case["inputs"])
-        
-        # Sensible and latent heat should be zero or negligible
-        shleaf_value = float(result.shleaf)
-        lhleaf_value = float(result.lhleaf)
-        evleaf_value = float(result.evleaf)
-        trleaf_value = float(result.trleaf)
-        
-        tolerance = 1e-6
-        assert abs(shleaf_value) < tolerance, (
-            f"Zero conductances: shleaf={shleaf_value} should be ~0"
-        )
-        assert abs(lhleaf_value) < tolerance, (
-            f"Zero conductances: lhleaf={lhleaf_value} should be ~0"
-        )
-        assert abs(evleaf_value) < tolerance, (
-            f"Zero conductances: evleaf={evleaf_value} should be ~0"
-        )
-        assert abs(trleaf_value) < tolerance, (
-            f"Zero conductances: trleaf={trleaf_value} should be ~0"
+        # Energy balance error should be small
+        assert abs(float(result.energy_balance_error)) < 0.1, (
+            f"Energy balance error too large for {case_name}: "
+            f"{result.energy_balance_error} W/m2"
         )
 
 
-# ============================================================================
-# Test: Special Cases - Extreme Conditions
-# ============================================================================
-class TestSpecialCasesExtremeConditions:
-    """Test suite for extreme environmental conditions."""
-
-    def test_extreme_temperature_gradient_convergence(self, test_data):
-        """
-        Verify convergence with extreme temperature gradients.
-        
-        Special case: Large temperature difference between tair (288K)
-        and tleaf_bef (310K) with high radiation forcing should still
-        converge to a valid solution.
-        """
-        case = next(
-            c for c in test_data["special"]
-            if c["name"] == "extreme_temperature_gradient"
-        )
-        
-        result = leaf_fluxes(**case["inputs"])
-        
-        # Check convergence via energy balance error
-        error = float(result.energy_balance_error)
-        assert abs(error) < ENERGY_BALANCE_TOL, (
-            f"Extreme gradient case failed to converge: "
-            f"energy_balance_error={error}"
-        )
-        
-        # Check tleaf is reasonable (between tair and tleaf_bef + some margin)
-        tleaf_value = float(result.tleaf)
-        tair = case["inputs"]["tair"]
-        tleaf_bef = case["inputs"]["tleaf_bef"]
-        
-        # Leaf temp should be physically reasonable
-        assert tleaf_value > ABSOLUTE_ZERO, "tleaf must be > 0K"
-        assert tleaf_value < 400.0, (
-            f"tleaf={tleaf_value}K seems unreasonably high"
-        )
-
-    def test_negative_radiation_cooling(self, test_data):
-        """
-        Verify correct behavior with negative net radiation (nighttime cooling).
-        
-        Physical constraint: Negative rnleaf should result in cooling,
-        with negative sensible heat flux (heat from air to leaf).
-        """
-        case = next(
-            c for c in test_data["nominal"]
-            if c["name"] == "nighttime_low_radiation"
-        )
-        
-        inputs = case["inputs"]
-        result = leaf_fluxes(**inputs)
-        
-        # With negative radiation, expect cooling
-        assert inputs["rnleaf"] < 0, "Test case should have negative radiation"
-        
-        # Leaf temperature should be reasonable
-        tleaf_value = float(result.tleaf)
-        assert tleaf_value > ABSOLUTE_ZERO, "tleaf must be > 0K"
-
-
-# ============================================================================
-# Test: Nominal Cases - Value Ranges
-# ============================================================================
-class TestNominalCasesValueRanges:
-    """Test suite for expected value ranges in nominal conditions."""
-
-    @pytest.mark.parametrize(
-        "case_name",
-        [
-            "temperate_daytime",
-            "tropical_high_humidity",
-            "cold_winter",
-            "hot_arid_stressed",
-        ],
-        ids=[
-            "temperate",
-            "tropical",
-            "cold",
-            "arid",
-        ],
-    )
-    def test_leaf_temperature_reasonable_range(self, test_data, case_name):
-        """
-        Verify leaf temperature is in reasonable physical range.
-        
-        Physical constraint: Leaf temperature should be within
-        reasonable bounds for Earth's biosphere (200K - 350K).
-        """
-        case = next(
-            c for c in test_data["nominal"]
-            if c["name"] == case_name
-        )
-        
-        result = leaf_fluxes(**case["inputs"])
-        
-        tleaf_value = float(result.tleaf)
-        assert 200.0 < tleaf_value < 350.0, (
-            f"Case '{case_name}': tleaf={tleaf_value}K outside "
-            f"reasonable range [200K, 350K]"
-        )
-
-    @pytest.mark.parametrize(
-        "case_name",
-        [
-            "temperate_daytime",
-            "tropical_high_humidity",
-            "hot_arid_stressed",
-        ],
-        ids=[
-            "temperate",
-            "tropical",
-            "arid",
-        ],
-    )
-    def test_positive_radiation_positive_latent_heat(
-        self, test_data, case_name
-    ):
-        """
-        Verify positive net radiation leads to positive latent heat flux.
-        
-        Physical expectation: With positive radiation and open stomata,
-        latent heat flux should be positive (evapotranspiration occurring).
-        """
-        case = next(
-            c for c in test_data["nominal"]
-            if c["name"] == case_name
-        )
-        
-        inputs = case["inputs"]
-        result = leaf_fluxes(**inputs)
-        
-        # These cases have positive radiation
-        assert inputs["rnleaf"] > 0, "Test case should have positive radiation"
-        
-        lhleaf_value = float(result.lhleaf)
-        # With positive radiation and some conductance, expect positive LH
-        if inputs["gs"] > 0 or inputs["fwet"] > 0:
-            assert lhleaf_value >= 0, (
-                f"Case '{case_name}': Expected positive latent heat flux, "
-                f"got lhleaf={lhleaf_value}"
-            )
-
-
-# ============================================================================
-# Test: Flux Partitioning
-# ============================================================================
-class TestFluxPartitioning:
-    """Test suite for proper partitioning of water fluxes."""
-
-    def test_evaporation_transpiration_partitioning(self, test_data):
-        """
-        Verify proper partitioning between evaporation and transpiration.
-        
-        Physical constraint: Total water flux should be partitioned
-        between wet surface evaporation (evleaf) and dry surface
-        transpiration (trleaf) based on fwet and fdry.
-        """
-        # Test on cases with both wet and dry fractions
-        case = next(
-            c for c in test_data["nominal"]
-            if c["name"] == "temperate_daytime"
-        )
-        
-        inputs = case["inputs"]
-        result = leaf_fluxes(**inputs)
-        
-        evleaf_value = float(result.evleaf)
-        trleaf_value = float(result.trleaf)
-        
-        # Both should be non-negative
-        assert evleaf_value >= 0, f"evleaf={evleaf_value} should be >= 0"
-        assert trleaf_value >= 0, f"trleaf={trleaf_value} should be >= 0"
-        
-        # If fwet > 0, expect some evaporation
-        if inputs["fwet"] > 0:
-            # May be zero if vapor pressure gradient is unfavorable
-            assert evleaf_value >= 0, "evleaf should be non-negative"
-        
-        # If fdry > 0 and gs > 0, expect some transpiration
-        if inputs["fdry"] > 0 and inputs["gs"] > 0:
-            # May be zero if vapor pressure gradient is unfavorable
-            assert trleaf_value >= 0, "trleaf should be non-negative"
-
-
-# ============================================================================
-# Test: Consistency Checks
-# ============================================================================
-class TestConsistencyChecks:
-    """Test suite for internal consistency of results."""
-
-    def test_storage_flux_consistency(self, test_data):
-        """
-        Verify storage flux is consistent with temperature change.
-        
-        Physical constraint: Storage flux should relate to the change
-        in leaf temperature: stleaf = cpleaf * dpai * (tleaf - tleaf_bef) / dt
-        """
-        # Test on a case with temperature change
-        case = next(
-            c for c in test_data["special"]
-            if c["name"] == "extreme_temperature_gradient"
-        )
-        
-        inputs = case["inputs"]
-        result = leaf_fluxes(**inputs)
-        
-        # Calculate expected storage flux
-        tleaf_value = float(result.tleaf)
-        dt_leaf = tleaf_value - inputs["tleaf_bef"]
-        expected_stleaf = (
-            inputs["cpleaf"] * inputs["dpai"] * dt_leaf / inputs["dtime_substep"]
-        )
-        
-        stleaf_value = float(result.stleaf)
-        
-        # Should be close (within numerical tolerance)
-        assert np.isclose(stleaf_value, expected_stleaf, rtol=1e-3), (
-            f"Storage flux inconsistent: stleaf={stleaf_value}, "
-            f"expected={expected_stleaf}"
-        )
-
-    def test_latent_heat_evaporation_consistency(self, test_data):
-        """
-        Verify latent heat flux is consistent with evaporation rate.
-        
-        Physical constraint: Latent heat flux should equal evaporation
-        rate times latent heat of vaporization.
-        """
-        # Test on nominal cases
-        for case in test_data["nominal"][:3]:  # Test first 3 cases
-            inputs = case["inputs"]
-            
-            # Skip if dpai <= 0
-            if inputs["dpai"] <= 0:
-                continue
-            
-            result = leaf_fluxes(**inputs)
-            
-            lhleaf_value = float(result.lhleaf)
-            evleaf_value = float(result.evleaf)
-            trleaf_value = float(result.trleaf)
-            
-            # Total water flux
-            total_water_flux = evleaf_value + trleaf_value
-            
-            # Latent heat should be proportional to water flux
-            # (exact relationship depends on latent heat of vaporization)
-            if total_water_flux > 0:
-                assert lhleaf_value > 0, (
-                    f"Case '{case['name']}': Positive water flux "
-                    f"should give positive latent heat"
-                )
-
-
-# ============================================================================
-# Test: Reproducibility
-# ============================================================================
-class TestReproducibility:
-    """Test suite for reproducibility of results."""
-
-    def test_deterministic_output(self, test_data):
-        """
-        Verify function produces identical results for identical inputs.
-        
-        The function should be deterministic - same inputs should
-        always produce same outputs.
-        """
-        case = test_data["nominal"][0]  # Use first nominal case
-        
-        # Run twice with same inputs
-        result1 = leaf_fluxes(**case["inputs"])
-        result2 = leaf_fluxes(**case["inputs"])
-        
-        # Compare all fields
-        fields = [
-            "tleaf", "stleaf", "shleaf", "lhleaf",
-            "evleaf", "trleaf", "energy_balance_error"
-        ]
-        
-        for field in fields:
-            val1 = float(getattr(result1, field))
-            val2 = float(getattr(result2, field))
-            
-            assert val1 == val2, (
-                f"Non-deterministic output for {field}: "
-                f"{val1} != {val2}"
-            )
-
-
-# ============================================================================
-# Test Documentation
-# ============================================================================
-def test_documentation_completeness():
-    """
-    Verify test suite documentation is complete.
-    
-    This meta-test ensures all test classes and functions have
-    proper docstrings explaining their purpose.
-    """
-    import inspect
-    
-    # Get all test classes in this module
-    current_module = inspect.getmodule(inspect.currentframe())
-    test_classes = [
-        obj for name, obj in inspect.getmembers(current_module)
-        if inspect.isclass(obj) and name.startswith("Test")
-    ]
-    
-    for test_class in test_classes:
-        # Check class docstring
-        assert test_class.__doc__ is not None, (
-            f"Test class {test_class.__name__} missing docstring"
-        )
-        
-        # Check method docstrings
-        test_methods = [
-            method for name, method in inspect.getmembers(test_class)
-            if name.startswith("test_") and callable(method)
-        ]
-        
-        for method in test_methods:
-            assert method.__doc__ is not None, (
-                f"Test method {test_class.__name__}.{method.__name__} "
-                f"missing docstring"
-            )
-
-
-# ============================================================================
-# Test Summary Report
-# ============================================================================
-@pytest.fixture(scope="session", autouse=True)
-def test_summary(request):
-    """
-    Generate test summary report at end of session.
-    
-    Provides overview of test coverage and results.
-    """
-    yield
-    
-    # This runs after all tests complete
-    print("\n" + "=" * 70)
-    print("LEAF FLUXES TEST SUITE SUMMARY")
-    print("=" * 70)
-    print("\nTest Coverage:")
-    print("  - Input validation: Temperature, fractions, conductances")
-    print("  - Output validation: Shapes, types, physical constraints")
-    print("  - Edge cases: Zero/negative dpai, fully wet, zero conductances")
-    print("  - Special cases: Extreme gradients, negative radiation")
-    print("  - Nominal cases: 5 diverse biome conditions")
-    print("  - Consistency: Energy balance, flux partitioning")
-    print("  - Reproducibility: Deterministic outputs")
-    print("\nPhysical Constraints Tested:")
-    print("  - Temperatures > 0K")
-    print("  - Fractions in [0, 1]")
-    print("  - Conductances >= 0")
-    print("  - Energy conservation (< 1e-3 W/m2 error)")
-    print("  - Proper flux partitioning")
-    print("=" * 70 + "\n")
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

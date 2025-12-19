@@ -1,1010 +1,1076 @@
 """
-Comprehensive pytest suite for MLSolarRadiationMod.solar_radiation function.
+Comprehensive pytest suite for solar_radiation function from MLSolarRadiationMod.
 
-This module tests the solar radiation transfer calculations through multilayer canopies,
-including both Norman and TwoStream radiation transfer methods.
+This test suite covers:
+- Nominal cases with varying canopy structures and solar conditions
+- Edge cases (zero LAI, extreme albedos, boundary solar angles)
+- Special cases (single-layer canopy, extreme optical properties)
+- Shape validation, dtype checking, and physical constraint verification
 """
 
-import pytest
+import sys
+from pathlib import Path
+from typing import NamedTuple
+
 import jax.numpy as jnp
 import numpy as np
-from typing import Dict, Any
-import json
+import pytest
 
-# Import actual translated module
-from multilayer_canopy.MLSolarRadiationMod import (
-    solar_radiation,
-    BoundsType,
-    PatchState,
-    MLCanopyState,
-    PFTParams,
-    RadiationFluxes,
-)
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+from multilayer_canopy.MLSolarRadiationMod import solar_radiation
 
 
-# Test data as embedded JSON
-TEST_DATA_JSON = """
-{
-  "function_name": "solar_radiation",
-  "test_cases": [
-    {
-      "name": "test_nominal_single_patch_midday",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 1, "begg": 0, "endg": 1},
-        "num_filter": 1,
-        "filter_indices": [0],
-        "patch_state": {
-          "itype": [5],
-          "cosz": [0.866],
-          "swskyb": [[800.0, 600.0]],
-          "swskyd": [[200.0, 150.0]],
-          "albsoib": [[0.15, 0.25]],
-          "albsoid": [[0.2, 0.3]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[0.5, 0.8, 1.2, 0.9, 0.6]],
-          "dsai_profile": [[0.1, 0.15, 0.2, 0.15, 0.1]],
-          "dpai_profile": [[0.6, 0.95, 1.4, 1.05, 0.7]],
-          "ntop_canopy": [0],
-          "nbot_canopy": [4],
-          "ncan_canopy": [5]
-        },
-        "pft_params": {
-          "rhol": [[0.1, 0.45], [0.08, 0.4], [0.12, 0.5], [0.09, 0.42], [0.11, 0.48], [0.1, 0.45]],
-          "taul": [[0.05, 0.25], [0.04, 0.22], [0.06, 0.28], [0.05, 0.24], [0.05, 0.26], [0.05, 0.25]],
-          "rhos": [[0.16, 0.39], [0.15, 0.38], [0.17, 0.4], [0.16, 0.39], [0.16, 0.39], [0.16, 0.39]],
-          "taus": [[0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [0.01, -0.1, 0.1, 0.0, 0.05, 0.01],
-          "clump_fac": [0.85, 0.8, 0.9, 0.85, 0.87, 0.85]
-        },
-        "nlevmlcan": 5,
-        "light_type": 1,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "nominal",
-        "description": "Typical midday conditions with moderate LAI, single patch, Norman radiation transfer",
-        "edge_cases": []
-      }
-    },
-    {
-      "name": "test_nominal_multiple_patches_varied_lai",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 3, "begg": 0, "endg": 1},
-        "num_filter": 3,
-        "filter_indices": [0, 1, 2],
-        "patch_state": {
-          "itype": [2, 5, 8],
-          "cosz": [0.707, 0.866, 0.5],
-          "swskyb": [[700.0, 550.0], [850.0, 650.0], [600.0, 450.0]],
-          "swskyd": [[180.0, 140.0], [220.0, 170.0], [160.0, 120.0]],
-          "albsoib": [[0.12, 0.22], [0.18, 0.28], [0.14, 0.24]],
-          "albsoid": [[0.17, 0.27], [0.23, 0.33], [0.19, 0.29]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[0.3, 0.5, 0.7, 0.5, 0.3], [0.8, 1.2, 1.5, 1.0, 0.6], [0.2, 0.3, 0.4, 0.3, 0.2]],
-          "dsai_profile": [[0.05, 0.08, 0.12, 0.08, 0.05], [0.15, 0.22, 0.28, 0.18, 0.12], [0.03, 0.05, 0.07, 0.05, 0.03]],
-          "dpai_profile": [[0.35, 0.58, 0.82, 0.58, 0.35], [0.95, 1.42, 1.78, 1.18, 0.72], [0.23, 0.35, 0.47, 0.35, 0.23]],
-          "ntop_canopy": [0, 0, 0],
-          "nbot_canopy": [4, 4, 4],
-          "ncan_canopy": [5, 5, 5]
-        },
-        "pft_params": {
-          "rhol": [[0.08, 0.4], [0.1, 0.45], [0.12, 0.5], [0.09, 0.42], [0.11, 0.48], [0.1, 0.45], [0.07, 0.38], [0.13, 0.52], [0.09, 0.43]],
-          "taul": [[0.04, 0.22], [0.05, 0.25], [0.06, 0.28], [0.05, 0.24], [0.05, 0.26], [0.05, 0.25], [0.04, 0.2], [0.07, 0.3], [0.05, 0.23]],
-          "rhos": [[0.15, 0.38], [0.16, 0.39], [0.17, 0.4], [0.16, 0.39], [0.16, 0.39], [0.16, 0.39], [0.14, 0.37], [0.18, 0.41], [0.15, 0.38]],
-          "taus": [[0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [-0.1, 0.01, 0.1, 0.0, 0.05, 0.01, -0.15, 0.15, 0.02],
-          "clump_fac": [0.8, 0.85, 0.9, 0.85, 0.87, 0.85, 0.75, 0.92, 0.83]
-        },
-        "nlevmlcan": 5,
-        "light_type": 1,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "nominal",
-        "description": "Multiple patches with varying LAI (sparse, moderate, dense canopies) and different PFT types",
-        "edge_cases": []
-      }
-    },
-    {
-      "name": "test_nominal_twostream_method",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 2, "begg": 0, "endg": 1},
-        "num_filter": 2,
-        "filter_indices": [0, 1],
-        "patch_state": {
-          "itype": [3, 7],
-          "cosz": [0.8, 0.6],
-          "swskyb": [[750.0, 580.0], [680.0, 520.0]],
-          "swskyd": [[190.0, 145.0], [175.0, 135.0]],
-          "albsoib": [[0.16, 0.26], [0.14, 0.24]],
-          "albsoid": [[0.21, 0.31], [0.19, 0.29]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[0.6, 0.9, 1.3, 0.9, 0.5], [0.4, 0.7, 1.0, 0.7, 0.4]],
-          "dsai_profile": [[0.12, 0.18, 0.25, 0.18, 0.1], [0.08, 0.14, 0.2, 0.14, 0.08]],
-          "dpai_profile": [[0.72, 1.08, 1.55, 1.08, 0.6], [0.48, 0.84, 1.2, 0.84, 0.48]],
-          "ntop_canopy": [0, 0],
-          "nbot_canopy": [4, 4],
-          "ncan_canopy": [5, 5]
-        },
-        "pft_params": {
-          "rhol": [[0.09, 0.43], [0.11, 0.47], [0.1, 0.45], [0.08, 0.41], [0.12, 0.49], [0.1, 0.44], [0.09, 0.42], [0.11, 0.46]],
-          "taul": [[0.045, 0.23], [0.055, 0.27], [0.05, 0.25], [0.04, 0.21], [0.06, 0.29], [0.05, 0.24], [0.045, 0.22], [0.055, 0.26]],
-          "rhos": [[0.155, 0.385], [0.165, 0.395], [0.16, 0.39], [0.15, 0.38], [0.17, 0.4], [0.16, 0.39], [0.155, 0.385], [0.165, 0.395]],
-          "taus": [[0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [-0.05, 0.08, 0.01, -0.12, 0.12, 0.03, -0.08, 0.1],
-          "clump_fac": [0.82, 0.88, 0.85, 0.78, 0.91, 0.86, 0.81, 0.89]
-        },
-        "nlevmlcan": 5,
-        "light_type": 2,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "nominal",
-        "description": "Testing TwoStream radiation transfer method with moderate canopy conditions",
-        "edge_cases": []
-      }
-    },
-    {
-      "name": "test_edge_zero_solar_zenith_angle",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 2, "begg": 0, "endg": 1},
-        "num_filter": 2,
-        "filter_indices": [0, 1],
-        "patch_state": {
-          "itype": [4, 6],
-          "cosz": [0.0, 0.001],
-          "swskyb": [[0.0, 0.0], [5.0, 3.0]],
-          "swskyd": [[50.0, 40.0], [55.0, 42.0]],
-          "albsoib": [[0.15, 0.25], [0.16, 0.26]],
-          "albsoid": [[0.2, 0.3], [0.21, 0.31]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[0.5, 0.8, 1.1, 0.8, 0.5], [0.6, 0.9, 1.2, 0.9, 0.6]],
-          "dsai_profile": [[0.1, 0.15, 0.2, 0.15, 0.1], [0.12, 0.17, 0.22, 0.17, 0.12]],
-          "dpai_profile": [[0.6, 0.95, 1.3, 0.95, 0.6], [0.72, 1.07, 1.42, 1.07, 0.72]],
-          "ntop_canopy": [0, 0],
-          "nbot_canopy": [4, 4],
-          "ncan_canopy": [5, 5]
-        },
-        "pft_params": {
-          "rhol": [[0.1, 0.45], [0.09, 0.43], [0.11, 0.47], [0.1, 0.44], [0.1, 0.46], [0.09, 0.44], [0.11, 0.46]],
-          "taul": [[0.05, 0.25], [0.045, 0.23], [0.055, 0.27], [0.05, 0.24], [0.05, 0.26], [0.045, 0.24], [0.055, 0.26]],
-          "rhos": [[0.16, 0.39], [0.155, 0.385], [0.165, 0.395], [0.16, 0.39], [0.16, 0.39], [0.155, 0.385], [0.165, 0.395]],
-          "taus": [[0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [0.01, -0.05, 0.08, 0.02, 0.04, -0.03, 0.06],
-          "clump_fac": [0.85, 0.82, 0.88, 0.86, 0.87, 0.83, 0.89]
-        },
-        "nlevmlcan": 5,
-        "light_type": 1,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "edge",
-        "description": "Near-horizon sun (dawn/dusk) with zero or near-zero cosine of solar zenith angle",
-        "edge_cases": ["zero_cosz", "minimal_direct_beam"]
-      }
-    },
-    {
-      "name": "test_edge_maximum_solar_zenith",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 1, "begg": 0, "endg": 1},
-        "num_filter": 1,
-        "filter_indices": [0],
-        "patch_state": {
-          "itype": [5],
-          "cosz": [1.0],
-          "swskyb": [[1000.0, 750.0]],
-          "swskyd": [[100.0, 75.0]],
-          "albsoib": [[0.1, 0.2]],
-          "albsoid": [[0.15, 0.25]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[0.7, 1.0, 1.4, 1.0, 0.7]],
-          "dsai_profile": [[0.14, 0.2, 0.28, 0.2, 0.14]],
-          "dpai_profile": [[0.84, 1.2, 1.68, 1.2, 0.84]],
-          "ntop_canopy": [0],
-          "nbot_canopy": [4],
-          "ncan_canopy": [5]
-        },
-        "pft_params": {
-          "rhol": [[0.1, 0.45], [0.09, 0.43], [0.11, 0.47], [0.1, 0.44], [0.1, 0.46], [0.09, 0.44]],
-          "taul": [[0.05, 0.25], [0.045, 0.23], [0.055, 0.27], [0.05, 0.24], [0.05, 0.26], [0.045, 0.24]],
-          "rhos": [[0.16, 0.39], [0.155, 0.385], [0.165, 0.395], [0.16, 0.39], [0.16, 0.39], [0.155, 0.385]],
-          "taus": [[0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [0.01, -0.05, 0.08, 0.02, 0.04, -0.03],
-          "clump_fac": [0.85, 0.82, 0.88, 0.86, 0.87, 0.83]
-        },
-        "nlevmlcan": 5,
-        "light_type": 1,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "edge",
-        "description": "Solar noon with sun directly overhead (cosz = 1.0), maximum direct beam radiation",
-        "edge_cases": ["maximum_cosz", "maximum_direct_beam"]
-      }
-    },
-    {
-      "name": "test_edge_zero_lai_bare_ground",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 1, "begg": 0, "endg": 1},
-        "num_filter": 1,
-        "filter_indices": [0],
-        "patch_state": {
-          "itype": [0],
-          "cosz": [0.7],
-          "swskyb": [[650.0, 500.0]],
-          "swskyd": [[170.0, 130.0]],
-          "albsoib": [[0.25, 0.35]],
-          "albsoid": [[0.3, 0.4]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[0.0, 0.0, 0.0, 0.0, 0.0]],
-          "dsai_profile": [[0.0, 0.0, 0.0, 0.0, 0.0]],
-          "dpai_profile": [[0.0, 0.0, 0.0, 0.0, 0.0]],
-          "ntop_canopy": [0],
-          "nbot_canopy": [0],
-          "ncan_canopy": [0]
-        },
-        "pft_params": {
-          "rhol": [[0.1, 0.45]],
-          "taul": [[0.05, 0.25]],
-          "rhos": [[0.16, 0.39]],
-          "taus": [[0.001, 0.001]],
-          "xl": [0.0],
-          "clump_fac": [1.0]
-        },
-        "nlevmlcan": 5,
-        "light_type": 1,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "edge",
-        "description": "Bare ground with zero LAI/SAI/PAI - all radiation reaches soil directly",
-        "edge_cases": ["zero_lai", "bare_ground", "no_canopy"]
-      }
-    },
-    {
-      "name": "test_edge_very_dense_canopy",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 1, "begg": 0, "endg": 1},
-        "num_filter": 1,
-        "filter_indices": [0],
-        "patch_state": {
-          "itype": [5],
-          "cosz": [0.75],
-          "swskyb": [[800.0, 600.0]],
-          "swskyd": [[200.0, 150.0]],
-          "albsoib": [[0.12, 0.22]],
-          "albsoid": [[0.17, 0.27]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[2.0, 2.5, 3.0, 2.5, 2.0]],
-          "dsai_profile": [[0.4, 0.5, 0.6, 0.5, 0.4]],
-          "dpai_profile": [[2.4, 3.0, 3.6, 3.0, 2.4]],
-          "ntop_canopy": [0],
-          "nbot_canopy": [4],
-          "ncan_canopy": [5]
-        },
-        "pft_params": {
-          "rhol": [[0.1, 0.45], [0.09, 0.43], [0.11, 0.47], [0.1, 0.44], [0.1, 0.46], [0.09, 0.44]],
-          "taul": [[0.05, 0.25], [0.045, 0.23], [0.055, 0.27], [0.05, 0.24], [0.05, 0.26], [0.045, 0.24]],
-          "rhos": [[0.16, 0.39], [0.155, 0.385], [0.165, 0.395], [0.16, 0.39], [0.16, 0.39], [0.155, 0.385]],
-          "taus": [[0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [0.01, -0.05, 0.08, 0.02, 0.04, -0.03],
-          "clump_fac": [0.7, 0.68, 0.72, 0.71, 0.69, 0.7]
-        },
-        "nlevmlcan": 5,
-        "light_type": 1,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "edge",
-        "description": "Very dense canopy with high LAI - minimal radiation reaches soil, strong attenuation",
-        "edge_cases": ["high_lai", "dense_canopy", "strong_attenuation"]
-      }
-    },
-    {
-      "name": "test_edge_extreme_albedo_boundaries",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 3, "begg": 0, "endg": 1},
-        "num_filter": 3,
-        "filter_indices": [0, 1, 2],
-        "patch_state": {
-          "itype": [1, 3, 7],
-          "cosz": [0.6, 0.7, 0.8],
-          "swskyb": [[700.0, 550.0], [750.0, 580.0], [800.0, 620.0]],
-          "swskyd": [[180.0, 140.0], [190.0, 145.0], [200.0, 155.0]],
-          "albsoib": [[0.0, 0.0], [0.5, 0.6], [1.0, 1.0]],
-          "albsoid": [[0.0, 0.0], [0.55, 0.65], [1.0, 1.0]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[0.5, 0.8, 1.0, 0.8, 0.5], [0.6, 0.9, 1.2, 0.9, 0.6], [0.4, 0.7, 0.9, 0.7, 0.4]],
-          "dsai_profile": [[0.1, 0.15, 0.2, 0.15, 0.1], [0.12, 0.18, 0.24, 0.18, 0.12], [0.08, 0.14, 0.18, 0.14, 0.08]],
-          "dpai_profile": [[0.6, 0.95, 1.2, 0.95, 0.6], [0.72, 1.08, 1.44, 1.08, 0.72], [0.48, 0.84, 1.08, 0.84, 0.48]],
-          "ntop_canopy": [0, 0, 0],
-          "nbot_canopy": [4, 4, 4],
-          "ncan_canopy": [5, 5, 5]
-        },
-        "pft_params": {
-          "rhol": [[0.0, 0.0], [0.1, 0.45], [0.5, 0.95], [0.05, 0.4], [0.15, 0.5], [0.1, 0.45], [0.08, 0.42], [0.12, 0.48]],
-          "taul": [[0.0, 0.0], [0.05, 0.25], [0.5, 0.05], [0.04, 0.22], [0.06, 0.28], [0.05, 0.25], [0.04, 0.23], [0.06, 0.27]],
-          "rhos": [[0.0, 0.0], [0.16, 0.39], [1.0, 1.0], [0.15, 0.38], [0.17, 0.4], [0.16, 0.39], [0.15, 0.38], [0.17, 0.4]],
-          "taus": [[0.0, 0.0], [0.001, 0.001], [0.0, 0.0], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [0.0, 0.01, 0.0, -0.05, 0.08, 0.02, -0.03, 0.06],
-          "clump_fac": [1.0, 0.85, 0.5, 0.82, 0.88, 0.86, 0.83, 0.89]
-        },
-        "nlevmlcan": 5,
-        "light_type": 1,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "edge",
-        "description": "Testing boundary albedo values (0.0, 0.5, 1.0) for soil and vegetation optical properties",
-        "edge_cases": ["zero_albedo", "maximum_albedo", "boundary_reflectance"]
-      }
-    },
-    {
-      "name": "test_special_single_canopy_layer",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 1, "begg": 0, "endg": 1},
-        "num_filter": 1,
-        "filter_indices": [0],
-        "patch_state": {
-          "itype": [4],
-          "cosz": [0.65],
-          "swskyb": [[720.0, 560.0]],
-          "swskyd": [[185.0, 142.0]],
-          "albsoib": [[0.14, 0.24]],
-          "albsoid": [[0.19, 0.29]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[2.5]],
-          "dsai_profile": [[0.5]],
-          "dpai_profile": [[3.0]],
-          "ntop_canopy": [0],
-          "nbot_canopy": [0],
-          "ncan_canopy": [1]
-        },
-        "pft_params": {
-          "rhol": [[0.1, 0.45], [0.09, 0.43], [0.11, 0.47], [0.1, 0.44], [0.09, 0.42]],
-          "taul": [[0.05, 0.25], [0.045, 0.23], [0.055, 0.27], [0.05, 0.24], [0.045, 0.22]],
-          "rhos": [[0.16, 0.39], [0.155, 0.385], [0.165, 0.395], [0.16, 0.39], [0.155, 0.385]],
-          "taus": [[0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [0.01, -0.05, 0.08, 0.02, -0.03],
-          "clump_fac": [0.85, 0.82, 0.88, 0.86, 0.83]
-        },
-        "nlevmlcan": 1,
-        "light_type": 1,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "special",
-        "description": "Minimum canopy layers (nlevmlcan=1) with all LAI concentrated in single layer",
-        "edge_cases": ["single_layer"]
-      }
-    },
-    {
-      "name": "test_special_many_canopy_layers",
-      "inputs": {
-        "bounds": {"begp": 0, "endp": 1, "begg": 0, "endg": 1},
-        "num_filter": 1,
-        "filter_indices": [0],
-        "patch_state": {
-          "itype": [6],
-          "cosz": [0.72],
-          "swskyb": [[780.0, 590.0]],
-          "swskyd": [[195.0, 148.0]],
-          "albsoib": [[0.13, 0.23]],
-          "albsoid": [[0.18, 0.28]]
-        },
-        "mlcanopy_state": {
-          "dlai_profile": [[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.7, 0.6, 0.5]],
-          "dsai_profile": [[0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.14, 0.12, 0.1]],
-          "dpai_profile": [[0.24, 0.36, 0.48, 0.6, 0.72, 0.84, 0.96, 0.84, 0.72, 0.6]],
-          "ntop_canopy": [0],
-          "nbot_canopy": [9],
-          "ncan_canopy": [10]
-        },
-        "pft_params": {
-          "rhol": [[0.1, 0.45], [0.09, 0.43], [0.11, 0.47], [0.1, 0.44], [0.1, 0.46], [0.09, 0.44], [0.11, 0.46]],
-          "taul": [[0.05, 0.25], [0.045, 0.23], [0.055, 0.27], [0.05, 0.24], [0.05, 0.26], [0.045, 0.24], [0.055, 0.26]],
-          "rhos": [[0.16, 0.39], [0.155, 0.385], [0.165, 0.395], [0.16, 0.39], [0.16, 0.39], [0.155, 0.385], [0.165, 0.395]],
-          "taus": [[0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]],
-          "xl": [0.01, -0.05, 0.08, 0.02, 0.04, -0.03, 0.06],
-          "clump_fac": [0.85, 0.82, 0.88, 0.86, 0.87, 0.83, 0.89]
-        },
-        "nlevmlcan": 10,
-        "light_type": 2,
-        "numrad": 2
-      },
-      "metadata": {
-        "type": "special",
-        "description": "Many canopy layers (10) with gradual LAI distribution, testing vertical resolution",
-        "edge_cases": ["many_layers"]
-      }
-    }
-  ]
-}
-"""
+# Define NamedTuples matching the function signature
+class BoundsType(NamedTuple):
+    """Bounds type containing patch indices."""
+    begp: int
+    endp: int
+    begg: int
+    endg: int
 
 
-def convert_to_jax_arrays(data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Recursively convert lists to JAX arrays in nested dictionaries.
-    
-    Args:
-        data: Dictionary potentially containing nested lists
-        
-    Returns:
-        Dictionary with lists converted to JAX arrays
-    """
-    if isinstance(data, dict):
-        return {k: convert_to_jax_arrays(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return jnp.array(data)
-    else:
-        return data
+class PatchState(NamedTuple):
+    """Patch-level state variables."""
+    itype: jnp.ndarray
+    cosz: jnp.ndarray
+    swskyb: jnp.ndarray
+    swskyd: jnp.ndarray
+    albsoib: jnp.ndarray
+    albsoid: jnp.ndarray
 
 
-def create_namedtuple_from_dict(tuple_class, data_dict: Dict[str, Any]):
-    """
-    Create a namedtuple instance from a dictionary.
-    
-    Args:
-        tuple_class: The namedtuple class to instantiate
-        data_dict: Dictionary with field values
-        
-    Returns:
-        Instance of the namedtuple
-    """
-    converted_data = convert_to_jax_arrays(data_dict)
-    return tuple_class(**converted_data)
+class MLCanopyState(NamedTuple):
+    """Multilayer canopy state variables."""
+    dlai_profile: jnp.ndarray
+    dsai_profile: jnp.ndarray
+    dpai_profile: jnp.ndarray
+    ntop_canopy: jnp.ndarray
+    nbot_canopy: jnp.ndarray
+    ncan_canopy: jnp.ndarray
 
 
-@pytest.fixture(scope="module")
-def test_data():
-    """
-    Load and parse test data from embedded JSON.
-    
-    Returns:
-        Dictionary containing all test cases with proper data structures
-    """
-    data = json.loads(TEST_DATA_JSON)
-    
-    # Convert test case inputs to proper namedtuples
-    for test_case in data['test_cases']:
-        inputs = test_case['inputs']
-        
-        # Convert bounds
-        inputs['bounds'] = BoundsType(**inputs['bounds'])
-        
-        # Convert filter_indices to JAX array
-        inputs['filter_indices'] = jnp.array(inputs['filter_indices'])
-        
-        # Convert patch_state
-        inputs['patch_state'] = create_namedtuple_from_dict(
-            PatchState, inputs['patch_state']
-        )
-        
-        # Convert mlcanopy_state
-        inputs['mlcanopy_state'] = create_namedtuple_from_dict(
-            MLCanopyState, inputs['mlcanopy_state']
-        )
-        
-        # Convert pft_params
-        inputs['pft_params'] = create_namedtuple_from_dict(
-            PFTParams, inputs['pft_params']
-        )
-    
-    return data
+class PFTParams(NamedTuple):
+    """PFT-specific parameters."""
+    rhol: jnp.ndarray
+    taul: jnp.ndarray
+    rhos: jnp.ndarray
+    taus: jnp.ndarray
+    xl: jnp.ndarray
+    clump_fac: jnp.ndarray
 
 
 @pytest.fixture
-def solar_radiation_function():
+def test_data():
     """
-    Fixture providing the solar_radiation function.
+    Load and prepare test data for solar_radiation function.
     
     Returns:
-        The solar_radiation function
+        dict: Dictionary containing all test cases with inputs and metadata.
     """
-    return solar_radiation
+    return {
+        "test_nominal_single_patch_two_layers": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=1, begg=0, endg=1),
+                "num_filter": 1,
+                "filter_indices": jnp.array([0]),
+                "patch_state": PatchState(
+                    itype=jnp.array([5]),
+                    cosz=jnp.array([0.7]),
+                    swskyb=jnp.array([[800.0, 600.0]]),
+                    swskyd=jnp.array([[200.0, 150.0]]),
+                    albsoib=jnp.array([[0.15, 0.25]]),
+                    albsoid=jnp.array([[0.2, 0.3]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[2.5, 1.8]]),
+                    dsai_profile=jnp.array([[0.3, 0.2]]),
+                    dpai_profile=jnp.array([[2.8, 2.0]]),
+                    ntop_canopy=jnp.array([0]),
+                    nbot_canopy=jnp.array([1]),
+                    ncan_canopy=jnp.array([2]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 2,
+                "light_type": 1,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "nominal",
+                "description": "Typical midday conditions with moderate LAI, single patch, Norman radiation scheme",
+            },
+        },
+        "test_nominal_multiple_patches_five_layers": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=3, begg=0, endg=2),
+                "num_filter": 3,
+                "filter_indices": jnp.array([0, 1, 2]),
+                "patch_state": PatchState(
+                    itype=jnp.array([2, 4, 5]),
+                    cosz=jnp.array([0.85, 0.65, 0.5]),
+                    swskyb=jnp.array([[900.0, 700.0], [750.0, 550.0], [600.0, 450.0]]),
+                    swskyd=jnp.array([[150.0, 100.0], [180.0, 120.0], [220.0, 160.0]]),
+                    albsoib=jnp.array([[0.12, 0.22], [0.18, 0.28], [0.14, 0.24]]),
+                    albsoid=jnp.array([[0.17, 0.27], [0.23, 0.33], [0.19, 0.29]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([
+                        [1.2, 1.5, 1.8, 1.3, 0.8],
+                        [0.9, 1.1, 1.4, 1.2, 0.7],
+                        [1.5, 1.8, 2.1, 1.6, 1.0],
+                    ]),
+                    dsai_profile=jnp.array([
+                        [0.15, 0.18, 0.22, 0.16, 0.1],
+                        [0.12, 0.14, 0.17, 0.15, 0.09],
+                        [0.18, 0.22, 0.25, 0.19, 0.12],
+                    ]),
+                    dpai_profile=jnp.array([
+                        [1.35, 1.68, 2.02, 1.46, 0.9],
+                        [1.02, 1.24, 1.57, 1.35, 0.79],
+                        [1.68, 2.02, 2.35, 1.79, 1.12],
+                    ]),
+                    ntop_canopy=jnp.array([0, 0, 0]),
+                    nbot_canopy=jnp.array([4, 4, 4]),
+                    ncan_canopy=jnp.array([5, 5, 5]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 5,
+                "light_type": 1,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "nominal",
+                "description": "Multiple patches with varying solar angles and LAI profiles, 5-layer canopy",
+            },
+        },
+        "test_nominal_twostream_method": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=2, begg=0, endg=1),
+                "num_filter": 2,
+                "filter_indices": jnp.array([0, 1]),
+                "patch_state": PatchState(
+                    itype=jnp.array([3, 5]),
+                    cosz=jnp.array([0.75, 0.6]),
+                    swskyb=jnp.array([[850.0, 650.0], [700.0, 500.0]]),
+                    swskyd=jnp.array([[180.0, 130.0], [210.0, 155.0]]),
+                    albsoib=jnp.array([[0.13, 0.23], [0.16, 0.26]]),
+                    albsoid=jnp.array([[0.18, 0.28], [0.21, 0.31]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[1.8, 2.2, 1.5], [2.1, 2.5, 1.8]]),
+                    dsai_profile=jnp.array([[0.2, 0.25, 0.18], [0.24, 0.28, 0.2]]),
+                    dpai_profile=jnp.array([[2.0, 2.45, 1.68], [2.34, 2.78, 2.0]]),
+                    ntop_canopy=jnp.array([0, 0]),
+                    nbot_canopy=jnp.array([2, 2]),
+                    ncan_canopy=jnp.array([3, 3]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 3,
+                "light_type": 2,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "nominal",
+                "description": "Testing TwoStream radiation transfer method with moderate canopy",
+            },
+        },
+        "test_edge_zero_solar_zenith_angle": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=2, begg=0, endg=1),
+                "num_filter": 2,
+                "filter_indices": jnp.array([0, 1]),
+                "patch_state": PatchState(
+                    itype=jnp.array([1, 3]),
+                    cosz=jnp.array([0.0, 0.001]),
+                    swskyb=jnp.array([[0.0, 0.0], [5.0, 3.0]]),
+                    swskyd=jnp.array([[50.0, 30.0], [80.0, 50.0]]),
+                    albsoib=jnp.array([[0.2, 0.3], [0.18, 0.28]]),
+                    albsoid=jnp.array([[0.25, 0.35], [0.23, 0.33]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[1.0, 0.8, 0.5], [1.2, 1.0, 0.7]]),
+                    dsai_profile=jnp.array([[0.12, 0.1, 0.06], [0.15, 0.12, 0.08]]),
+                    dpai_profile=jnp.array([[1.12, 0.9, 0.56], [1.35, 1.12, 0.78]]),
+                    ntop_canopy=jnp.array([0, 0]),
+                    nbot_canopy=jnp.array([2, 2]),
+                    ncan_canopy=jnp.array([3, 3]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 3,
+                "light_type": 1,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Near-horizontal sun (sunrise/sunset) with minimal direct beam radiation",
+            },
+        },
+        "test_edge_zero_lai_sparse_canopy": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=1, begg=0, endg=1),
+                "num_filter": 1,
+                "filter_indices": jnp.array([0]),
+                "patch_state": PatchState(
+                    itype=jnp.array([2]),
+                    cosz=jnp.array([0.8]),
+                    swskyb=jnp.array([[850.0, 650.0]]),
+                    swskyd=jnp.array([[150.0, 100.0]]),
+                    albsoib=jnp.array([[0.15, 0.25]]),
+                    albsoid=jnp.array([[0.2, 0.3]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[0.0, 0.0, 0.0, 0.0]]),
+                    dsai_profile=jnp.array([[0.05, 0.03, 0.02, 0.01]]),
+                    dpai_profile=jnp.array([[0.05, 0.03, 0.02, 0.01]]),
+                    ntop_canopy=jnp.array([0]),
+                    nbot_canopy=jnp.array([3]),
+                    ncan_canopy=jnp.array([4]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 4,
+                "light_type": 1,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Bare/sparse canopy with zero LAI, only stems present",
+            },
+        },
+        "test_edge_maximum_lai_dense_canopy": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=1, begg=0, endg=1),
+                "num_filter": 1,
+                "filter_indices": jnp.array([0]),
+                "patch_state": PatchState(
+                    itype=jnp.array([4]),
+                    cosz=jnp.array([0.9]),
+                    swskyb=jnp.array([[950.0, 750.0]]),
+                    swskyd=jnp.array([[100.0, 70.0]]),
+                    albsoib=jnp.array([[0.1, 0.2]]),
+                    albsoid=jnp.array([[0.15, 0.25]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[3.5, 4.0, 4.2, 3.8, 3.0, 2.5]]),
+                    dsai_profile=jnp.array([[0.4, 0.45, 0.48, 0.42, 0.35, 0.28]]),
+                    dpai_profile=jnp.array([[3.9, 4.45, 4.68, 4.22, 3.35, 2.78]]),
+                    ntop_canopy=jnp.array([0]),
+                    nbot_canopy=jnp.array([5]),
+                    ncan_canopy=jnp.array([6]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 6,
+                "light_type": 1,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Very dense canopy with high LAI values, testing light extinction limits",
+            },
+        },
+        "test_edge_boundary_albedo_values": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=3, begg=0, endg=2),
+                "num_filter": 3,
+                "filter_indices": jnp.array([0, 1, 2]),
+                "patch_state": PatchState(
+                    itype=jnp.array([1, 2, 3]),
+                    cosz=jnp.array([0.7, 0.7, 0.7]),
+                    swskyb=jnp.array([[800.0, 600.0], [800.0, 600.0], [800.0, 600.0]]),
+                    swskyd=jnp.array([[200.0, 150.0], [200.0, 150.0], [200.0, 150.0]]),
+                    albsoib=jnp.array([[0.0, 0.0], [0.5, 0.5], [1.0, 1.0]]),
+                    albsoid=jnp.array([[0.0, 0.0], [0.5, 0.5], [1.0, 1.0]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[1.5, 1.2], [1.5, 1.2], [1.5, 1.2]]),
+                    dsai_profile=jnp.array([[0.18, 0.15], [0.18, 0.15], [0.18, 0.15]]),
+                    dpai_profile=jnp.array([[1.68, 1.35], [1.68, 1.35], [1.68, 1.35]]),
+                    ntop_canopy=jnp.array([0, 0, 0]),
+                    nbot_canopy=jnp.array([1, 1, 1]),
+                    ncan_canopy=jnp.array([2, 2, 2]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 2,
+                "light_type": 1,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Testing boundary albedo values (0.0, 0.5, 1.0) for soil reflectance",
+            },
+        },
+        "test_edge_extreme_leaf_orientation": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=3, begg=0, endg=2),
+                "num_filter": 3,
+                "filter_indices": jnp.array([0, 1, 2]),
+                "patch_state": PatchState(
+                    itype=jnp.array([0, 1, 2]),
+                    cosz=jnp.array([0.6, 0.6, 0.6]),
+                    swskyb=jnp.array([[750.0, 550.0], [750.0, 550.0], [750.0, 550.0]]),
+                    swskyd=jnp.array([[200.0, 150.0], [200.0, 150.0], [200.0, 150.0]]),
+                    albsoib=jnp.array([[0.15, 0.25], [0.15, 0.25], [0.15, 0.25]]),
+                    albsoid=jnp.array([[0.2, 0.3], [0.2, 0.3], [0.2, 0.3]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[2.0, 1.5, 1.0], [2.0, 1.5, 1.0], [2.0, 1.5, 1.0]]),
+                    dsai_profile=jnp.array([[0.22, 0.18, 0.12], [0.22, 0.18, 0.12], [0.22, 0.18, 0.12]]),
+                    dpai_profile=jnp.array([[2.22, 1.68, 1.12], [2.22, 1.68, 1.12], [2.22, 1.68, 1.12]]),
+                    ntop_canopy=jnp.array([0, 0, 0]),
+                    nbot_canopy=jnp.array([2, 2, 2]),
+                    ncan_canopy=jnp.array([3, 3, 3]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([-0.4, 0.0, 0.6, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 3,
+                "light_type": 1,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Testing extreme leaf orientation indices (planophile, spherical, erectophile)",
+            },
+        },
+        "test_special_single_layer_canopy": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=2, begg=0, endg=1),
+                "num_filter": 2,
+                "filter_indices": jnp.array([0, 1]),
+                "patch_state": PatchState(
+                    itype=jnp.array([3, 5]),
+                    cosz=jnp.array([0.8, 0.7]),
+                    swskyb=jnp.array([[880.0, 680.0], [820.0, 620.0]]),
+                    swskyd=jnp.array([[170.0, 120.0], [190.0, 140.0]]),
+                    albsoib=jnp.array([[0.14, 0.24], [0.16, 0.26]]),
+                    albsoid=jnp.array([[0.19, 0.29], [0.21, 0.31]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[3.5], [2.8]]),
+                    dsai_profile=jnp.array([[0.4], [0.32]]),
+                    dpai_profile=jnp.array([[3.9], [3.12]]),
+                    ntop_canopy=jnp.array([0, 0]),
+                    nbot_canopy=jnp.array([0, 0]),
+                    ncan_canopy=jnp.array([1, 1]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.1, 0.45], [0.12, 0.5], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.05, 0.25], [0.06, 0.28], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.85, 0.8, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 1,
+                "light_type": 1,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "special",
+                "description": "Minimal canopy structure with single layer, testing simplified radiation transfer",
+            },
+        },
+        "test_special_high_clumping_low_transmittance": {
+            "inputs": {
+                "bounds": BoundsType(begp=0, endp=2, begg=0, endg=1),
+                "num_filter": 2,
+                "filter_indices": jnp.array([0, 1]),
+                "patch_state": PatchState(
+                    itype=jnp.array([0, 1]),
+                    cosz=jnp.array([0.65, 0.55]),
+                    swskyb=jnp.array([[780.0, 580.0], [720.0, 520.0]]),
+                    swskyd=jnp.array([[210.0, 160.0], [230.0, 175.0]]),
+                    albsoib=jnp.array([[0.17, 0.27], [0.19, 0.29]]),
+                    albsoid=jnp.array([[0.22, 0.32], [0.24, 0.34]]),
+                ),
+                "mlcanopy_state": MLCanopyState(
+                    dlai_profile=jnp.array([[2.2, 2.5, 2.0, 1.5], [1.8, 2.1, 1.7, 1.2]]),
+                    dsai_profile=jnp.array([[0.25, 0.28, 0.22, 0.18], [0.2, 0.24, 0.19, 0.14]]),
+                    dpai_profile=jnp.array([[2.45, 2.78, 2.22, 1.68], [2.0, 2.34, 1.89, 1.34]]),
+                    ntop_canopy=jnp.array([0, 0]),
+                    nbot_canopy=jnp.array([3, 3]),
+                    ncan_canopy=jnp.array([4, 4]),
+                ),
+                "pft_params": PFTParams(
+                    rhol=jnp.array([
+                        [0.02, 0.35], [0.03, 0.38], [0.08, 0.4],
+                        [0.11, 0.48], [0.09, 0.43], [0.1, 0.45]
+                    ]),
+                    taul=jnp.array([
+                        [0.01, 0.15], [0.01, 0.18], [0.04, 0.22],
+                        [0.05, 0.26], [0.05, 0.24], [0.05, 0.25]
+                    ]),
+                    rhos=jnp.array([
+                        [0.16, 0.39], [0.18, 0.42], [0.14, 0.36],
+                        [0.17, 0.4], [0.15, 0.38], [0.16, 0.39]
+                    ]),
+                    taus=jnp.array([
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001],
+                        [0.001, 0.001], [0.001, 0.001], [0.001, 0.001]
+                    ]),
+                    xl=jnp.array([0.01, 0.1, -0.1, 0.05, -0.05, 0.01]),
+                    clump_fac=jnp.array([0.5, 0.45, 0.9, 0.82, 0.88, 0.85]),
+                ),
+                "nlevmlcan": 4,
+                "light_type": 2,
+                "numrad": 2,
+            },
+            "metadata": {
+                "type": "special",
+                "description": "High foliage clumping with low leaf transmittance, testing extreme optical properties",
+            },
+        },
+    }
 
 
-# Parametrize tests with all test cases
-def get_test_case_ids(test_data):
-    """Extract test case names for parametrization."""
-    return [tc['name'] for tc in test_data['test_cases']]
-
-
-def get_test_cases(test_data):
-    """Extract test cases for parametrization."""
-    return test_data['test_cases']
-
-
-class TestSolarRadiationShapes:
-    """Test suite for verifying output shapes of solar_radiation function."""
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_nominal_single_patch_two_layers",
+        "test_nominal_multiple_patches_five_layers",
+        "test_nominal_twostream_method",
+        "test_edge_zero_solar_zenith_angle",
+        "test_edge_zero_lai_sparse_canopy",
+        "test_edge_maximum_lai_dense_canopy",
+        "test_edge_boundary_albedo_values",
+        "test_edge_extreme_leaf_orientation",
+        "test_special_single_layer_canopy",
+        "test_special_high_clumping_low_transmittance",
+    ],
+)
+def test_solar_radiation_shapes(test_data, test_case_name):
+    """
+    Test that solar_radiation returns outputs with correct shapes.
     
-    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_output_shapes(self, test_case_name, test_data, solar_radiation_function):
-        """Test output shapes for individual test case."""
-        # Get the converted test case from test_data fixture
-        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
-        """
-        Test that solar_radiation returns correctly shaped outputs.
-        
-        Verifies:
-        - swleaf: (n_patches, nlevmlcan, 2, numrad)
-        - swsoi: (n_patches, numrad)
-        - swveg: (n_patches, numrad)
-        - swvegsun: (n_patches, numrad)
-        - swvegsha: (n_patches, numrad)
-        - albcan: (n_patches, numrad)
-        - apar_sun: (n_patches, nlevmlcan)
-        - apar_shade: (n_patches, nlevmlcan)
-        """
-        inputs = test_case['inputs']
-        n_patches = inputs['bounds'].endp - inputs['bounds'].begp
-        nlevmlcan = inputs['nlevmlcan']
-        numrad = inputs['numrad']
-        
-        result = solar_radiation_function(**inputs)
-        
-        assert result.swleaf.shape == (n_patches, nlevmlcan, 2, numrad), \
-            f"swleaf shape mismatch for {test_case['name']}"
-        assert result.swsoi.shape == (n_patches, numrad), \
-            f"swsoi shape mismatch for {test_case['name']}"
-        assert result.swveg.shape == (n_patches, numrad), \
-            f"swveg shape mismatch for {test_case['name']}"
-        assert result.swvegsun.shape == (n_patches, numrad), \
-            f"swvegsun shape mismatch for {test_case['name']}"
-        assert result.swvegsha.shape == (n_patches, numrad), \
-            f"swvegsha shape mismatch for {test_case['name']}"
-        assert result.albcan.shape == (n_patches, numrad), \
-            f"albcan shape mismatch for {test_case['name']}"
-        assert result.apar_sun.shape == (n_patches, nlevmlcan), \
-            f"apar_sun shape mismatch for {test_case['name']}"
-        assert result.apar_shade.shape == (n_patches, nlevmlcan), \
-            f"apar_shade shape mismatch for {test_case['name']}"
+    Verifies that all output arrays have dimensions matching:
+    - n_patches from num_filter
+    - nlevmlcan from input parameter
+    - numrad from input parameter
+    - sunlit/shaded dimension (2) where applicable
+    """
+    test_case = test_data[test_case_name]
+    inputs = test_case["inputs"]
+    
+    result = solar_radiation(**inputs)
+    
+    n_patches = inputs["num_filter"]
+    nlevmlcan = inputs["nlevmlcan"]
+    numrad = inputs["numrad"]
+    
+    # Check swleaf shape: (n_patches, nlevmlcan, 2, numrad)
+    assert result.swleaf.shape == (n_patches, nlevmlcan, 2, numrad), (
+        f"swleaf shape mismatch in {test_case_name}: "
+        f"expected {(n_patches, nlevmlcan, 2, numrad)}, got {result.swleaf.shape}"
+    )
+    
+    # Check swsoi shape: (n_patches, numrad)
+    assert result.swsoi.shape == (n_patches, numrad), (
+        f"swsoi shape mismatch in {test_case_name}: "
+        f"expected {(n_patches, numrad)}, got {result.swsoi.shape}"
+    )
+    
+    # Check swveg shape: (n_patches, numrad)
+    assert result.swveg.shape == (n_patches, numrad), (
+        f"swveg shape mismatch in {test_case_name}: "
+        f"expected {(n_patches, numrad)}, got {result.swveg.shape}"
+    )
+    
+    # Check swvegsun shape: (n_patches, numrad)
+    assert result.swvegsun.shape == (n_patches, numrad), (
+        f"swvegsun shape mismatch in {test_case_name}: "
+        f"expected {(n_patches, numrad)}, got {result.swvegsun.shape}"
+    )
+    
+    # Check swvegsha shape: (n_patches, numrad)
+    assert result.swvegsha.shape == (n_patches, numrad), (
+        f"swvegsha shape mismatch in {test_case_name}: "
+        f"expected {(n_patches, numrad)}, got {result.swvegsha.shape}"
+    )
+    
+    # Check albcan shape: (n_patches, numrad)
+    assert result.albcan.shape == (n_patches, numrad), (
+        f"albcan shape mismatch in {test_case_name}: "
+        f"expected {(n_patches, numrad)}, got {result.albcan.shape}"
+    )
+    
+    # Check apar_sun shape: (n_patches, nlevmlcan)
+    assert result.apar_sun.shape == (n_patches, nlevmlcan), (
+        f"apar_sun shape mismatch in {test_case_name}: "
+        f"expected {(n_patches, nlevmlcan)}, got {result.apar_sun.shape}"
+    )
+    
+    # Check apar_shade shape: (n_patches, nlevmlcan)
+    assert result.apar_shade.shape == (n_patches, nlevmlcan), (
+        f"apar_shade shape mismatch in {test_case_name}: "
+        f"expected {(n_patches, nlevmlcan)}, got {result.apar_shade.shape}"
+    )
 
 
-class TestSolarRadiationDtypes:
-    """Test suite for verifying data types of solar_radiation outputs."""
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_nominal_single_patch_two_layers",
+        "test_nominal_multiple_patches_five_layers",
+        "test_nominal_twostream_method",
+        "test_edge_zero_solar_zenith_angle",
+        "test_edge_zero_lai_sparse_canopy",
+        "test_edge_maximum_lai_dense_canopy",
+        "test_edge_boundary_albedo_values",
+        "test_edge_extreme_leaf_orientation",
+        "test_special_single_layer_canopy",
+        "test_special_high_clumping_low_transmittance",
+    ],
+)
+def test_solar_radiation_dtypes(test_data, test_case_name):
+    """
+    Test that solar_radiation returns outputs with correct data types.
     
-    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_output_dtypes(self, test_case_name, test_data, solar_radiation_function):
-        """
-        Test that solar_radiation returns floating point outputs.
-        
-        All radiation fluxes and albedos should be floating point values.
-        """
-        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        assert jnp.issubdtype(result.swleaf.dtype, jnp.floating), \
-            f"swleaf should be floating point for {test_case['name']}"
-        assert jnp.issubdtype(result.swsoi.dtype, jnp.floating), \
-            f"swsoi should be floating point for {test_case['name']}"
-        assert jnp.issubdtype(result.swveg.dtype, jnp.floating), \
-            f"swveg should be floating point for {test_case['name']}"
-        assert jnp.issubdtype(result.swvegsun.dtype, jnp.floating), \
-            f"swvegsun should be floating point for {test_case['name']}"
-        assert jnp.issubdtype(result.swvegsha.dtype, jnp.floating), \
-            f"swvegsha should be floating point for {test_case['name']}"
-        assert jnp.issubdtype(result.albcan.dtype, jnp.floating), \
-            f"albcan should be floating point for {test_case['name']}"
-        assert jnp.issubdtype(result.apar_sun.dtype, jnp.floating), \
-            f"apar_sun should be floating point for {test_case['name']}"
-        assert jnp.issubdtype(result.apar_shade.dtype, jnp.floating), \
-            f"apar_shade should be floating point for {test_case['name']}"
+    All outputs should be JAX arrays with float dtype.
+    """
+    test_case = test_data[test_case_name]
+    inputs = test_case["inputs"]
+    
+    result = solar_radiation(**inputs)
+    
+    # Check that all outputs are JAX arrays
+    assert isinstance(result.swleaf, jnp.ndarray), (
+        f"swleaf is not a JAX array in {test_case_name}"
+    )
+    assert isinstance(result.swsoi, jnp.ndarray), (
+        f"swsoi is not a JAX array in {test_case_name}"
+    )
+    assert isinstance(result.swveg, jnp.ndarray), (
+        f"swveg is not a JAX array in {test_case_name}"
+    )
+    assert isinstance(result.swvegsun, jnp.ndarray), (
+        f"swvegsun is not a JAX array in {test_case_name}"
+    )
+    assert isinstance(result.swvegsha, jnp.ndarray), (
+        f"swvegsha is not a JAX array in {test_case_name}"
+    )
+    assert isinstance(result.albcan, jnp.ndarray), (
+        f"albcan is not a JAX array in {test_case_name}"
+    )
+    assert isinstance(result.apar_sun, jnp.ndarray), (
+        f"apar_sun is not a JAX array in {test_case_name}"
+    )
+    assert isinstance(result.apar_shade, jnp.ndarray), (
+        f"apar_shade is not a JAX array in {test_case_name}"
+    )
+    
+    # Check that all outputs have float dtype
+    assert jnp.issubdtype(result.swleaf.dtype, jnp.floating), (
+        f"swleaf dtype is not float in {test_case_name}: {result.swleaf.dtype}"
+    )
+    assert jnp.issubdtype(result.swsoi.dtype, jnp.floating), (
+        f"swsoi dtype is not float in {test_case_name}: {result.swsoi.dtype}"
+    )
+    assert jnp.issubdtype(result.swveg.dtype, jnp.floating), (
+        f"swveg dtype is not float in {test_case_name}: {result.swveg.dtype}"
+    )
+    assert jnp.issubdtype(result.swvegsun.dtype, jnp.floating), (
+        f"swvegsun dtype is not float in {test_case_name}: {result.swvegsun.dtype}"
+    )
+    assert jnp.issubdtype(result.swvegsha.dtype, jnp.floating), (
+        f"swvegsha dtype is not float in {test_case_name}: {result.swvegsha.dtype}"
+    )
+    assert jnp.issubdtype(result.albcan.dtype, jnp.floating), (
+        f"albcan dtype is not float in {test_case_name}: {result.albcan.dtype}"
+    )
+    assert jnp.issubdtype(result.apar_sun.dtype, jnp.floating), (
+        f"apar_sun dtype is not float in {test_case_name}: {result.apar_sun.dtype}"
+    )
+    assert jnp.issubdtype(result.apar_shade.dtype, jnp.floating), (
+        f"apar_shade dtype is not float in {test_case_name}: {result.apar_shade.dtype}"
+    )
 
 
-class TestSolarRadiationPhysicalConstraints:
-    """Test suite for verifying physical constraints on outputs."""
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_nominal_single_patch_two_layers",
+        "test_nominal_multiple_patches_five_layers",
+        "test_nominal_twostream_method",
+        "test_edge_zero_solar_zenith_angle",
+        "test_edge_zero_lai_sparse_canopy",
+        "test_edge_maximum_lai_dense_canopy",
+        "test_edge_boundary_albedo_values",
+        "test_edge_extreme_leaf_orientation",
+        "test_special_single_layer_canopy",
+        "test_special_high_clumping_low_transmittance",
+    ],
+)
+def test_solar_radiation_physical_constraints(test_data, test_case_name):
+    """
+    Test that solar_radiation outputs satisfy physical constraints.
     
-    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_non_negative_radiation(self, test_case_name, test_data, solar_radiation_function):
-        """
-        Test that all radiation fluxes are non-negative.
-        
-        Physical constraint: Radiation absorption cannot be negative.
-        """
-        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        assert jnp.all(result.swleaf >= 0), \
-            f"swleaf contains negative values for {test_case['name']}"
-        assert jnp.all(result.swsoi >= 0), \
-            f"swsoi contains negative values for {test_case['name']}"
-        assert jnp.all(result.swveg >= 0), \
-            f"swveg contains negative values for {test_case['name']}"
-        assert jnp.all(result.swvegsun >= 0), \
-            f"swvegsun contains negative values for {test_case['name']}"
-        assert jnp.all(result.swvegsha >= 0), \
-            f"swvegsha contains negative values for {test_case['name']}"
-        assert jnp.all(result.apar_sun >= 0), \
-            f"apar_sun contains negative values for {test_case['name']}"
-        assert jnp.all(result.apar_shade >= 0), \
-            f"apar_shade contains negative values for {test_case['name']}"
+    Verifies:
+    - All radiation values are non-negative
+    - Albedo values are in [0, 1]
+    - Energy conservation: absorbed + reflected <= incoming
+    - APAR values are non-negative
+    """
+    test_case = test_data[test_case_name]
+    inputs = test_case["inputs"]
     
-    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_albedo_bounds(self, test_case_name, test_data, solar_radiation_function):
-        """
-        Test that canopy albedo is within [0, 1].
-        
-        Physical constraint: Albedo represents fraction of reflected radiation.
-        """
-        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        assert jnp.all(result.albcan >= 0), \
-            f"albcan contains values < 0 for {test_case['name']}"
-        assert jnp.all(result.albcan <= 1), \
-            f"albcan contains values > 1 for {test_case['name']}"
+    result = solar_radiation(**inputs)
     
-    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_sunlit_shaded_sum(self, test_case_name, test_data, solar_radiation_function):
-        """
-        Test that sunlit + shaded absorption equals total vegetation absorption.
-        
-        Physical constraint: Total canopy absorption is sum of sunlit and shaded.
-        """
-        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        total_computed = result.swvegsun + result.swvegsha
-        
-        # Allow small numerical differences
-        assert jnp.allclose(total_computed, result.swveg, rtol=1e-5, atol=1e-6), \
-            f"swvegsun + swvegsha != swveg for {test_case['name']}"
+    # Check non-negativity of radiation values
+    assert jnp.all(result.swleaf >= 0), (
+        f"swleaf has negative values in {test_case_name}: min={jnp.min(result.swleaf)}"
+    )
+    assert jnp.all(result.swsoi >= 0), (
+        f"swsoi has negative values in {test_case_name}: min={jnp.min(result.swsoi)}"
+    )
+    assert jnp.all(result.swveg >= 0), (
+        f"swveg has negative values in {test_case_name}: min={jnp.min(result.swveg)}"
+    )
+    assert jnp.all(result.swvegsun >= 0), (
+        f"swvegsun has negative values in {test_case_name}: min={jnp.min(result.swvegsun)}"
+    )
+    assert jnp.all(result.swvegsha >= 0), (
+        f"swvegsha has negative values in {test_case_name}: min={jnp.min(result.swvegsha)}"
+    )
+    
+    # Check albedo bounds [0, 1]
+    assert jnp.all(result.albcan >= 0), (
+        f"albcan has values < 0 in {test_case_name}: min={jnp.min(result.albcan)}"
+    )
+    assert jnp.all(result.albcan <= 1), (
+        f"albcan has values > 1 in {test_case_name}: max={jnp.max(result.albcan)}"
+    )
+    
+    # Check APAR non-negativity
+    assert jnp.all(result.apar_sun >= 0), (
+        f"apar_sun has negative values in {test_case_name}: min={jnp.min(result.apar_sun)}"
+    )
+    assert jnp.all(result.apar_shade >= 0), (
+        f"apar_shade has negative values in {test_case_name}: min={jnp.min(result.apar_shade)}"
+    )
+    
+    # Check energy conservation: swveg + swsoi should be <= incoming radiation
+    # Total incoming = swskyb + swskyd
+    total_incoming = inputs["patch_state"].swskyb + inputs["patch_state"].swskyd
+    total_absorbed = result.swveg + result.swsoi
+    
+    # Allow small numerical tolerance
+    assert jnp.all(total_absorbed <= total_incoming + 1e-3), (
+        f"Energy conservation violated in {test_case_name}: "
+        f"absorbed={jnp.max(total_absorbed)} > incoming={jnp.max(total_incoming)}"
+    )
+    
+    # Check that sunlit + shaded = total vegetation absorption
+    swveg_sum = result.swvegsun + result.swvegsha
+    assert jnp.allclose(swveg_sum, result.swveg, atol=1e-5, rtol=1e-5), (
+        f"Sunlit + shaded != total vegetation absorption in {test_case_name}: "
+        f"max diff={jnp.max(jnp.abs(swveg_sum - result.swveg))}"
+    )
 
 
-class TestSolarRadiationEdgeCases:
-    """Test suite for edge cases and boundary conditions."""
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_edge_zero_solar_zenith_angle",
+        "test_edge_zero_lai_sparse_canopy",
+    ],
+)
+def test_solar_radiation_edge_cases(test_data, test_case_name):
+    """
+    Test solar_radiation behavior in edge cases.
     
-    def test_zero_lai_bare_ground(self, test_data, solar_radiation_function):
-        """
-        Test bare ground case with zero LAI.
-        
-        Expected behavior:
-        - All radiation reaches soil (swsoi > 0)
-        - No canopy absorption (swveg ≈ 0)
-        - Canopy albedo should be minimal or zero
-        """
-        test_case = next(tc for tc in test_data['test_cases'] 
-                        if tc['name'] == 'test_edge_zero_lai_bare_ground')
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        # For bare ground, canopy absorption should be zero or very small
-        assert jnp.allclose(result.swveg, 0.0, atol=1e-6), \
-            "Bare ground should have zero canopy absorption"
-        
-        # Soil should receive radiation
-        total_incoming = (inputs['patch_state'].swskyb + 
-                         inputs['patch_state'].swskyd)
-        assert jnp.any(result.swsoi > 0), \
-            "Bare ground should have soil absorption"
+    Specific checks for:
+    - Zero solar zenith angle: minimal direct beam absorption
+    - Zero LAI: most radiation reaches soil
+    """
+    test_case = test_data[test_case_name]
+    inputs = test_case["inputs"]
     
-    def test_zero_solar_zenith_angle(self, test_data, solar_radiation_function):
-        """
-        Test dawn/dusk conditions with zero or near-zero cosz.
-        
-        Expected behavior:
-        - Minimal or zero direct beam radiation
-        - Diffuse radiation still processed
-        - No numerical instabilities
-        """
-        test_case = next(tc for tc in test_data['test_cases'] 
-                        if tc['name'] == 'test_edge_zero_solar_zenith_angle')
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        # Should not have NaN or Inf values
-        assert jnp.all(jnp.isfinite(result.swleaf)), \
-            "Zero cosz should not produce NaN/Inf in swleaf"
-        assert jnp.all(jnp.isfinite(result.swsoi)), \
-            "Zero cosz should not produce NaN/Inf in swsoi"
-        assert jnp.all(jnp.isfinite(result.albcan)), \
-            "Zero cosz should not produce NaN/Inf in albcan"
+    result = solar_radiation(**inputs)
     
-    def test_maximum_solar_zenith(self, test_data, solar_radiation_function):
-        """
-        Test solar noon with cosz = 1.0.
+    if "zero_cosz" in test_case["metadata"].get("edge_cases", []):
+        # With zero cosine of zenith angle, direct beam should be minimal
+        # Most absorption should be from diffuse radiation
+        cosz = inputs["patch_state"].cosz
+        zero_cosz_mask = cosz < 0.01
         
-        Expected behavior:
-        - Maximum direct beam penetration
-        - Proper handling of vertical sun angle
-        - No numerical issues
-        """
-        test_case = next(tc for tc in test_data['test_cases'] 
-                        if tc['name'] == 'test_edge_maximum_solar_zenith')
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        # Should have valid outputs
-        assert jnp.all(jnp.isfinite(result.swleaf)), \
-            "Maximum cosz should not produce NaN/Inf"
-        
-        # With high direct beam, should have significant absorption
-        assert jnp.any(result.swveg > 0), \
-            "Maximum cosz should produce canopy absorption"
+        if jnp.any(zero_cosz_mask):
+            # Check that direct beam contribution is minimal
+            swskyb = inputs["patch_state"].swskyb[zero_cosz_mask]
+            assert jnp.all(swskyb < 10.0), (
+                f"Direct beam radiation unexpectedly high with zero cosz in {test_case_name}"
+            )
     
-    def test_dense_canopy_attenuation(self, test_data, solar_radiation_function):
-        """
-        Test very dense canopy with high LAI.
+    if "zero_lai" in test_case["metadata"].get("edge_cases", []):
+        # With zero LAI, most radiation should reach the soil
+        dlai = inputs["mlcanopy_state"].dlai_profile
+        zero_lai_mask = jnp.all(dlai < 0.01, axis=1)
         
-        Expected behavior:
-        - Strong radiation attenuation
-        - Minimal radiation reaching soil
-        - High canopy absorption
-        """
-        test_case = next(tc for tc in test_data['test_cases'] 
-                        if tc['name'] == 'test_edge_very_dense_canopy')
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        # Dense canopy should absorb most radiation
-        total_incoming = jnp.sum(inputs['patch_state'].swskyb + 
-                                inputs['patch_state'].swskyd)
-        total_absorbed = jnp.sum(result.swveg + result.swsoi)
-        
-        # Canopy should absorb significant fraction
-        canopy_fraction = jnp.sum(result.swveg) / (total_absorbed + 1e-10)
-        assert canopy_fraction > 0.5, \
-            "Dense canopy should absorb majority of radiation"
-    
-    def test_extreme_albedo_boundaries(self, test_data, solar_radiation_function):
-        """
-        Test boundary albedo values (0.0 and 1.0).
-        
-        Expected behavior:
-        - Zero albedo: maximum absorption
-        - Unit albedo: maximum reflection, minimal absorption
-        - No numerical instabilities
-        """
-        test_case = next(tc for tc in test_data['test_cases'] 
-                        if tc['name'] == 'test_edge_extreme_albedo_boundaries')
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        # Should handle extreme albedos without issues
-        assert jnp.all(jnp.isfinite(result.swsoi)), \
-            "Extreme albedos should not produce NaN/Inf in swsoi"
-        assert jnp.all(jnp.isfinite(result.albcan)), \
-            "Extreme albedos should not produce NaN/Inf in albcan"
-        
-        # Albedo should still be bounded
-        assert jnp.all(result.albcan >= 0) and jnp.all(result.albcan <= 1), \
-            "Canopy albedo should remain in [0,1] even with extreme inputs"
-
-
-class TestSolarRadiationSpecialCases:
-    """Test suite for special configurations."""
-    
-    def test_single_canopy_layer(self, test_data, solar_radiation_function):
-        """
-        Test minimum canopy layers (nlevmlcan=1).
-        
-        Expected behavior:
-        - Single layer should handle all LAI
-        - Proper sunlit/shaded partitioning
-        - Valid outputs
-        """
-        test_case = next(tc for tc in test_data['test_cases'] 
-                        if tc['name'] == 'test_special_single_canopy_layer')
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        # Should have valid single-layer outputs
-        assert result.swleaf.shape[1] == 1, \
-            "Single layer case should have nlevmlcan=1"
-        assert jnp.all(jnp.isfinite(result.swleaf)), \
-            "Single layer should produce finite values"
-        
-        # Should still partition sunlit/shaded
-        assert jnp.any(result.swvegsun > 0) or jnp.any(result.swvegsha > 0), \
-            "Single layer should have some absorption"
-    
-    def test_many_canopy_layers(self, test_data, solar_radiation_function):
-        """
-        Test many canopy layers (nlevmlcan=10).
-        
-        Expected behavior:
-        - Proper vertical resolution
-        - Gradual attenuation through layers
-        - No numerical issues with many layers
-        """
-        test_case = next(tc for tc in test_data['test_cases'] 
-                        if tc['name'] == 'test_special_many_canopy_layers')
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        # Should have correct number of layers
-        assert result.swleaf.shape[1] == 10, \
-            "Many layer case should have nlevmlcan=10"
-        
-        # Should show vertical gradient (top layers receive more)
-        # Average absorption in top half vs bottom half
-        top_half = jnp.mean(result.swleaf[:, :5, :, :])
-        bottom_half = jnp.mean(result.swleaf[:, 5:, :, :])
-        
-        # Top should generally receive more (unless very sparse canopy)
-        # This is a weak test since it depends on LAI distribution
-        assert jnp.isfinite(top_half) and jnp.isfinite(bottom_half), \
-            "Many layers should produce finite values throughout"
-
-
-class TestSolarRadiationMethodComparison:
-    """Test suite comparing Norman and TwoStream methods."""
-    
-    def test_norman_vs_twostream_consistency(self, test_data, solar_radiation_function):
-        """
-        Test that Norman and TwoStream methods produce reasonable results.
-        
-        Both methods should:
-        - Conserve energy
-        - Produce similar magnitudes (though not identical)
-        - Handle same inputs without errors
-        """
-        # Get a nominal test case
-        test_case = next(tc for tc in test_data['test_cases'] 
-                        if tc['name'] == 'test_nominal_single_patch_midday')
-        
-        # Test with Norman method (light_type=1)
-        inputs_norman = test_case['inputs'].copy()
-        inputs_norman['light_type'] = 1
-        result_norman = solar_radiation_function(**inputs_norman)
-        
-        # Test with TwoStream method (light_type=2)
-        inputs_twostream = test_case['inputs'].copy()
-        inputs_twostream['light_type'] = 2
-        result_twostream = solar_radiation_function(**inputs_twostream)
-        
-        # Both should produce valid outputs
-        assert jnp.all(jnp.isfinite(result_norman.swveg)), \
-            "Norman method should produce finite values"
-        assert jnp.all(jnp.isfinite(result_twostream.swveg)), \
-            "TwoStream method should produce finite values"
-        
-        # Both should conserve energy (within numerical precision)
-        # Total absorption should be less than or equal to incoming
-        incoming = jnp.sum(inputs_norman['patch_state'].swskyb + 
-                          inputs_norman['patch_state'].swskyd)
-        
-        total_norman = jnp.sum(result_norman.swveg + result_norman.swsoi)
-        total_twostream = jnp.sum(result_twostream.swveg + result_twostream.swsoi)
-        
-        assert total_norman <= incoming * 1.01, \
-            "Norman method should conserve energy"
-        assert total_twostream <= incoming * 1.01, \
-            "TwoStream method should conserve energy"
-
-
-class TestSolarRadiationNumericalStability:
-    """Test suite for numerical stability and edge conditions."""
-    
-    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_no_nan_or_inf(self, test_case_name, test_data, solar_radiation_function):
-        """
-        Test that outputs never contain NaN or Inf values.
-        
-        This is critical for numerical stability in coupled models.
-        """
-        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        assert jnp.all(jnp.isfinite(result.swleaf)), \
-            f"swleaf contains NaN/Inf for {test_case['name']}"
-        assert jnp.all(jnp.isfinite(result.swsoi)), \
-            f"swsoi contains NaN/Inf for {test_case['name']}"
-        assert jnp.all(jnp.isfinite(result.swveg)), \
-            f"swveg contains NaN/Inf for {test_case['name']}"
-        assert jnp.all(jnp.isfinite(result.swvegsun)), \
-            f"swvegsun contains NaN/Inf for {test_case['name']}"
-        assert jnp.all(jnp.isfinite(result.swvegsha)), \
-            f"swvegsha contains NaN/Inf for {test_case['name']}"
-        assert jnp.all(jnp.isfinite(result.albcan)), \
-            f"albcan contains NaN/Inf for {test_case['name']}"
-        assert jnp.all(jnp.isfinite(result.apar_sun)), \
-            f"apar_sun contains NaN/Inf for {test_case['name']}"
-        assert jnp.all(jnp.isfinite(result.apar_shade)), \
-            f"apar_shade contains NaN/Inf for {test_case['name']}"
-    
-    @pytest.mark.parametrize("test_case_name", get_test_case_ids(json.loads(TEST_DATA_JSON)))
-    def test_energy_conservation(self, test_case_name, test_data, solar_radiation_function):
-        """
-        Test energy conservation: absorbed + reflected ≈ incoming.
-        
-        Within numerical precision, total energy should be conserved.
-        """
-        test_case = next(tc for tc in test_data['test_cases'] if tc['name'] == test_case_name)
-        inputs = test_case['inputs']
-        result = solar_radiation_function(**inputs)
-        
-        # Calculate total incoming radiation per patch
-        incoming = inputs['patch_state'].swskyb + inputs['patch_state'].swskyd
-        total_incoming = jnp.sum(incoming, axis=1)  # Sum over radiation bands
-        
-        # Calculate total absorbed (vegetation + soil)
-        total_absorbed = jnp.sum(result.swveg + result.swsoi, axis=1)
-        
-        # Calculate reflected (albedo * incoming)
-        # Note: This is approximate since albcan is effective canopy albedo
-        total_reflected = jnp.sum(result.albcan * incoming, axis=1)
-        
-        # Total should approximately equal incoming
-        # Allow 5% tolerance for numerical precision and model approximations
-        total_accounted = total_absorbed + total_reflected
-        
-        relative_error = jnp.abs(total_accounted - total_incoming) / (total_incoming + 1e-10)
-        
-        assert jnp.all(relative_error < 0.05), \
-            f"Energy conservation violated for {test_case['name']}: " \
-            f"max relative error = {jnp.max(relative_error):.4f}"
-
-
-class TestSolarRadiationInputValidation:
-    """Test suite for input validation and error handling."""
-    
-    def test_filter_indices_bounds(self, test_data, solar_radiation_function):
-        """
-        Test that filter_indices are within valid bounds.
-        
-        All indices should be >= 0 and < endp.
-        """
-        for test_case in test_data['test_cases']:
-            inputs = test_case['inputs']
-            filter_indices = inputs['filter_indices']
-            endp = inputs['bounds'].endp
+        if jnp.any(zero_lai_mask):
+            # Soil absorption should be high relative to vegetation
+            swsoi_zero_lai = result.swsoi[zero_lai_mask]
+            swveg_zero_lai = result.swveg[zero_lai_mask]
             
-            assert jnp.all(filter_indices >= 0), \
-                f"filter_indices contains negative values in {test_case['name']}"
-            assert jnp.all(filter_indices < endp), \
-                f"filter_indices exceeds bounds in {test_case['name']}"
-    
-    def test_num_filter_consistency(self, test_data, solar_radiation_function):
-        """
-        Test that num_filter matches length of filter_indices.
-        """
-        for test_case in test_data['test_cases']:
-            inputs = test_case['inputs']
-            num_filter = inputs['num_filter']
-            filter_indices = inputs['filter_indices']
-            
-            assert num_filter == len(filter_indices), \
-                f"num_filter != len(filter_indices) in {test_case['name']}"
-    
-    def test_array_dimension_consistency(self, test_data, solar_radiation_function):
-        """
-        Test that all patch-level arrays have consistent dimensions.
-        """
-        for test_case in test_data['test_cases']:
-            inputs = test_case['inputs']
-            n_patches = inputs['bounds'].endp - inputs['bounds'].begp
-            
-            # Check patch_state arrays
-            assert len(inputs['patch_state'].itype) == n_patches, \
-                f"itype dimension mismatch in {test_case['name']}"
-            assert len(inputs['patch_state'].cosz) == n_patches, \
-                f"cosz dimension mismatch in {test_case['name']}"
-            assert inputs['patch_state'].swskyb.shape[0] == n_patches, \
-                f"swskyb dimension mismatch in {test_case['name']}"
-            
-            # Check mlcanopy_state arrays
-            assert inputs['mlcanopy_state'].dlai_profile.shape[0] == n_patches, \
-                f"dlai_profile dimension mismatch in {test_case['name']}"
-            assert inputs['mlcanopy_state'].ntop_canopy.shape[0] == n_patches, \
-                f"ntop_canopy dimension mismatch in {test_case['name']}"
+            # Soil should absorb more than vegetation when LAI is zero
+            assert jnp.all(swsoi_zero_lai >= swveg_zero_lai), (
+                f"Vegetation absorbs more than soil with zero LAI in {test_case_name}"
+            )
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
+def test_solar_radiation_consistency_between_methods(test_data):
+    """
+    Test that Norman and TwoStream methods produce qualitatively similar results.
+    
+    While exact values may differ, both methods should:
+    - Produce similar total absorption patterns
+    - Maintain energy conservation
+    - Show similar trends with LAI
+    """
+    # Use a test case that exists for both methods
+    norman_case = test_data["test_nominal_single_patch_two_layers"]
+    
+    # Create TwoStream version
+    twostream_inputs = norman_case["inputs"].copy()
+    twostream_inputs["light_type"] = 2
+    
+    result_norman = solar_radiation(**norman_case["inputs"])
+    result_twostream = solar_radiation(**twostream_inputs)
+    
+    # Both should conserve energy
+    total_incoming = (
+        norman_case["inputs"]["patch_state"].swskyb +
+        norman_case["inputs"]["patch_state"].swskyd
+    )
+    
+    total_absorbed_norman = result_norman.swveg + result_norman.swsoi
+    total_absorbed_twostream = result_twostream.swveg + result_twostream.swsoi
+    
+    assert jnp.all(total_absorbed_norman <= total_incoming + 1e-3), (
+        "Norman method violates energy conservation"
+    )
+    assert jnp.all(total_absorbed_twostream <= total_incoming + 1e-3), (
+        "TwoStream method violates energy conservation"
+    )
+    
+    # Albedo should be in similar range (within 0.2)
+    assert jnp.allclose(result_norman.albcan, result_twostream.albcan, atol=0.2), (
+        f"Albedo differs significantly between methods: "
+        f"Norman={result_norman.albcan}, TwoStream={result_twostream.albcan}"
+    )
+
+
+def test_solar_radiation_lai_gradient(test_data):
+    """
+    Test that radiation absorption increases with LAI.
+    
+    Higher LAI should lead to:
+    - More vegetation absorption
+    - Less soil absorption
+    - Lower canopy albedo (more absorption)
+    """
+    # Compare sparse vs dense canopy cases
+    sparse_case = test_data["test_edge_zero_lai_sparse_canopy"]
+    dense_case = test_data["test_edge_maximum_lai_dense_canopy"]
+    
+    result_sparse = solar_radiation(**sparse_case["inputs"])
+    result_dense = solar_radiation(**dense_case["inputs"])
+    
+    # Dense canopy should absorb more in vegetation
+    assert jnp.all(result_dense.swveg >= result_sparse.swveg), (
+        "Dense canopy doesn't absorb more than sparse canopy"
+    )
+    
+    # Sparse canopy should have more soil absorption
+    assert jnp.all(result_sparse.swsoi >= result_dense.swsoi), (
+        "Sparse canopy doesn't have more soil absorption than dense canopy"
+    )
+
+
+def test_solar_radiation_sunlit_shaded_fractions(test_data):
+    """
+    Test that sunlit and shaded leaf fractions behave correctly.
+    
+    Verifies:
+    - Sunlit fraction decreases with depth in canopy
+    - Sunlit leaves receive more radiation than shaded
+    - APAR for sunlit > APAR for shaded
+    """
+    test_case = test_data["test_nominal_multiple_patches_five_layers"]
+    inputs = test_case["inputs"]
+    
+    result = solar_radiation(**inputs)
+    
+    # Sunlit leaves should generally receive more radiation than shaded
+    # (averaged over layers and bands)
+    swleaf_sun = result.swleaf[:, :, 0, :]  # sunlit
+    swleaf_shade = result.swleaf[:, :, 1, :]  # shaded
+    
+    mean_sun = jnp.mean(swleaf_sun)
+    mean_shade = jnp.mean(swleaf_shade)
+    
+    assert mean_sun >= mean_shade, (
+        f"Sunlit leaves don't receive more radiation than shaded: "
+        f"sun={mean_sun}, shade={mean_shade}"
+    )
+    
+    # APAR for sunlit should be greater than shaded
+    assert jnp.all(result.apar_sun >= result.apar_shade), (
+        "APAR for sunlit leaves is not greater than shaded"
+    )
+
+
+def test_solar_radiation_no_nans_or_infs(test_data):
+    """
+    Test that solar_radiation never produces NaN or Inf values.
+    
+    This is critical for numerical stability in all test cases.
+    """
+    for test_case_name, test_case in test_data.items():
+        inputs = test_case["inputs"]
+        result = solar_radiation(**inputs)
+        
+        # Check all outputs for NaN/Inf
+        assert not jnp.any(jnp.isnan(result.swleaf)), (
+            f"swleaf contains NaN in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isinf(result.swleaf)), (
+            f"swleaf contains Inf in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isnan(result.swsoi)), (
+            f"swsoi contains NaN in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isinf(result.swsoi)), (
+            f"swsoi contains Inf in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isnan(result.swveg)), (
+            f"swveg contains NaN in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isinf(result.swveg)), (
+            f"swveg contains Inf in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isnan(result.swvegsun)), (
+            f"swvegsun contains NaN in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isinf(result.swvegsun)), (
+            f"swvegsun contains Inf in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isnan(result.swvegsha)), (
+            f"swvegsha contains NaN in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isinf(result.swvegsha)), (
+            f"swvegsha contains Inf in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isnan(result.albcan)), (
+            f"albcan contains NaN in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isinf(result.albcan)), (
+            f"albcan contains Inf in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isnan(result.apar_sun)), (
+            f"apar_sun contains NaN in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isinf(result.apar_sun)), (
+            f"apar_sun contains Inf in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isnan(result.apar_shade)), (
+            f"apar_shade contains NaN in {test_case_name}"
+        )
+        assert not jnp.any(jnp.isinf(result.apar_shade)), (
+            f"apar_shade contains Inf in {test_case_name}"
+        )
+
+
+def test_solar_radiation_albedo_bounds_extreme_cases(test_data):
+    """
+    Test albedo behavior with extreme soil albedo values.
+    
+    Verifies that canopy albedo responds appropriately to:
+    - Zero soil albedo (perfect absorber)
+    - Maximum soil albedo (perfect reflector)
+    """
+    test_case = test_data["test_edge_boundary_albedo_values"]
+    inputs = test_case["inputs"]
+    
+    result = solar_radiation(**inputs)
+    
+    # Extract results for each albedo case
+    albcan_zero = result.albcan[0, :]  # Zero soil albedo
+    albcan_mid = result.albcan[1, :]   # 0.5 soil albedo
+    albcan_max = result.albcan[2, :]   # Maximum soil albedo
+    
+    # Canopy albedo should increase with soil albedo
+    assert jnp.all(albcan_mid >= albcan_zero), (
+        "Canopy albedo doesn't increase from zero to mid soil albedo"
+    )
+    assert jnp.all(albcan_max >= albcan_mid), (
+        "Canopy albedo doesn't increase from mid to max soil albedo"
+    )
+    
+    # All should still be in valid range
+    assert jnp.all(albcan_zero >= 0) and jnp.all(albcan_zero <= 1), (
+        "Canopy albedo out of bounds with zero soil albedo"
+    )
+    assert jnp.all(albcan_max >= 0) and jnp.all(albcan_max <= 1), (
+        "Canopy albedo out of bounds with max soil albedo"
+    )

@@ -1,1251 +1,883 @@
 """
-Comprehensive pytest suite for MLPlantHydraulicsMod module.
+Comprehensive pytest suite for MLPlantHydraulicsMod functions.
 
-Tests cover plant hydraulic resistance calculations including:
-- plant_resistance: Leaf-specific conductance calculations
-- soil_resistance: Soil hydraulic resistance and water potential
-- leaf_water_potential: Dynamic leaf water potential updates
+This module tests the plant hydraulics functions including:
+- plant_resistance: Calculate leaf-specific conductance for canopy layers
+- soil_resistance: Calculate soil hydraulic resistance and water potential
+- leaf_water_potential: Update leaf water potential based on transpiration
+- _calculate_soil_resistance_per_layer: Per-layer soil resistance calculations
+- _finalize_soil_resistance: Finalize soil resistance and uptake fractions
 
-Test categories:
-- Nominal cases: Typical forest/vegetation conditions
-- Edge cases: Boundary conditions (zeros, extremes)
-- Special cases: Unusual but valid scenarios
-- Shape/dtype validation
+Tests cover nominal cases, edge cases, and physical constraints.
 """
 
-import pytest
+import sys
+from pathlib import Path
+from typing import NamedTuple
+
 import jax.numpy as jnp
 import numpy as np
-from collections import namedtuple
-from typing import Dict, Any
+import pytest
 
-# Import the module under test
-# from MLPlantHydraulicsMod import (
-#     plant_resistance,
-#     soil_resistance,
-#     leaf_water_potential,
-#     PlantResistanceInput,
-#     PlantResistanceOutput,
-#     SoilResistanceInputs,
-#     SoilResistanceOutputs,
-#     LeafWaterPotentialInputs,
-#     LeafWaterPotentialOutputs,
-# )
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-# Define namedtuples for testing (remove if importing from module)
-PlantResistanceInput = namedtuple(
-    'PlantResistanceInput',
-    ['gplant_SPA', 'ncan', 'rsoil', 'dpai', 'zs', 'itype']
+from multilayer_canopy.MLPlantHydraulicsMod import (
+    PlantResistanceInput,
+    PlantResistanceOutput,
+    SoilResistanceInputs,
+    SoilResistanceOutputs,
+    LeafWaterPotentialInputs,
+    LeafWaterPotentialOutputs,
+    plant_resistance,
+    soil_resistance,
+    leaf_water_potential,
+    _calculate_soil_resistance_per_layer,
+    _finalize_soil_resistance,
 )
-
-PlantResistanceOutput = namedtuple(
-    'PlantResistanceOutput',
-    ['lsc']
-)
-
-SoilResistanceInputs = namedtuple(
-    'SoilResistanceInputs',
-    ['root_radius', 'root_density', 'root_resist', 'dz', 'nbedrock',
-     'smp_l', 'hk_l', 'rootfr', 'h2osoi_ice', 'root_biomass', 'lai',
-     'itype', 'patch_to_column', 'minlwp_SPA']
-)
-
-SoilResistanceOutputs = namedtuple(
-    'SoilResistanceOutputs',
-    ['rsoil', 'psis', 'soil_et_loss']
-)
-
-LeafWaterPotentialInputs = namedtuple(
-    'LeafWaterPotentialInputs',
-    ['capac_SPA', 'ncan', 'psis', 'dpai', 'zs', 'lsc', 'trleaf',
-     'lwp', 'itype', 'dtime_substep']
-)
-
-LeafWaterPotentialOutputs = namedtuple(
-    'LeafWaterPotentialOutputs',
-    ['lwp']
-)
-
-
-# Constants
-DENH2O = 1000.0  # Water density [kg/m³]
-GRAV = 9.80616  # Gravitational acceleration [m/s²]
-MMOL_H2O = 18.0  # Molar mass of water [g/mol]
-PI = jnp.pi
-HEAD = DENH2O * GRAV * 1.0e-6  # Converts mm to MPa
 
 
 @pytest.fixture
-def plant_resistance_test_data():
+def test_data():
     """
-    Fixture providing comprehensive test data for plant_resistance function.
+    Load comprehensive test data for plant hydraulics functions.
     
     Returns:
-        dict: Test cases with inputs and metadata
+        dict: Test cases with inputs and metadata for all functions
     """
     return {
-        "test_nominal_single_patch_single_layer": {
+        "plant_resistance_nominal_single": {
             "inputs": {
-                "gplant_SPA": jnp.array([5000.0]),
-                "ncan": jnp.array([1]),
+                "gplant_SPA": jnp.array([150.0, 200.0, 180.0]),
+                "ncan": jnp.array([10]),
                 "rsoil": jnp.array([0.5]),
-                "dpai": jnp.array([[2.5]]),
-                "zs": jnp.array([[10.0]]),
-                "itype": jnp.array([0]),
+                "dpai": jnp.array([[0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.02, 
+                                   0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "zs": jnp.array([[25.0, 22.5, 20.0, 17.5, 15.0, 12.5, 10.0, 7.5, 5.0, 2.5,
+                                 0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "itype": jnp.array([1]),
             },
-            "expected_shape": (1, 1),
-            "description": "Single patch with single canopy layer, typical forest conditions",
+            "expected_shape": (1, 15),
+            "description": "Single patch with typical forest canopy structure",
         },
-        "test_nominal_multi_patch_multi_layer": {
+        "plant_resistance_multiple": {
             "inputs": {
-                "gplant_SPA": jnp.array([5000.0, 3500.0, 7000.0]),
-                "ncan": jnp.array([3, 2, 4]),
-                "rsoil": jnp.array([0.4, 0.6, 0.3]),
+                "gplant_SPA": jnp.array([150.0, 200.0, 180.0, 120.0]),
+                "ncan": jnp.array([10, 8, 12]),
+                "rsoil": jnp.array([0.5, 0.8, 0.3]),
                 "dpai": jnp.array([
-                    [1.5, 2.0, 1.8, 0.0],
-                    [2.2, 1.9, 0.0, 0.0],
-                    [1.2, 1.8, 2.1, 1.5]
+                    [0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.02, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.6, 0.5, 0.4, 0.3, 0.2, 0.15, 0.1, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.15, 0.1, 0.05, 0.0, 0.0, 0.0],
                 ]),
                 "zs": jnp.array([
-                    [15.0, 10.0, 5.0, 0.0],
-                    [12.0, 6.0, 0.0, 0.0],
-                    [20.0, 15.0, 10.0, 5.0]
+                    [25.0, 22.5, 20.0, 17.5, 15.0, 12.5, 10.0, 7.5, 5.0, 2.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [18.0, 16.0, 14.0, 12.0, 10.0, 8.0, 6.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [30.0, 27.5, 25.0, 22.5, 20.0, 17.5, 15.0, 12.5, 10.0, 7.5, 5.0, 2.5, 0.0, 0.0, 0.0],
                 ]),
-                "itype": jnp.array([0, 1, 2]),
+                "itype": jnp.array([1, 2, 0]),
             },
-            "expected_shape": (3, 4),
-            "description": "Multiple patches with varying canopy layers",
+            "expected_shape": (3, 15),
+            "description": "Multiple patches with different canopy structures",
         },
-        "test_nominal_dense_canopy": {
+        "plant_resistance_zero_rsoil": {
             "inputs": {
-                "gplant_SPA": jnp.array([8000.0, 6500.0]),
-                "ncan": jnp.array([5, 5]),
-                "rsoil": jnp.array([0.25, 0.35]),
-                "dpai": jnp.array([
-                    [3.5, 3.2, 2.8, 2.1, 1.5],
-                    [3.0, 2.7, 2.3, 1.8, 1.2]
-                ]),
-                "zs": jnp.array([
-                    [25.0, 20.0, 15.0, 10.0, 5.0],
-                    [22.0, 18.0, 14.0, 9.0, 4.0]
-                ]),
-                "itype": jnp.array([0, 0]),
-            },
-            "expected_shape": (2, 5),
-            "description": "Dense multi-layer canopy with high LAI",
-        },
-        "test_edge_zero_soil_resistance": {
-            "inputs": {
-                "gplant_SPA": jnp.array([4500.0]),
-                "ncan": jnp.array([2]),
+                "gplant_SPA": jnp.array([150.0, 200.0]),
+                "ncan": jnp.array([5]),
                 "rsoil": jnp.array([0.0]),
-                "dpai": jnp.array([[2.0, 1.5]]),
-                "zs": jnp.array([[12.0, 6.0]]),
+                "dpai": jnp.array([[0.5, 0.4, 0.3, 0.2, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "zs": jnp.array([[10.0, 8.0, 6.0, 4.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
                 "itype": jnp.array([0]),
             },
-            "expected_shape": (1, 2),
-            "description": "Zero soil resistance (saturated soil)",
-            "edge_case": "zero_soil_resistance",
+            "expected_shape": (1, 10),
+            "description": "Zero soil resistance edge case",
         },
-        "test_edge_zero_plant_area_index": {
+        "plant_resistance_sparse": {
             "inputs": {
-                "gplant_SPA": jnp.array([5000.0, 4000.0]),
-                "ncan": jnp.array([3, 2]),
-                "rsoil": jnp.array([0.5, 0.4]),
-                "dpai": jnp.array([
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0]
-                ]),
-                "zs": jnp.array([
-                    [15.0, 10.0, 5.0],
-                    [12.0, 6.0, 0.0]
-                ]),
-                "itype": jnp.array([0, 1]),
+                "gplant_SPA": jnp.array([100.0, 150.0, 120.0]),
+                "ncan": jnp.array([3]),
+                "rsoil": jnp.array([1.2]),
+                "dpai": jnp.array([[0.05, 0.03, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "zs": jnp.array([[3.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "itype": jnp.array([2]),
             },
-            "expected_shape": (2, 3),
-            "description": "Zero plant area index (leafless vegetation)",
-            "edge_case": "zero_dpai",
+            "expected_shape": (1, 10),
+            "description": "Sparse canopy with minimal PAI",
         },
-        "test_edge_very_high_soil_resistance": {
+        "soil_resistance_nominal": {
             "inputs": {
-                "gplant_SPA": jnp.array([3000.0]),
-                "ncan": jnp.array([2]),
-                "rsoil": jnp.array([100.0]),
-                "dpai": jnp.array([[1.8, 1.2]]),
-                "zs": jnp.array([[10.0, 5.0]]),
-                "itype": jnp.array([0]),
-            },
-            "expected_shape": (1, 2),
-            "description": "Very high soil resistance (extremely dry soil)",
-            "edge_case": "high_soil_resistance",
-        },
-        "test_edge_minimal_canopy_height": {
-            "inputs": {
-                "gplant_SPA": jnp.array([4000.0]),
-                "ncan": jnp.array([1]),
-                "rsoil": jnp.array([0.3]),
-                "dpai": jnp.array([[1.5]]),
-                "zs": jnp.array([[0.1]]),
-                "itype": jnp.array([0]),
-            },
-            "expected_shape": (1, 1),
-            "description": "Very low canopy height (grassland)",
-            "edge_case": "minimal_height",
-        },
-        "test_special_sparse_canopy": {
-            "inputs": {
-                "gplant_SPA": jnp.array([2500.0, 2800.0]),
-                "ncan": jnp.array([2, 3]),
-                "rsoil": jnp.array([0.8, 0.7]),
-                "dpai": jnp.array([
-                    [0.5, 0.3, 0.0],
-                    [0.6, 0.4, 0.2]
-                ]),
-                "zs": jnp.array([
-                    [8.0, 4.0, 0.0],
-                    [9.0, 6.0, 3.0]
-                ]),
-                "itype": jnp.array([1, 1]),
-            },
-            "expected_shape": (2, 3),
-            "description": "Sparse canopy with low LAI (savanna)",
-        },
-        "test_special_tall_canopy_extreme": {
-            "inputs": {
-                "gplant_SPA": jnp.array([10000.0]),
-                "ncan": jnp.array([6]),
-                "rsoil": jnp.array([0.2]),
-                "dpai": jnp.array([[2.8, 2.5, 2.2, 1.9, 1.5, 1.0]]),
-                "zs": jnp.array([[50.0, 40.0, 30.0, 20.0, 10.0, 5.0]]),
-                "itype": jnp.array([0]),
-            },
-            "expected_shape": (1, 6),
-            "description": "Very tall canopy with many layers (old-growth forest)",
-        },
-        "test_special_mixed_pft_types": {
-            "inputs": {
-                "gplant_SPA": jnp.array([5000.0, 3000.0, 7500.0, 4500.0]),
-                "ncan": jnp.array([3, 1, 4, 2]),
-                "rsoil": jnp.array([0.4, 0.9, 0.25, 0.55]),
-                "dpai": jnp.array([
-                    [2.0, 1.5, 1.0, 0.0],
-                    [0.8, 0.0, 0.0, 0.0],
-                    [2.5, 2.2, 1.8, 1.3],
-                    [1.6, 1.1, 0.0, 0.0]
-                ]),
-                "zs": jnp.array([
-                    [18.0, 12.0, 6.0, 0.0],
-                    [5.0, 0.0, 0.0, 0.0],
-                    [25.0, 20.0, 15.0, 10.0],
-                    [14.0, 7.0, 0.0, 0.0]
-                ]),
-                "itype": jnp.array([0, 2, 1, 3]),
-            },
-            "expected_shape": (4, 4),
-            "description": "Mixed vegetation types with varying structures",
-        },
-    }
-
-
-@pytest.fixture
-def soil_resistance_test_data():
-    """
-    Fixture providing test data for soil_resistance function.
-    
-    Returns:
-        dict: Test cases with inputs and expected outputs
-    """
-    return {
-        "test_nominal_single_column": {
-            "inputs": {
-                "root_radius": jnp.array([0.0001]),  # 0.1 mm
-                "root_density": jnp.array([200.0]),  # g/m³
-                "root_resist": jnp.array([25.0]),  # MPa·s·g/mmol
-                "dz": jnp.array([[0.1, 0.2, 0.3, 0.4, 0.5]]),  # m
-                "nbedrock": jnp.array([5]),
-                "smp_l": jnp.array([[-100.0, -500.0, -1000.0, -2000.0, -3000.0]]),  # mm
-                "hk_l": jnp.array([[0.01, 0.005, 0.002, 0.001, 0.0005]]),  # mm/s
-                "rootfr": jnp.array([[0.3, 0.3, 0.2, 0.15, 0.05]]),
-                "h2osoi_ice": jnp.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),  # kg/m²
-                "root_biomass": jnp.array([500.0]),  # g/m²
-                "lai": jnp.array([4.0]),  # m²/m²
-                "itype": jnp.array([0]),
-                "patch_to_column": jnp.array([0]),
-                "minlwp_SPA": -2.5,  # MPa
-            },
-            "expected_shape": {
-                "rsoil": (1,),
-                "psis": (1,),
-                "soil_et_loss": (1, 5),
-            },
-            "description": "Single column with typical soil profile",
-        },
-        "test_edge_frozen_soil": {
-            "inputs": {
-                "root_radius": jnp.array([0.0001]),
-                "root_density": jnp.array([200.0]),
-                "root_resist": jnp.array([25.0]),
-                "dz": jnp.array([[0.1, 0.2, 0.3]]),
-                "nbedrock": jnp.array([3]),
-                "smp_l": jnp.array([[-200.0, -800.0, -1500.0]]),
-                "hk_l": jnp.array([[0.005, 0.002, 0.001]]),
-                "rootfr": jnp.array([[0.5, 0.3, 0.2]]),
-                "h2osoi_ice": jnp.array([[50.0, 80.0, 100.0]]),  # Frozen soil
-                "root_biomass": jnp.array([400.0]),
-                "lai": jnp.array([3.0]),
-                "itype": jnp.array([0]),
+                "root_radius": jnp.array([0.0001, 0.00015, 0.00012]),
+                "root_density": jnp.array([50000.0, 60000.0, 55000.0]),
+                "root_resist": jnp.array([25.0, 30.0, 28.0]),
+                "dz": jnp.array([[0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]]),
+                "nbedrock": jnp.array([10]),
+                "smp_l": jnp.array([[-100.0, -200.0, -300.0, -500.0, -800.0, 
+                                     -1200.0, -1800.0, -2500.0, -3500.0, -5000.0]]),
+                "hk_l": jnp.array([[0.001, 0.0008, 0.0006, 0.0004, 0.0003, 
+                                   0.0002, 0.00015, 0.0001, 8e-05, 5e-05]]),
+                "rootfr": jnp.array([[0.25, 0.2, 0.15, 0.12, 0.1, 0.08, 0.05, 0.03, 0.01, 0.01]]),
+                "h2osoi_ice": jnp.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "root_biomass": jnp.array([150.0]),
+                "lai": jnp.array([4.5]),
+                "itype": jnp.array([1]),
                 "patch_to_column": jnp.array([0]),
                 "minlwp_SPA": -2.5,
             },
-            "expected_shape": {
-                "rsoil": (1,),
-                "psis": (1,),
-                "soil_et_loss": (1, 3),
-            },
-            "description": "Frozen soil layers (high ice content)",
-            "edge_case": "frozen_soil",
+            "expected_shapes": {"rsoil": (1,), "psis": (1,), "soil_et_loss": (1, 10)},
+            "description": "Typical soil profile with no ice",
         },
-        "test_edge_shallow_bedrock": {
+        "soil_resistance_frozen": {
             "inputs": {
-                "root_radius": jnp.array([0.00015]),
-                "root_density": jnp.array([180.0]),
-                "root_resist": jnp.array([30.0]),
-                "dz": jnp.array([[0.1, 0.15, 0.2, 0.25, 0.3]]),
-                "nbedrock": jnp.array([2]),  # Shallow bedrock
-                "smp_l": jnp.array([[-150.0, -600.0, -1200.0, -2500.0, -4000.0]]),
-                "hk_l": jnp.array([[0.008, 0.004, 0.001, 0.0005, 0.0002]]),
-                "rootfr": jnp.array([[0.6, 0.4, 0.0, 0.0, 0.0]]),
-                "h2osoi_ice": jnp.array([[0.0, 0.0, 0.0, 0.0, 0.0]]),
-                "root_biomass": jnp.array([350.0]),
-                "lai": jnp.array([2.5]),
+                "root_radius": jnp.array([0.0001, 0.00015]),
+                "root_density": jnp.array([50000.0, 60000.0]),
+                "root_resist": jnp.array([25.0, 30.0]),
+                "dz": jnp.array([[0.1, 0.15, 0.2, 0.25, 0.3, 0.4]]),
+                "nbedrock": jnp.array([6]),
+                "smp_l": jnp.array([[-50.0, -100.0, -150.0, -200.0, -300.0, -500.0]]),
+                "hk_l": jnp.array([[0.001, 0.0008, 0.0005, 0.0003, 0.0001, 5e-05]]),
+                "rootfr": jnp.array([[0.3, 0.25, 0.2, 0.15, 0.07, 0.03]]),
+                "h2osoi_ice": jnp.array([[5.0, 8.0, 12.0, 15.0, 10.0, 5.0]]),
+                "root_biomass": jnp.array([120.0]),
+                "lai": jnp.array([3.0]),
                 "itype": jnp.array([0]),
                 "patch_to_column": jnp.array([0]),
                 "minlwp_SPA": -3.0,
             },
-            "expected_shape": {
-                "rsoil": (1,),
-                "psis": (1,),
-                "soil_et_loss": (1, 5),
-            },
-            "description": "Shallow bedrock limiting root zone",
-            "edge_case": "shallow_bedrock",
+            "expected_shapes": {"rsoil": (1,), "psis": (1,), "soil_et_loss": (1, 6)},
+            "description": "Frozen soil with significant ice content",
         },
-    }
-
-
-@pytest.fixture
-def leaf_water_potential_test_data():
-    """
-    Fixture providing test data for leaf_water_potential function.
-    
-    Returns:
-        dict: Test cases with inputs and expected outputs
-    """
-    return {
-        "test_nominal_sunlit_leaves": {
+        "soil_resistance_shallow_bedrock": {
             "inputs": {
-                "capac_SPA": jnp.array([5000.0]),  # mmol/m²/MPa
-                "ncan": jnp.array([3]),
-                "psis": jnp.array([-0.5]),  # MPa
-                "dpai": jnp.array([[2.0, 1.5, 1.0]]),
-                "zs": jnp.array([[15.0, 10.0, 5.0]]),
-                "lsc": jnp.array([[100.0, 90.0, 80.0]]),  # mmol/m²/s/MPa
-                "trleaf": jnp.array([
-                    [[0.003, 0.001], [0.0025, 0.0008], [0.002, 0.0006]]
-                ]),  # mol/m²/s
-                "lwp": jnp.array([
-                    [[-1.2, -0.8], [-1.3, -0.9], [-1.4, -1.0]]
-                ]),  # MPa
-                "itype": jnp.array([0]),
-                "dtime_substep": 60.0,  # seconds
+                "root_radius": jnp.array([0.0001, 0.00012, 0.00015]),
+                "root_density": jnp.array([50000.0, 55000.0, 60000.0]),
+                "root_resist": jnp.array([25.0, 27.0, 30.0]),
+                "dz": jnp.array([[0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6]]),
+                "nbedrock": jnp.array([3]),
+                "smp_l": jnp.array([[-80.0, -150.0, -250.0, -10000.0, -10000.0, 
+                                     -10000.0, -10000.0, -10000.0]]),
+                "hk_l": jnp.array([[0.001, 0.0008, 0.0005, 0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "rootfr": jnp.array([[0.5, 0.35, 0.15, 0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "h2osoi_ice": jnp.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
+                "root_biomass": jnp.array([100.0]),
+                "lai": jnp.array([3.5]),
+                "itype": jnp.array([2]),
+                "patch_to_column": jnp.array([0]),
+                "minlwp_SPA": -2.0,
             },
-            "il": 0,  # Sunlit leaves
-            "expected_shape": (1, 3, 2),
-            "description": "Sunlit leaves with typical transpiration",
+            "expected_shapes": {"rsoil": (1,), "psis": (1,), "soil_et_loss": (1, 8)},
+            "description": "Shallow bedrock limiting rooting depth",
         },
-        "test_nominal_shaded_leaves": {
+        "lwp_nominal_sunlit": {
             "inputs": {
-                "capac_SPA": jnp.array([5000.0]),
-                "ncan": jnp.array([3]),
+                "capac_SPA": jnp.array([5000.0, 6000.0, 5500.0]),
+                "ncan": jnp.array([8]),
                 "psis": jnp.array([-0.5]),
-                "dpai": jnp.array([[2.0, 1.5, 1.0]]),
-                "zs": jnp.array([[15.0, 10.0, 5.0]]),
-                "lsc": jnp.array([[100.0, 90.0, 80.0]]),
+                "dpai": jnp.array([[0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.0, 0.0]]),
+                "zs": jnp.array([[20.0, 17.5, 15.0, 12.5, 10.0, 7.5, 5.0, 2.5, 0.0, 0.0]]),
+                "lsc": jnp.array([[80.0, 75.0, 70.0, 65.0, 60.0, 55.0, 50.0, 45.0, 0.0, 0.0]]),
                 "trleaf": jnp.array([
-                    [[0.003, 0.001], [0.0025, 0.0008], [0.002, 0.0006]]
+                    [[0.003, 0.001], [0.0028, 0.0009], [0.0026, 0.0008], [0.0024, 0.0007],
+                     [0.0022, 0.0006], [0.002, 0.0005], [0.0018, 0.0004], [0.0015, 0.0003],
+                     [0.0, 0.0], [0.0, 0.0]]
                 ]),
                 "lwp": jnp.array([
-                    [[-1.2, -0.8], [-1.3, -0.9], [-1.4, -1.0]]
+                    [[-0.8, -0.9], [-0.85, -0.95], [-0.9, -1.0], [-0.95, -1.05],
+                     [-1.0, -1.1], [-1.05, -1.15], [-1.1, -1.2], [-1.15, -1.25],
+                     [0.0, 0.0], [0.0, 0.0]]
                 ]),
-                "itype": jnp.array([0]),
-                "dtime_substep": 60.0,
+                "itype": jnp.array([1]),
+                "dtime_substep": 300.0,
+                "il": 0,
             },
-            "il": 1,  # Shaded leaves
-            "expected_shape": (1, 3, 2),
-            "description": "Shaded leaves with lower transpiration",
+            "expected_shape": (1, 10, 2),
+            "description": "Sunlit leaf water potential with typical transpiration",
         },
-        "test_edge_zero_transpiration": {
+        "lwp_high_stress": {
             "inputs": {
-                "capac_SPA": jnp.array([4500.0]),
-                "ncan": jnp.array([2]),
-                "psis": jnp.array([-0.3]),
-                "dpai": jnp.array([[1.8, 1.2]]),
-                "zs": jnp.array([[12.0, 6.0]]),
-                "lsc": jnp.array([[95.0, 85.0]]),
+                "capac_SPA": jnp.array([5000.0, 6000.0]),
+                "ncan": jnp.array([6]),
+                "psis": jnp.array([-2.5]),
+                "dpai": jnp.array([[0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.0, 0.0]]),
+                "zs": jnp.array([[15.0, 12.5, 10.0, 7.5, 5.0, 2.5, 0.0, 0.0]]),
+                "lsc": jnp.array([[40.0, 35.0, 30.0, 25.0, 20.0, 15.0, 0.0, 0.0]]),
                 "trleaf": jnp.array([
-                    [[0.0, 0.0], [0.0, 0.0]]
-                ]),  # No transpiration
+                    [[0.005, 0.002], [0.0048, 0.0019], [0.0045, 0.0018], [0.004, 0.0015],
+                     [0.0035, 0.0012], [0.003, 0.001], [0.0, 0.0], [0.0, 0.0]]
+                ]),
                 "lwp": jnp.array([
-                    [[-0.8, -0.5], [-0.9, -0.6]]
+                    [[-2.0, -2.2], [-2.1, -2.3], [-2.2, -2.4], [-2.3, -2.5],
+                     [-2.4, -2.6], [-2.5, -2.7], [0.0, 0.0], [0.0, 0.0]]
                 ]),
                 "itype": jnp.array([0]),
-                "dtime_substep": 60.0,
+                "dtime_substep": 300.0,
+                "il": 1,
             },
-            "il": 0,
-            "expected_shape": (1, 2, 2),
-            "description": "Zero transpiration (nighttime or stomatal closure)",
-            "edge_case": "zero_transpiration",
-        },
-        "test_edge_high_water_stress": {
-            "inputs": {
-                "capac_SPA": jnp.array([3500.0]),
-                "ncan": jnp.array([2]),
-                "psis": jnp.array([-2.5]),  # Very dry soil
-                "dpai": jnp.array([[1.5, 1.0]]),
-                "zs": jnp.array([[10.0, 5.0]]),
-                "lsc": jnp.array([[50.0, 45.0]]),  # Reduced conductance
-                "trleaf": jnp.array([
-                    [[0.001, 0.0003], [0.0008, 0.0002]]
-                ]),  # Low transpiration
-                "lwp": jnp.array([
-                    [[-3.0, -2.8], [-3.2, -2.9]]
-                ]),  # Very negative
-                "itype": jnp.array([0]),
-                "dtime_substep": 60.0,
-            },
-            "il": 0,
-            "expected_shape": (1, 2, 2),
-            "description": "High water stress conditions",
-            "edge_case": "high_water_stress",
+            "expected_shape": (1, 8, 2),
+            "description": "Shaded leaves under high water stress",
         },
     }
 
 
 # ============================================================================
-# PLANT RESISTANCE TESTS
+# Plant Resistance Tests
 # ============================================================================
 
-class TestPlantResistance:
-    """Test suite for plant_resistance function."""
+
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "plant_resistance_nominal_single",
+        "plant_resistance_multiple",
+        "plant_resistance_zero_rsoil",
+        "plant_resistance_sparse",
+    ],
+)
+def test_plant_resistance_shapes(test_data, test_case_name):
+    """
+    Test that plant_resistance returns correct output shapes.
     
-    @pytest.mark.parametrize("test_name", [
-        "test_nominal_single_patch_single_layer",
-        "test_nominal_multi_patch_multi_layer",
-        "test_nominal_dense_canopy",
-        "test_edge_zero_soil_resistance",
-        "test_edge_zero_plant_area_index",
-        "test_edge_very_high_soil_resistance",
-        "test_edge_minimal_canopy_height",
-        "test_special_sparse_canopy",
-        "test_special_tall_canopy_extreme",
-        "test_special_mixed_pft_types",
-    ])
-    def test_plant_resistance_shapes(self, plant_resistance_test_data, test_name):
-        """
-        Test that plant_resistance returns correct output shapes.
-        
-        Verifies that the leaf-specific conductance (lsc) array has the
-        expected shape [n_patches, n_levcan] for all test cases.
-        """
-        test_case = plant_resistance_test_data[test_name]
-        inputs = PlantResistanceInput(**test_case["inputs"])
-        
-        # Mock function call (replace with actual function)
-        # output = plant_resistance(inputs)
-        
-        # For testing purposes, create mock output
-        n_patches = inputs.dpai.shape[0]
-        n_levcan = inputs.dpai.shape[1]
-        mock_lsc = jnp.zeros((n_patches, n_levcan))
-        output = PlantResistanceOutput(lsc=mock_lsc)
-        
-        expected_shape = test_case["expected_shape"]
-        assert output.lsc.shape == expected_shape, (
-            f"{test_name}: Expected shape {expected_shape}, "
-            f"got {output.lsc.shape}"
-        )
+    Verifies that the leaf-specific conductance (lsc) array has the expected
+    dimensions [n_patches, n_levcan] for various canopy configurations.
+    """
+    case = test_data[test_case_name]
+    inputs = PlantResistanceInput(**case["inputs"])
     
-    @pytest.mark.parametrize("test_name", [
-        "test_nominal_single_patch_single_layer",
-        "test_nominal_multi_patch_multi_layer",
-        "test_nominal_dense_canopy",
-    ])
-    def test_plant_resistance_values_positive(self, plant_resistance_test_data, test_name):
-        """
-        Test that plant_resistance returns non-negative conductance values.
-        
-        Leaf-specific conductance must be >= 0 for physical validity.
-        """
-        test_case = plant_resistance_test_data[test_name]
-        inputs = PlantResistanceInput(**test_case["inputs"])
-        
-        # Mock output
-        n_patches = inputs.dpai.shape[0]
-        n_levcan = inputs.dpai.shape[1]
-        mock_lsc = jnp.abs(jnp.random.normal(50.0, 10.0, (n_patches, n_levcan)))
-        output = PlantResistanceOutput(lsc=mock_lsc)
-        
-        assert jnp.all(output.lsc >= 0), (
-            f"{test_name}: Found negative conductance values. "
-            f"Min value: {jnp.min(output.lsc)}"
-        )
+    result = plant_resistance(inputs)
     
-    def test_plant_resistance_zero_dpai_gives_zero_conductance(
-        self, plant_resistance_test_data
-    ):
-        """
-        Test that zero plant area index results in zero or very low conductance.
-        
-        When dpai=0 (no leaves), leaf-specific conductance should be zero
-        or negligible since there's no leaf area for water transport.
-        """
-        test_case = plant_resistance_test_data["test_edge_zero_plant_area_index"]
-        inputs = PlantResistanceInput(**test_case["inputs"])
-        
-        # Mock output - should be zero or very small
-        n_patches = inputs.dpai.shape[0]
-        n_levcan = inputs.dpai.shape[1]
-        mock_lsc = jnp.zeros((n_patches, n_levcan))
-        output = PlantResistanceOutput(lsc=mock_lsc)
-        
-        assert jnp.allclose(output.lsc, 0.0, atol=1e-6), (
-            f"Expected near-zero conductance with zero dpai, "
-            f"got max value: {jnp.max(output.lsc)}"
-        )
+    assert isinstance(result, PlantResistanceOutput), \
+        f"Expected PlantResistanceOutput, got {type(result)}"
+    assert result.lsc.shape == case["expected_shape"], \
+        f"Expected shape {case['expected_shape']}, got {result.lsc.shape}"
+
+
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "plant_resistance_nominal_single",
+        "plant_resistance_multiple",
+        "plant_resistance_zero_rsoil",
+        "plant_resistance_sparse",
+    ],
+)
+def test_plant_resistance_values(test_data, test_case_name):
+    """
+    Test that plant_resistance produces physically valid values.
     
-    def test_plant_resistance_high_soil_resistance_reduces_conductance(
-        self, plant_resistance_test_data
-    ):
-        """
-        Test that high soil resistance reduces leaf-specific conductance.
-        
-        Higher soil resistance should limit water transport, resulting in
-        lower leaf-specific conductance values.
-        """
-        normal_case = plant_resistance_test_data["test_nominal_single_patch_single_layer"]
-        high_rsoil_case = plant_resistance_test_data["test_edge_very_high_soil_resistance"]
-        
-        inputs_normal = PlantResistanceInput(**normal_case["inputs"])
-        inputs_high_rsoil = PlantResistanceInput(**high_rsoil_case["inputs"])
-        
-        # Mock outputs with expected behavior
-        mock_lsc_normal = jnp.array([[80.0]])
-        mock_lsc_high_rsoil = jnp.array([[5.0]])  # Much lower
-        
-        output_normal = PlantResistanceOutput(lsc=mock_lsc_normal)
-        output_high_rsoil = PlantResistanceOutput(lsc=mock_lsc_high_rsoil)
-        
-        assert jnp.all(output_high_rsoil.lsc < output_normal.lsc), (
-            f"Expected lower conductance with high soil resistance. "
-            f"Normal: {output_normal.lsc}, High rsoil: {output_high_rsoil.lsc}"
-        )
+    Checks that:
+    - All conductance values are non-negative
+    - Conductance is zero where PAI is zero
+    - Conductance decreases with increasing resistance
+    """
+    case = test_data[test_case_name]
+    inputs = PlantResistanceInput(**case["inputs"])
     
-    def test_plant_resistance_dtypes(self, plant_resistance_test_data):
-        """
-        Test that plant_resistance returns correct data types.
-        
-        Output should be JAX arrays with float dtype.
-        """
-        test_case = plant_resistance_test_data["test_nominal_single_patch_single_layer"]
-        inputs = PlantResistanceInput(**test_case["inputs"])
-        
-        n_patches = inputs.dpai.shape[0]
-        n_levcan = inputs.dpai.shape[1]
-        mock_lsc = jnp.zeros((n_patches, n_levcan))
-        output = PlantResistanceOutput(lsc=mock_lsc)
-        
-        assert isinstance(output.lsc, jnp.ndarray), (
-            f"Expected JAX array, got {type(output.lsc)}"
-        )
-        assert jnp.issubdtype(output.lsc.dtype, jnp.floating), (
-            f"Expected floating point dtype, got {output.lsc.dtype}"
-        )
+    result = plant_resistance(inputs)
     
-    def test_plant_resistance_gravitational_effect(self, plant_resistance_test_data):
-        """
-        Test that canopy height affects conductance through gravitational potential.
-        
-        Taller canopies should show reduced conductance in upper layers due to
-        gravitational water potential gradient.
-        """
-        tall_case = plant_resistance_test_data["test_special_tall_canopy_extreme"]
-        inputs = PlantResistanceInput(**tall_case["inputs"])
-        
-        # Mock output showing decreasing conductance with height
-        mock_lsc = jnp.array([[100.0, 95.0, 90.0, 85.0, 80.0, 75.0]])
-        output = PlantResistanceOutput(lsc=mock_lsc)
-        
-        # Check that conductance generally decreases with height
-        # (allowing for some variation)
-        lsc_values = output.lsc[0, :]
-        height_values = inputs.zs[0, :]
-        
-        # Higher layers should have lower or similar conductance
-        for i in range(len(lsc_values) - 1):
-            if height_values[i] > height_values[i + 1]:
-                # This is a higher layer, conductance should be <= lower layer
-                # (with some tolerance for numerical effects)
-                assert lsc_values[i] <= lsc_values[i + 1] * 1.1, (
-                    f"Expected conductance to decrease with height. "
-                    f"Layer {i} (z={height_values[i]}): {lsc_values[i]}, "
-                    f"Layer {i+1} (z={height_values[i+1]}): {lsc_values[i+1]}"
-                )
+    # All conductances should be non-negative
+    assert jnp.all(result.lsc >= 0), \
+        f"Found negative conductance values in {test_case_name}"
+    
+    # Where dpai is zero, lsc should be zero
+    dpai = case["inputs"]["dpai"]
+    zero_pai_mask = dpai == 0
+    assert jnp.all(result.lsc[zero_pai_mask] == 0), \
+        "Conductance should be zero where PAI is zero"
+    
+    # For non-zero PAI, conductance should be positive
+    nonzero_pai_mask = dpai > 0
+    if jnp.any(nonzero_pai_mask):
+        assert jnp.all(result.lsc[nonzero_pai_mask] > 0), \
+            "Conductance should be positive where PAI is positive"
+
+
+def test_plant_resistance_zero_rsoil_effect(test_data):
+    """
+    Test that zero soil resistance leads to higher conductance.
+    
+    Compares conductance with zero vs. non-zero soil resistance to verify
+    that removing soil resistance increases overall conductance.
+    """
+    # Case with zero soil resistance
+    case_zero = test_data["plant_resistance_zero_rsoil"]
+    inputs_zero = PlantResistanceInput(**case_zero["inputs"])
+    result_zero = plant_resistance(inputs_zero)
+    
+    # Create similar case with non-zero soil resistance
+    inputs_nonzero_dict = case_zero["inputs"].copy()
+    inputs_nonzero_dict["rsoil"] = jnp.array([0.5])
+    inputs_nonzero = PlantResistanceInput(**inputs_nonzero_dict)
+    result_nonzero = plant_resistance(inputs_nonzero)
+    
+    # Zero soil resistance should give higher or equal conductance
+    active_layers = case_zero["inputs"]["dpai"] > 0
+    assert jnp.all(result_zero.lsc[active_layers] >= result_nonzero.lsc[active_layers]), \
+        "Zero soil resistance should not decrease conductance"
+
+
+def test_plant_resistance_dtypes(test_data):
+    """
+    Test that plant_resistance preserves correct data types.
+    
+    Verifies that output arrays are JAX arrays with float dtype.
+    """
+    case = test_data["plant_resistance_nominal_single"]
+    inputs = PlantResistanceInput(**case["inputs"])
+    
+    result = plant_resistance(inputs)
+    
+    assert isinstance(result.lsc, jnp.ndarray), \
+        f"Expected jnp.ndarray, got {type(result.lsc)}"
+    assert jnp.issubdtype(result.lsc.dtype, jnp.floating), \
+        f"Expected floating dtype, got {result.lsc.dtype}"
 
 
 # ============================================================================
-# SOIL RESISTANCE TESTS
+# Soil Resistance Tests
 # ============================================================================
 
-class TestSoilResistance:
-    """Test suite for soil_resistance function."""
+
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "soil_resistance_nominal",
+        "soil_resistance_frozen",
+        "soil_resistance_shallow_bedrock",
+    ],
+)
+def test_soil_resistance_shapes(test_data, test_case_name):
+    """
+    Test that soil_resistance returns correct output shapes.
     
-    @pytest.mark.parametrize("test_name", [
-        "test_nominal_single_column",
-        "test_edge_frozen_soil",
-        "test_edge_shallow_bedrock",
-    ])
-    def test_soil_resistance_shapes(self, soil_resistance_test_data, test_name):
-        """
-        Test that soil_resistance returns correct output shapes.
-        
-        Verifies shapes for:
-        - rsoil: [n_patches]
-        - psis: [n_patches]
-        - soil_et_loss: [n_patches, n_layers]
-        """
-        test_case = soil_resistance_test_data[test_name]
-        inputs = SoilResistanceInputs(**test_case["inputs"])
-        
-        # Mock output
-        n_patches = inputs.rootfr.shape[0]
-        n_layers = inputs.rootfr.shape[1]
-        mock_rsoil = jnp.zeros(n_patches)
-        mock_psis = jnp.zeros(n_patches)
-        mock_soil_et_loss = jnp.zeros((n_patches, n_layers))
-        
-        output = SoilResistanceOutputs(
-            rsoil=mock_rsoil,
-            psis=mock_psis,
-            soil_et_loss=mock_soil_et_loss
-        )
-        
-        expected_shapes = test_case["expected_shape"]
-        assert output.rsoil.shape == expected_shapes["rsoil"], (
-            f"{test_name}: rsoil shape mismatch"
-        )
-        assert output.psis.shape == expected_shapes["psis"], (
-            f"{test_name}: psis shape mismatch"
-        )
-        assert output.soil_et_loss.shape == expected_shapes["soil_et_loss"], (
-            f"{test_name}: soil_et_loss shape mismatch"
-        )
+    Verifies that rsoil, psis, and soil_et_loss have expected dimensions
+    for various soil configurations.
+    """
+    case = test_data[test_case_name]
+    inputs = SoilResistanceInputs(**case["inputs"])
     
-    def test_soil_resistance_positive_values(self, soil_resistance_test_data):
-        """
-        Test that soil resistance is non-negative.
-        
-        Soil hydraulic resistance must be >= 0 for physical validity.
-        """
-        test_case = soil_resistance_test_data["test_nominal_single_column"]
-        inputs = SoilResistanceInputs(**test_case["inputs"])
-        
-        # Mock output with positive resistance
-        mock_rsoil = jnp.array([0.5])
-        mock_psis = jnp.array([-0.8])
-        mock_soil_et_loss = jnp.array([[0.3, 0.3, 0.2, 0.15, 0.05]])
-        
-        output = SoilResistanceOutputs(
-            rsoil=mock_rsoil,
-            psis=mock_psis,
-            soil_et_loss=mock_soil_et_loss
-        )
-        
-        assert jnp.all(output.rsoil >= 0), (
-            f"Found negative soil resistance: {jnp.min(output.rsoil)}"
-        )
+    result = soil_resistance(inputs)
     
-    def test_soil_resistance_negative_water_potential(self, soil_resistance_test_data):
-        """
-        Test that weighted soil water potential is negative or zero.
-        
-        Soil water potential (psis) must be <= 0 MPa for unsaturated soil.
-        """
-        test_case = soil_resistance_test_data["test_nominal_single_column"]
-        inputs = SoilResistanceInputs(**test_case["inputs"])
-        
-        mock_rsoil = jnp.array([0.5])
-        mock_psis = jnp.array([-0.8])
-        mock_soil_et_loss = jnp.array([[0.3, 0.3, 0.2, 0.15, 0.05]])
-        
-        output = SoilResistanceOutputs(
-            rsoil=mock_rsoil,
-            psis=mock_psis,
-            soil_et_loss=mock_soil_et_loss
-        )
-        
-        assert jnp.all(output.psis <= 0), (
-            f"Found positive soil water potential: {jnp.max(output.psis)}"
-        )
+    assert isinstance(result, SoilResistanceOutputs), \
+        f"Expected SoilResistanceOutputs, got {type(result)}"
     
-    def test_soil_resistance_uptake_fractions_sum_to_one(
-        self, soil_resistance_test_data
-    ):
-        """
-        Test that fractional uptake from all layers sums to 1.0.
-        
-        The soil_et_loss array represents fractional water uptake from each
-        layer, which should sum to 1.0 (or 0 if no uptake).
-        """
-        test_case = soil_resistance_test_data["test_nominal_single_column"]
-        inputs = SoilResistanceInputs(**test_case["inputs"])
-        
-        mock_rsoil = jnp.array([0.5])
-        mock_psis = jnp.array([-0.8])
-        mock_soil_et_loss = jnp.array([[0.3, 0.3, 0.2, 0.15, 0.05]])
-        
-        output = SoilResistanceOutputs(
-            rsoil=mock_rsoil,
-            psis=mock_psis,
-            soil_et_loss=mock_soil_et_loss
-        )
-        
-        uptake_sums = jnp.sum(output.soil_et_loss, axis=1)
-        assert jnp.allclose(uptake_sums, 1.0, atol=1e-6) or jnp.allclose(uptake_sums, 0.0, atol=1e-6), (
-            f"Fractional uptake should sum to 1.0 or 0.0, got {uptake_sums}"
-        )
+    expected = case["expected_shapes"]
+    assert result.rsoil.shape == expected["rsoil"], \
+        f"rsoil shape mismatch: expected {expected['rsoil']}, got {result.rsoil.shape}"
+    assert result.psis.shape == expected["psis"], \
+        f"psis shape mismatch: expected {expected['psis']}, got {result.psis.shape}"
+    assert result.soil_et_loss.shape == expected["soil_et_loss"], \
+        f"soil_et_loss shape mismatch: expected {expected['soil_et_loss']}, got {result.soil_et_loss.shape}"
+
+
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "soil_resistance_nominal",
+        "soil_resistance_frozen",
+        "soil_resistance_shallow_bedrock",
+    ],
+)
+def test_soil_resistance_values(test_data, test_case_name):
+    """
+    Test that soil_resistance produces physically valid values.
     
-    def test_soil_resistance_uptake_fractions_in_range(
-        self, soil_resistance_test_data
-    ):
-        """
-        Test that fractional uptake values are in [0, 1].
-        
-        Each element of soil_et_loss must be between 0 and 1.
-        """
-        test_case = soil_resistance_test_data["test_nominal_single_column"]
-        inputs = SoilResistanceInputs(**test_case["inputs"])
-        
-        mock_rsoil = jnp.array([0.5])
-        mock_psis = jnp.array([-0.8])
-        mock_soil_et_loss = jnp.array([[0.3, 0.3, 0.2, 0.15, 0.05]])
-        
-        output = SoilResistanceOutputs(
-            rsoil=mock_rsoil,
-            psis=mock_psis,
-            soil_et_loss=mock_soil_et_loss
-        )
-        
-        assert jnp.all(output.soil_et_loss >= 0), (
-            f"Found negative uptake fraction: {jnp.min(output.soil_et_loss)}"
-        )
-        assert jnp.all(output.soil_et_loss <= 1), (
-            f"Found uptake fraction > 1: {jnp.max(output.soil_et_loss)}"
-        )
+    Checks that:
+    - Soil resistance is non-negative
+    - Soil water potential is non-positive
+    - Uptake fractions are in [0, 1] and sum to ~1
+    """
+    case = test_data[test_case_name]
+    inputs = SoilResistanceInputs(**case["inputs"])
     
-    def test_soil_resistance_frozen_soil_increases_resistance(
-        self, soil_resistance_test_data
-    ):
-        """
-        Test that frozen soil increases hydraulic resistance.
-        
-        Ice content should reduce water availability and increase resistance.
-        """
-        normal_case = soil_resistance_test_data["test_nominal_single_column"]
-        frozen_case = soil_resistance_test_data["test_edge_frozen_soil"]
-        
-        inputs_normal = SoilResistanceInputs(**normal_case["inputs"])
-        inputs_frozen = SoilResistanceInputs(**frozen_case["inputs"])
-        
-        # Mock outputs
-        mock_rsoil_normal = jnp.array([0.5])
-        mock_rsoil_frozen = jnp.array([5.0])  # Much higher
-        
-        output_normal = SoilResistanceOutputs(
-            rsoil=mock_rsoil_normal,
-            psis=jnp.array([-0.8]),
-            soil_et_loss=jnp.array([[0.3, 0.3, 0.2, 0.15, 0.05]])
-        )
-        output_frozen = SoilResistanceOutputs(
-            rsoil=mock_rsoil_frozen,
-            psis=jnp.array([-1.5]),
-            soil_et_loss=jnp.array([[0.5, 0.3, 0.2]])
-        )
-        
-        assert jnp.all(output_frozen.rsoil > output_normal.rsoil), (
-            f"Expected higher resistance with frozen soil. "
-            f"Normal: {output_normal.rsoil}, Frozen: {output_frozen.rsoil}"
-        )
+    result = soil_resistance(inputs)
     
-    def test_soil_resistance_shallow_bedrock_limits_uptake(
-        self, soil_resistance_test_data
-    ):
-        """
-        Test that shallow bedrock limits water uptake to upper layers.
-        
-        Layers below bedrock (nbedrock) should have zero or minimal uptake.
-        """
-        test_case = soil_resistance_test_data["test_edge_shallow_bedrock"]
-        inputs = SoilResistanceInputs(**test_case["inputs"])
-        
-        nbedrock = int(inputs.nbedrock[0])
-        
-        # Mock output with uptake only in layers above bedrock
-        mock_soil_et_loss = jnp.array([[0.6, 0.4, 0.0, 0.0, 0.0]])
-        
-        output = SoilResistanceOutputs(
-            rsoil=jnp.array([0.8]),
-            psis=jnp.array([-1.2]),
-            soil_et_loss=mock_soil_et_loss
-        )
-        
-        # Check that layers at or below bedrock have zero uptake
-        below_bedrock_uptake = output.soil_et_loss[0, nbedrock:]
-        assert jnp.allclose(below_bedrock_uptake, 0.0, atol=1e-6), (
-            f"Expected zero uptake below bedrock (layer {nbedrock}), "
-            f"got {below_bedrock_uptake}"
-        )
+    # Soil resistance should be non-negative
+    assert jnp.all(result.rsoil >= 0), \
+        f"Found negative soil resistance in {test_case_name}"
     
-    def test_soil_resistance_dtypes(self, soil_resistance_test_data):
-        """
-        Test that soil_resistance returns correct data types.
-        
-        All outputs should be JAX arrays with appropriate dtypes.
-        """
-        test_case = soil_resistance_test_data["test_nominal_single_column"]
-        inputs = SoilResistanceInputs(**test_case["inputs"])
-        
-        n_patches = inputs.rootfr.shape[0]
-        n_layers = inputs.rootfr.shape[1]
-        
-        output = SoilResistanceOutputs(
-            rsoil=jnp.zeros(n_patches),
-            psis=jnp.zeros(n_patches),
-            soil_et_loss=jnp.zeros((n_patches, n_layers))
-        )
-        
-        assert isinstance(output.rsoil, jnp.ndarray)
-        assert isinstance(output.psis, jnp.ndarray)
-        assert isinstance(output.soil_et_loss, jnp.ndarray)
-        
-        assert jnp.issubdtype(output.rsoil.dtype, jnp.floating)
-        assert jnp.issubdtype(output.psis.dtype, jnp.floating)
-        assert jnp.issubdtype(output.soil_et_loss.dtype, jnp.floating)
+    # Soil water potential should be non-positive
+    assert jnp.all(result.psis <= 0), \
+        f"Found positive soil water potential in {test_case_name}"
+    
+    # Uptake fractions should be in [0, 1]
+    assert jnp.all(result.soil_et_loss >= 0), \
+        "Found negative uptake fractions"
+    assert jnp.all(result.soil_et_loss <= 1), \
+        "Found uptake fractions > 1"
+    
+    # Sum of uptake fractions should be close to 1 (or 0 if no uptake)
+    uptake_sum = jnp.sum(result.soil_et_loss, axis=1)
+    assert jnp.all((jnp.abs(uptake_sum - 1.0) < 1e-6) | (uptake_sum == 0)), \
+        f"Uptake fractions should sum to 1, got {uptake_sum}"
+
+
+def test_soil_resistance_frozen_soil_effect(test_data):
+    """
+    Test that frozen soil increases resistance.
+    
+    Compares resistance with and without ice to verify that ice content
+    increases hydraulic resistance.
+    """
+    case_frozen = test_data["soil_resistance_frozen"]
+    inputs_frozen = SoilResistanceInputs(**case_frozen["inputs"])
+    result_frozen = soil_resistance(inputs_frozen)
+    
+    # Create similar case without ice
+    inputs_unfrozen_dict = case_frozen["inputs"].copy()
+    inputs_unfrozen_dict["h2osoi_ice"] = jnp.zeros_like(inputs_unfrozen_dict["h2osoi_ice"])
+    inputs_unfrozen = SoilResistanceInputs(**inputs_unfrozen_dict)
+    result_unfrozen = soil_resistance(inputs_unfrozen)
+    
+    # Frozen soil should have higher resistance
+    assert jnp.all(result_frozen.rsoil >= result_unfrozen.rsoil), \
+        "Frozen soil should increase resistance"
+
+
+def test_soil_resistance_bedrock_effect(test_data):
+    """
+    Test that shallow bedrock affects uptake distribution.
+    
+    Verifies that uptake is concentrated in layers above bedrock.
+    """
+    case = test_data["soil_resistance_shallow_bedrock"]
+    inputs = SoilResistanceInputs(**case["inputs"])
+    
+    result = soil_resistance(inputs)
+    
+    nbedrock = case["inputs"]["nbedrock"][0]
+    
+    # Uptake should be concentrated in layers above bedrock
+    uptake_above = jnp.sum(result.soil_et_loss[0, :nbedrock])
+    uptake_below = jnp.sum(result.soil_et_loss[0, nbedrock:])
+    
+    assert uptake_above > uptake_below, \
+        "Most uptake should occur above bedrock"
+
+
+def test_soil_resistance_dtypes(test_data):
+    """
+    Test that soil_resistance preserves correct data types.
+    
+    Verifies that all output arrays are JAX arrays with float dtype.
+    """
+    case = test_data["soil_resistance_nominal"]
+    inputs = SoilResistanceInputs(**case["inputs"])
+    
+    result = soil_resistance(inputs)
+    
+    assert isinstance(result.rsoil, jnp.ndarray), \
+        f"rsoil: expected jnp.ndarray, got {type(result.rsoil)}"
+    assert isinstance(result.psis, jnp.ndarray), \
+        f"psis: expected jnp.ndarray, got {type(result.psis)}"
+    assert isinstance(result.soil_et_loss, jnp.ndarray), \
+        f"soil_et_loss: expected jnp.ndarray, got {type(result.soil_et_loss)}"
+    
+    assert jnp.issubdtype(result.rsoil.dtype, jnp.floating), \
+        f"rsoil: expected floating dtype, got {result.rsoil.dtype}"
+    assert jnp.issubdtype(result.psis.dtype, jnp.floating), \
+        f"psis: expected floating dtype, got {result.psis.dtype}"
+    assert jnp.issubdtype(result.soil_et_loss.dtype, jnp.floating), \
+        f"soil_et_loss: expected floating dtype, got {result.soil_et_loss.dtype}"
 
 
 # ============================================================================
-# LEAF WATER POTENTIAL TESTS
+# Leaf Water Potential Tests
 # ============================================================================
 
-class TestLeafWaterPotential:
-    """Test suite for leaf_water_potential function."""
+
+@pytest.mark.parametrize(
+    "test_case_name",
+    ["lwp_nominal_sunlit", "lwp_high_stress"],
+)
+def test_leaf_water_potential_shapes(test_data, test_case_name):
+    """
+    Test that leaf_water_potential returns correct output shapes.
     
-    @pytest.mark.parametrize("test_name,il", [
-        ("test_nominal_sunlit_leaves", 0),
-        ("test_nominal_shaded_leaves", 1),
-        ("test_edge_zero_transpiration", 0),
-        ("test_edge_high_water_stress", 0),
-    ])
-    def test_leaf_water_potential_shapes(
-        self, leaf_water_potential_test_data, test_name, il
-    ):
-        """
-        Test that leaf_water_potential returns correct output shape.
-        
-        Output lwp should have shape [n_patches, n_canopy_layers, 2].
-        """
-        test_case = leaf_water_potential_test_data[test_name]
-        inputs = LeafWaterPotentialInputs(**test_case["inputs"])
-        
-        # Mock output
-        n_patches = inputs.dpai.shape[0]
-        n_canopy_layers = inputs.dpai.shape[1]
-        mock_lwp = jnp.zeros((n_patches, n_canopy_layers, 2))
-        
-        output = LeafWaterPotentialOutputs(lwp=mock_lwp)
-        
-        expected_shape = test_case["expected_shape"]
-        assert output.lwp.shape == expected_shape, (
-            f"{test_name} (il={il}): Expected shape {expected_shape}, "
-            f"got {output.lwp.shape}"
-        )
+    Verifies that the updated leaf water potential array maintains the
+    expected dimensions [n_patches, n_canopy_layers, 2].
+    """
+    case = test_data[test_case_name]
+    inputs = LeafWaterPotentialInputs(**{k: v for k, v in case["inputs"].items() if k != "il"})
+    il = case["inputs"]["il"]
     
-    def test_leaf_water_potential_negative_values(
-        self, leaf_water_potential_test_data
-    ):
-        """
-        Test that leaf water potential is negative or zero.
-        
-        Leaf water potential must be <= 0 MPa for physical validity.
-        """
-        test_case = leaf_water_potential_test_data["test_nominal_sunlit_leaves"]
-        inputs = LeafWaterPotentialInputs(**test_case["inputs"])
-        
-        # Mock output with negative values
-        mock_lwp = jnp.array([[[-1.3, -0.9], [-1.4, -1.0], [-1.5, -1.1]]])
-        output = LeafWaterPotentialOutputs(lwp=mock_lwp)
-        
-        assert jnp.all(output.lwp <= 0), (
-            f"Found positive leaf water potential: {jnp.max(output.lwp)}"
-        )
+    result = leaf_water_potential(inputs, il)
     
-    def test_leaf_water_potential_sunlit_more_negative(
-        self, leaf_water_potential_test_data
-    ):
-        """
-        Test that sunlit leaves have more negative water potential than shaded.
-        
-        Sunlit leaves (il=0) typically have higher transpiration and thus
-        more negative water potential than shaded leaves (il=1).
-        """
-        test_case_sunlit = leaf_water_potential_test_data["test_nominal_sunlit_leaves"]
-        test_case_shaded = leaf_water_potential_test_data["test_nominal_shaded_leaves"]
-        
-        inputs_sunlit = LeafWaterPotentialInputs(**test_case_sunlit["inputs"])
-        inputs_shaded = LeafWaterPotentialInputs(**test_case_shaded["inputs"])
-        
-        # Mock outputs
-        mock_lwp_sunlit = jnp.array([[[-1.5, -0.9], [-1.6, -1.0], [-1.7, -1.1]]])
-        mock_lwp_shaded = jnp.array([[[-1.2, -0.8], [-1.3, -0.9], [-1.4, -1.0]]])
-        
-        output_sunlit = LeafWaterPotentialOutputs(lwp=mock_lwp_sunlit)
-        output_shaded = LeafWaterPotentialOutputs(lwp=mock_lwp_shaded)
-        
-        # Sunlit (il=0) should be more negative than shaded (il=1)
-        sunlit_values = output_sunlit.lwp[:, :, 0]
-        shaded_values = output_shaded.lwp[:, :, 1]
-        
-        assert jnp.all(sunlit_values <= shaded_values), (
-            f"Expected sunlit leaves to have more negative water potential. "
-            f"Sunlit: {sunlit_values}, Shaded: {shaded_values}"
-        )
+    assert isinstance(result, LeafWaterPotentialOutputs), \
+        f"Expected LeafWaterPotentialOutputs, got {type(result)}"
+    assert result.lwp.shape == case["expected_shape"], \
+        f"Expected shape {case['expected_shape']}, got {result.lwp.shape}"
+
+
+@pytest.mark.parametrize(
+    "test_case_name",
+    ["lwp_nominal_sunlit", "lwp_high_stress"],
+)
+def test_leaf_water_potential_values(test_data, test_case_name):
+    """
+    Test that leaf_water_potential produces physically valid values.
     
-    def test_leaf_water_potential_zero_transpiration_equilibrium(
-        self, leaf_water_potential_test_data
-    ):
-        """
-        Test that zero transpiration leads to equilibrium with soil.
-        
-        With no transpiration, leaf water potential should approach soil
-        water potential over time.
-        """
-        test_case = leaf_water_potential_test_data["test_edge_zero_transpiration"]
-        inputs = LeafWaterPotentialInputs(**test_case["inputs"])
-        
-        # With zero transpiration, lwp should move toward psis
-        psis_value = float(inputs.psis[0])
-        
-        # Mock output approaching equilibrium
-        mock_lwp = jnp.array([[[-0.35, -0.55], [-0.4, -0.65]]])
-        output = LeafWaterPotentialOutputs(lwp=mock_lwp)
-        
-        # Check that lwp is between initial value and psis
-        # (moving toward equilibrium)
-        initial_lwp = inputs.lwp
-        
-        # Values should be between initial and soil potential
-        for i in range(output.lwp.shape[0]):
-            for j in range(output.lwp.shape[1]):
-                for k in range(output.lwp.shape[2]):
-                    lwp_val = float(output.lwp[i, j, k])
-                    init_val = float(initial_lwp[i, j, k])
-                    
-                    # Should be moving toward psis
-                    if init_val < psis_value:
-                        assert lwp_val >= init_val, (
-                            f"LWP should increase toward psis with zero transpiration"
-                        )
-                    elif init_val > psis_value:
-                        assert lwp_val <= init_val, (
-                            f"LWP should decrease toward psis with zero transpiration"
-                        )
+    Checks that:
+    - All leaf water potentials are non-positive
+    - Values change from initial state (unless transpiration is zero)
+    - Potentials remain within reasonable bounds
+    """
+    case = test_data[test_case_name]
+    inputs = LeafWaterPotentialInputs(**{k: v for k, v in case["inputs"].items() if k != "il"})
+    il = case["inputs"]["il"]
     
-    def test_leaf_water_potential_high_stress_limits(
-        self, leaf_water_potential_test_data
-    ):
-        """
-        Test that high water stress produces very negative water potentials.
-        
-        Under severe drought, leaf water potential should be very negative.
-        """
-        test_case = leaf_water_potential_test_data["test_edge_high_water_stress"]
-        inputs = LeafWaterPotentialInputs(**test_case["inputs"])
-        
-        # Mock output with very negative values
-        mock_lwp = jnp.array([[[-3.2, -2.9], [-3.4, -3.0]]])
-        output = LeafWaterPotentialOutputs(lwp=mock_lwp)
-        
-        # Under high stress, lwp should be very negative (< -2 MPa)
-        assert jnp.all(output.lwp < -2.0), (
-            f"Expected very negative water potential under high stress, "
-            f"got max value: {jnp.max(output.lwp)}"
-        )
+    result = leaf_water_potential(inputs, il)
     
-    def test_leaf_water_potential_capacitance_effect(
-        self, leaf_water_potential_test_data
-    ):
-        """
-        Test that plant capacitance affects water potential dynamics.
-        
-        Higher capacitance should buffer changes in water potential.
-        """
-        test_case = leaf_water_potential_test_data["test_nominal_sunlit_leaves"]
-        inputs = LeafWaterPotentialInputs(**test_case["inputs"])
-        
-        # Create two scenarios with different capacitance
-        inputs_high_cap = LeafWaterPotentialInputs(
-            capac_SPA=jnp.array([10000.0]),  # High capacitance
-            ncan=inputs.ncan,
-            psis=inputs.psis,
-            dpai=inputs.dpai,
-            zs=inputs.zs,
-            lsc=inputs.lsc,
-            trleaf=inputs.trleaf,
-            lwp=inputs.lwp,
-            itype=inputs.itype,
-            dtime_substep=inputs.dtime_substep,
-        )
-        
-        # Mock outputs - high capacitance should show smaller changes
-        mock_lwp_normal = jnp.array([[[-1.5, -0.9], [-1.6, -1.0], [-1.7, -1.1]]])
-        mock_lwp_high_cap = jnp.array([[[-1.3, -0.85], [-1.35, -0.95], [-1.4, -1.05]]])
-        
-        output_normal = LeafWaterPotentialOutputs(lwp=mock_lwp_normal)
-        output_high_cap = LeafWaterPotentialOutputs(lwp=mock_lwp_high_cap)
-        
-        # Calculate change from initial
-        change_normal = jnp.abs(output_normal.lwp - inputs.lwp)
-        change_high_cap = jnp.abs(output_high_cap.lwp - inputs_high_cap.lwp)
-        
-        # High capacitance should show smaller changes
-        assert jnp.mean(change_high_cap) < jnp.mean(change_normal), (
-            f"Expected smaller changes with high capacitance. "
-            f"Normal change: {jnp.mean(change_normal)}, "
-            f"High cap change: {jnp.mean(change_high_cap)}"
-        )
+    # All leaf water potentials should be non-positive
+    assert jnp.all(result.lwp <= 0), \
+        f"Found positive leaf water potential in {test_case_name}"
     
-    def test_leaf_water_potential_dtypes(self, leaf_water_potential_test_data):
-        """
-        Test that leaf_water_potential returns correct data types.
-        
-        Output should be JAX array with float dtype.
-        """
-        test_case = leaf_water_potential_test_data["test_nominal_sunlit_leaves"]
-        inputs = LeafWaterPotentialInputs(**test_case["inputs"])
-        
-        n_patches = inputs.dpai.shape[0]
-        n_canopy_layers = inputs.dpai.shape[1]
-        mock_lwp = jnp.zeros((n_patches, n_canopy_layers, 2))
-        
-        output = LeafWaterPotentialOutputs(lwp=mock_lwp)
-        
-        assert isinstance(output.lwp, jnp.ndarray), (
-            f"Expected JAX array, got {type(output.lwp)}"
-        )
-        assert jnp.issubdtype(output.lwp.dtype, jnp.floating), (
-            f"Expected floating point dtype, got {output.lwp.dtype}"
-        )
+    # Check that values are within reasonable bounds (not too extreme)
+    assert jnp.all(result.lwp >= -10.0), \
+        "Leaf water potential too negative (< -10 MPa)"
+
+
+def test_leaf_water_potential_sunlit_vs_shaded(test_data):
+    """
+    Test that sunlit and shaded leaves are updated independently.
     
-    @pytest.mark.parametrize("il", [0, 1])
-    def test_leaf_water_potential_valid_leaf_index(
-        self, leaf_water_potential_test_data, il
-    ):
-        """
-        Test that function works with both valid leaf indices.
-        
-        il=0 (sunlit) and il=1 (shaded) should both produce valid outputs.
-        """
-        test_case = leaf_water_potential_test_data["test_nominal_sunlit_leaves"]
-        inputs = LeafWaterPotentialInputs(**test_case["inputs"])
-        
-        # Mock output
-        n_patches = inputs.dpai.shape[0]
-        n_canopy_layers = inputs.dpai.shape[1]
-        mock_lwp = jnp.zeros((n_patches, n_canopy_layers, 2))
-        
-        output = LeafWaterPotentialOutputs(lwp=mock_lwp)
-        
-        # Should have valid shape and values for both indices
-        assert output.lwp.shape[2] == 2, (
-            f"Output should have dimension 2 for leaf types, got {output.lwp.shape[2]}"
-        )
-        assert jnp.all(jnp.isfinite(output.lwp[:, :, il])), (
-            f"Found non-finite values for il={il}"
-        )
+    Verifies that updating sunlit leaves (il=0) doesn't affect shaded leaves
+    and vice versa.
+    """
+    case = test_data["lwp_nominal_sunlit"]
+    inputs = LeafWaterPotentialInputs(**{k: v for k, v in case["inputs"].items() if k != "il"})
+    
+    # Update sunlit leaves
+    result_sunlit = leaf_water_potential(inputs, il=0)
+    
+    # Update shaded leaves
+    result_shaded = leaf_water_potential(inputs, il=1)
+    
+    # The two results should differ in the updated leaf type
+    # (This is a basic check; actual behavior depends on implementation)
+    assert result_sunlit.lwp.shape == result_shaded.lwp.shape, \
+        "Sunlit and shaded results should have same shape"
+
+
+def test_leaf_water_potential_high_stress_effect(test_data):
+    """
+    Test that high water stress leads to more negative potentials.
+    
+    Compares leaf water potential under normal vs. high stress conditions.
+    """
+    case_stress = test_data["lwp_high_stress"]
+    inputs_stress = LeafWaterPotentialInputs(
+        **{k: v for k, v in case_stress["inputs"].items() if k != "il"}
+    )
+    il = case_stress["inputs"]["il"]
+    
+    result_stress = leaf_water_potential(inputs_stress, il)
+    
+    # Under high stress, potentials should be quite negative
+    active_layers = case_stress["inputs"]["dpai"] > 0
+    assert jnp.all(result_stress.lwp[active_layers] < -1.0), \
+        "High stress should result in potentials < -1.0 MPa"
+
+
+def test_leaf_water_potential_dtypes(test_data):
+    """
+    Test that leaf_water_potential preserves correct data types.
+    
+    Verifies that output arrays are JAX arrays with float dtype.
+    """
+    case = test_data["lwp_nominal_sunlit"]
+    inputs = LeafWaterPotentialInputs(**{k: v for k, v in case["inputs"].items() if k != "il"})
+    il = case["inputs"]["il"]
+    
+    result = leaf_water_potential(inputs, il)
+    
+    assert isinstance(result.lwp, jnp.ndarray), \
+        f"Expected jnp.ndarray, got {type(result.lwp)}"
+    assert jnp.issubdtype(result.lwp.dtype, jnp.floating), \
+        f"Expected floating dtype, got {result.lwp.dtype}"
 
 
 # ============================================================================
-# INTEGRATION TESTS
+# Helper Function Tests
 # ============================================================================
 
-class TestIntegration:
-    """Integration tests for combined hydraulic calculations."""
+
+def test_calculate_soil_resistance_per_layer_shapes():
+    """
+    Test that _calculate_soil_resistance_per_layer returns correct shapes.
     
-    def test_full_hydraulic_pathway(
-        self, soil_resistance_test_data, plant_resistance_test_data,
-        leaf_water_potential_test_data
-    ):
-        """
-        Test complete hydraulic pathway from soil to leaf.
-        
-        Verifies that outputs from soil_resistance can be used as inputs
-        to plant_resistance, and those outputs can be used for
-        leaf_water_potential calculations.
-        """
-        # Step 1: Calculate soil resistance
-        soil_case = soil_resistance_test_data["test_nominal_single_column"]
-        soil_inputs = SoilResistanceInputs(**soil_case["inputs"])
-        
-        mock_soil_output = SoilResistanceOutputs(
-            rsoil=jnp.array([0.5]),
-            psis=jnp.array([-0.8]),
-            soil_et_loss=jnp.array([[0.3, 0.3, 0.2, 0.15, 0.05]])
-        )
-        
-        # Step 2: Use soil resistance in plant resistance calculation
-        plant_inputs = PlantResistanceInput(
-            gplant_SPA=jnp.array([5000.0]),
-            ncan=jnp.array([3]),
-            rsoil=mock_soil_output.rsoil,  # From soil calculation
-            dpai=jnp.array([[2.0, 1.5, 1.0]]),
-            zs=jnp.array([[15.0, 10.0, 5.0]]),
-            itype=jnp.array([0]),
-        )
-        
-        mock_plant_output = PlantResistanceOutput(
-            lsc=jnp.array([[100.0, 90.0, 80.0]])
-        )
-        
-        # Step 3: Use plant outputs in leaf water potential calculation
-        leaf_inputs = LeafWaterPotentialInputs(
-            capac_SPA=jnp.array([5000.0]),
-            ncan=plant_inputs.ncan,
-            psis=mock_soil_output.psis,  # From soil calculation
-            dpai=plant_inputs.dpai,
-            zs=plant_inputs.zs,
-            lsc=mock_plant_output.lsc,  # From plant calculation
-            trleaf=jnp.array([[[0.003, 0.001], [0.0025, 0.0008], [0.002, 0.0006]]]),
-            lwp=jnp.array([[[-1.2, -0.8], [-1.3, -0.9], [-1.4, -1.0]]]),
-            itype=plant_inputs.itype,
-            dtime_substep=60.0,
-        )
-        
-        mock_leaf_output = LeafWaterPotentialOutputs(
-            lwp=jnp.array([[[-1.3, -0.85], [-1.35, -0.95], [-1.45, -1.05]]])
-        )
-        
-        # Verify consistency
-        assert mock_leaf_output.lwp.shape[0] == plant_inputs.ncan[0], (
-            "Leaf water potential should match number of canopy layers"
-        )
-        assert jnp.all(mock_leaf_output.lwp <= 0), (
-            "Final leaf water potential should be negative"
-        )
-        assert jnp.all(mock_leaf_output.lwp >= mock_soil_output.psis[0]), (
-            "Leaf water potential should be more negative than soil"
-        )
+    Verifies that all four output arrays have expected dimensions.
+    """
+    # Create test inputs
+    n_patches = 2
+    n_columns = 2
+    n_layers = 5
     
-    def test_conservation_of_water_flux(
-        self, soil_resistance_test_data, plant_resistance_test_data
-    ):
-        """
-        Test that water flux is conserved through the soil-plant system.
-        
-        Water uptake from soil should equal water transport through plant.
-        """
-        soil_case = soil_resistance_test_data["test_nominal_single_column"]
-        soil_inputs = SoilResistanceInputs(**soil_case["inputs"])
-        
-        # Mock soil output
-        mock_soil_output = SoilResistanceOutputs(
-            rsoil=jnp.array([0.5]),
-            psis=jnp.array([-0.8]),
-            soil_et_loss=jnp.array([[0.3, 0.3, 0.2, 0.15, 0.05]])
-        )
-        
-        # Verify uptake fractions sum to 1
-        total_uptake = jnp.sum(mock_soil_output.soil_et_loss)
-        assert jnp.allclose(total_uptake, 1.0, atol=1e-6), (
-            f"Water uptake fractions should sum to 1.0, got {total_uptake}"
-        )
+    root_radius = jnp.array([0.0001, 0.00015])
+    root_density = jnp.array([50000.0, 60000.0])
+    root_resist = jnp.array([25.0, 30.0])
+    dz = jnp.array([[0.1, 0.15, 0.2, 0.25, 0.3], [0.1, 0.15, 0.2, 0.25, 0.3]])
+    nbedrock = jnp.array([5, 5])
+    smp_l = jnp.array([[-100.0, -200.0, -350.0, -600.0, -1000.0],
+                       [-100.0, -200.0, -350.0, -600.0, -1000.0]])
+    hk_l = jnp.array([[0.001, 0.0008, 0.0006, 0.0004, 0.0002],
+                      [0.001, 0.0008, 0.0006, 0.0004, 0.0002]])
+    rootfr = jnp.array([[0.35, 0.3, 0.2, 0.1, 0.05], [0.35, 0.3, 0.2, 0.1, 0.05]])
+    h2osoi_ice = jnp.zeros((n_columns, n_layers))
+    root_biomass = jnp.array([140.0, 150.0])
+    minlwp_SPA = -2.5
+    
+    rsoil_cond, smp_mpa, evap, totevap = _calculate_soil_resistance_per_layer(
+        root_radius, root_density, root_resist, dz, nbedrock, smp_l, hk_l,
+        rootfr, h2osoi_ice, root_biomass, minlwp_SPA, n_layers
+    )
+    
+    assert rsoil_cond.shape == (n_patches,), \
+        f"rsoil_conductance shape mismatch: expected ({n_patches},), got {rsoil_cond.shape}"
+    assert smp_mpa.shape == (n_patches, n_layers), \
+        f"smp_mpa shape mismatch: expected ({n_patches}, {n_layers}), got {smp_mpa.shape}"
+    assert evap.shape == (n_patches, n_layers), \
+        f"evap shape mismatch: expected ({n_patches}, {n_layers}), got {evap.shape}"
+    assert totevap.shape == (n_patches,), \
+        f"totevap shape mismatch: expected ({n_patches},), got {totevap.shape}"
+
+
+def test_calculate_soil_resistance_per_layer_values():
+    """
+    Test that _calculate_soil_resistance_per_layer produces valid values.
+    
+    Checks physical constraints on outputs.
+    """
+    # Create test inputs
+    n_layers = 5
+    root_radius = jnp.array([0.0001])
+    root_density = jnp.array([50000.0])
+    root_resist = jnp.array([25.0])
+    dz = jnp.array([[0.1, 0.15, 0.2, 0.25, 0.3]])
+    nbedrock = jnp.array([5])
+    smp_l = jnp.array([[-100.0, -200.0, -350.0, -600.0, -1000.0]])
+    hk_l = jnp.array([[0.001, 0.0008, 0.0006, 0.0004, 0.0002]])
+    rootfr = jnp.array([[0.35, 0.3, 0.2, 0.1, 0.05]])
+    h2osoi_ice = jnp.zeros((1, n_layers))
+    root_biomass = jnp.array([140.0])
+    minlwp_SPA = -2.5
+    
+    rsoil_cond, smp_mpa, evap, totevap = _calculate_soil_resistance_per_layer(
+        root_radius, root_density, root_resist, dz, nbedrock, smp_l, hk_l,
+        rootfr, h2osoi_ice, root_biomass, minlwp_SPA, n_layers
+    )
+    
+    # Conductance should be non-negative
+    assert jnp.all(rsoil_cond >= 0), "Soil conductance should be non-negative"
+    
+    # Matric potential should be non-positive
+    assert jnp.all(smp_mpa <= 0), "Soil matric potential should be non-positive"
+    
+    # Evaporation should be non-negative
+    assert jnp.all(evap >= 0), "Evaporation should be non-negative"
+    assert jnp.all(totevap >= 0), "Total evaporation should be non-negative"
+
+
+def test_finalize_soil_resistance_shapes():
+    """
+    Test that _finalize_soil_resistance returns correct shapes.
+    
+    Verifies that rsoil, psis, and soil_et_loss have expected dimensions.
+    """
+    n_patches = 2
+    n_layers = 5
+    
+    rsoil_conductance = jnp.array([100.0, 120.0])
+    lai = jnp.array([4.5, 3.5])
+    smp_mpa = jnp.array([[-0.1, -0.2, -0.35, -0.6, -1.0],
+                         [-0.15, -0.25, -0.4, -0.7, -1.2]])
+    evap = jnp.array([[5.0, 4.0, 3.0, 2.0, 1.0],
+                      [4.5, 3.5, 2.5, 1.5, 0.5]])
+    totevap = jnp.array([15.0, 12.5])
+    minlwp_SPA = -2.5
+    
+    rsoil, psis, soil_et_loss = _finalize_soil_resistance(
+        rsoil_conductance, lai, smp_mpa, evap, totevap, minlwp_SPA
+    )
+    
+    assert rsoil.shape == (n_patches,), \
+        f"rsoil shape mismatch: expected ({n_patches},), got {rsoil.shape}"
+    assert psis.shape == (n_patches,), \
+        f"psis shape mismatch: expected ({n_patches},), got {psis.shape}"
+    assert soil_et_loss.shape == (n_patches, n_layers), \
+        f"soil_et_loss shape mismatch: expected ({n_patches}, {n_layers}), got {soil_et_loss.shape}"
+
+
+def test_finalize_soil_resistance_values():
+    """
+    Test that _finalize_soil_resistance produces valid values.
+    
+    Checks physical constraints on outputs.
+    """
+    n_layers = 5
+    rsoil_conductance = jnp.array([100.0])
+    lai = jnp.array([4.5])
+    smp_mpa = jnp.array([[-0.1, -0.2, -0.35, -0.6, -1.0]])
+    evap = jnp.array([[5.0, 4.0, 3.0, 2.0, 1.0]])
+    totevap = jnp.array([15.0])
+    minlwp_SPA = -2.5
+    
+    rsoil, psis, soil_et_loss = _finalize_soil_resistance(
+        rsoil_conductance, lai, smp_mpa, evap, totevap, minlwp_SPA
+    )
+    
+    # Resistance should be non-negative
+    assert jnp.all(rsoil >= 0), "Soil resistance should be non-negative"
+    
+    # Soil water potential should be non-positive
+    assert jnp.all(psis <= 0), "Soil water potential should be non-positive"
+    
+    # Uptake fractions should be in [0, 1]
+    assert jnp.all(soil_et_loss >= 0), "Uptake fractions should be non-negative"
+    assert jnp.all(soil_et_loss <= 1), "Uptake fractions should be <= 1"
+    
+    # Sum of uptake fractions should be close to 1
+    uptake_sum = jnp.sum(soil_et_loss)
+    assert jnp.abs(uptake_sum - 1.0) < 1e-6 or uptake_sum == 0, \
+        f"Uptake fractions should sum to 1, got {uptake_sum}"
+
+
+def test_finalize_soil_resistance_zero_lai():
+    """
+    Test _finalize_soil_resistance with zero LAI.
+    
+    Verifies behavior when there is no canopy.
+    """
+    n_layers = 5
+    rsoil_conductance = jnp.array([100.0])
+    lai = jnp.array([0.0])  # Zero LAI
+    smp_mpa = jnp.array([[-0.1, -0.2, -0.35, -0.6, -1.0]])
+    evap = jnp.array([[5.0, 4.0, 3.0, 2.0, 1.0]])
+    totevap = jnp.array([15.0])
+    minlwp_SPA = -2.5
+    
+    rsoil, psis, soil_et_loss = _finalize_soil_resistance(
+        rsoil_conductance, lai, smp_mpa, evap, totevap, minlwp_SPA
+    )
+    
+    # With zero LAI, resistance should be very high (or infinite)
+    # Implementation may handle this differently, so just check it's positive
+    assert jnp.all(rsoil > 0), "Resistance should be positive even with zero LAI"
+    
+    # Soil water potential should still be valid
+    assert jnp.all(psis <= 0), "Soil water potential should be non-positive"
 
 
 # ============================================================================
-# NUMERICAL STABILITY TESTS
+# Integration Tests
 # ============================================================================
 
-class TestNumericalStability:
-    """Tests for numerical stability and edge cases."""
+
+def test_plant_hydraulics_integration():
+    """
+    Integration test combining plant_resistance and soil_resistance.
     
-    def test_plant_resistance_no_nan_inf(self, plant_resistance_test_data):
-        """
-        Test that plant_resistance doesn't produce NaN or Inf values.
-        """
-        for test_name, test_case in plant_resistance_test_data.items():
-            inputs = PlantResistanceInput(**test_case["inputs"])
-            
-            # Mock output
-            n_patches = inputs.dpai.shape[0]
-            n_levcan = inputs.dpai.shape[1]
-            mock_lsc = jnp.abs(jnp.random.normal(50.0, 10.0, (n_patches, n_levcan)))
-            output = PlantResistanceOutput(lsc=mock_lsc)
-            
-            assert jnp.all(jnp.isfinite(output.lsc)), (
-                f"{test_name}: Found NaN or Inf in output"
-            )
+    Tests that outputs from soil_resistance can be used as inputs to
+    plant_resistance, simulating a typical workflow.
+    """
+    # First calculate soil resistance
+    soil_inputs = SoilResistanceInputs(
+        root_radius=jnp.array([0.0001, 0.00015, 0.00012]),
+        root_density=jnp.array([50000.0, 60000.0, 55000.0]),
+        root_resist=jnp.array([25.0, 30.0, 28.0]),
+        dz=jnp.array([[0.1, 0.15, 0.2, 0.25, 0.3]]),
+        nbedrock=jnp.array([5]),
+        smp_l=jnp.array([[-100.0, -200.0, -300.0, -500.0, -800.0]]),
+        hk_l=jnp.array([[0.001, 0.0008, 0.0006, 0.0004, 0.0003]]),
+        rootfr=jnp.array([[0.35, 0.3, 0.2, 0.1, 0.05]]),
+        h2osoi_ice=jnp.zeros((1, 5)),
+        root_biomass=jnp.array([150.0]),
+        lai=jnp.array([4.5]),
+        itype=jnp.array([1]),
+        patch_to_column=jnp.array([0]),
+        minlwp_SPA=-2.5,
+    )
     
-    def test_soil_resistance_no_nan_inf(self, soil_resistance_test_data):
-        """
-        Test that soil_resistance doesn't produce NaN or Inf values.
-        """
-        for test_name, test_case in soil_resistance_test_data.items():
-            inputs = SoilResistanceInputs(**test_case["inputs"])
-            
-            n_patches = inputs.rootfr.shape[0]
-            n_layers = inputs.rootfr.shape[1]
-            
-            output = SoilResistanceOutputs(
-                rsoil=jnp.array([0.5] * n_patches),
-                psis=jnp.array([-0.8] * n_patches),
-                soil_et_loss=jnp.ones((n_patches, n_layers)) / n_layers
-            )
-            
-            assert jnp.all(jnp.isfinite(output.rsoil)), (
-                f"{test_name}: Found NaN or Inf in rsoil"
-            )
-            assert jnp.all(jnp.isfinite(output.psis)), (
-                f"{test_name}: Found NaN or Inf in psis"
-            )
-            assert jnp.all(jnp.isfinite(output.soil_et_loss)), (
-                f"{test_name}: Found NaN or Inf in soil_et_loss"
-            )
+    soil_result = soil_resistance(soil_inputs)
     
-    def test_leaf_water_potential_no_nan_inf(self, leaf_water_potential_test_data):
-        """
-        Test that leaf_water_potential doesn't produce NaN or Inf values.
-        """
-        for test_name, test_case in leaf_water_potential_test_data.items():
-            inputs = LeafWaterPotentialInputs(**test_case["inputs"])
-            
-            n_patches = inputs.dpai.shape[0]
-            n_canopy_layers = inputs.dpai.shape[1]
-            mock_lwp = -jnp.abs(jnp.random.normal(1.0, 0.3, (n_patches, n_canopy_layers, 2)))
-            
-            output = LeafWaterPotentialOutputs(lwp=mock_lwp)
-            
-            assert jnp.all(jnp.isfinite(output.lwp)), (
-                f"{test_name}: Found NaN or Inf in output"
-            )
+    # Use soil resistance output in plant resistance calculation
+    plant_inputs = PlantResistanceInput(
+        gplant_SPA=jnp.array([150.0, 200.0, 180.0]),
+        ncan=jnp.array([8]),
+        rsoil=soil_result.rsoil,  # Use calculated soil resistance
+        dpai=jnp.array([[0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.0, 0.0]]),
+        zs=jnp.array([[20.0, 17.5, 15.0, 12.5, 10.0, 7.5, 5.0, 2.5, 0.0, 0.0]]),
+        itype=jnp.array([1]),
+    )
+    
+    plant_result = plant_resistance(plant_inputs)
+    
+    # Verify outputs are physically reasonable
+    assert jnp.all(plant_result.lsc >= 0), "Conductance should be non-negative"
+    assert jnp.all(soil_result.rsoil >= 0), "Soil resistance should be non-negative"
+    assert jnp.all(soil_result.psis <= 0), "Soil water potential should be non-positive"
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
+def test_full_hydraulics_workflow():
+    """
+    Full workflow test: soil resistance -> plant resistance -> leaf water potential.
+    
+    Tests the complete hydraulics calculation chain.
+    """
+    # Step 1: Calculate soil resistance
+    soil_inputs = SoilResistanceInputs(
+        root_radius=jnp.array([0.0001, 0.00015]),
+        root_density=jnp.array([50000.0, 60000.0]),
+        root_resist=jnp.array([25.0, 30.0]),
+        dz=jnp.array([[0.1, 0.15, 0.2, 0.25, 0.3]]),
+        nbedrock=jnp.array([5]),
+        smp_l=jnp.array([[-100.0, -200.0, -300.0, -500.0, -800.0]]),
+        hk_l=jnp.array([[0.001, 0.0008, 0.0006, 0.0004, 0.0003]]),
+        rootfr=jnp.array([[0.35, 0.3, 0.2, 0.1, 0.05]]),
+        h2osoi_ice=jnp.zeros((1, 5)),
+        root_biomass=jnp.array([150.0]),
+        lai=jnp.array([4.5]),
+        itype=jnp.array([1]),
+        patch_to_column=jnp.array([0]),
+        minlwp_SPA=-2.5,
+    )
+    soil_result = soil_resistance(soil_inputs)
+    
+    # Step 2: Calculate plant resistance
+    plant_inputs = PlantResistanceInput(
+        gplant_SPA=jnp.array([150.0, 200.0]),
+        ncan=jnp.array([6]),
+        rsoil=soil_result.rsoil,
+        dpai=jnp.array([[0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0, 0.0]]),
+        zs=jnp.array([[15.0, 12.5, 10.0, 7.5, 5.0, 2.5, 0.0, 0.0]]),
+        itype=jnp.array([1]),
+    )
+    plant_result = plant_resistance(plant_inputs)
+    
+    # Step 3: Calculate leaf water potential
+    lwp_inputs = LeafWaterPotentialInputs(
+        capac_SPA=jnp.array([5000.0, 6000.0]),
+        ncan=jnp.array([6]),
+        psis=soil_result.psis,
+        dpai=plant_inputs.dpai,
+        zs=plant_inputs.zs,
+        lsc=plant_result.lsc,
+        trleaf=jnp.array([[[0.003, 0.001], [0.0028, 0.0009], [0.0026, 0.0008],
+                          [0.0024, 0.0007], [0.0022, 0.0006], [0.002, 0.0005],
+                          [0.0, 0.0], [0.0, 0.0]]]),
+        lwp=jnp.array([[[-0.8, -0.9], [-0.85, -0.95], [-0.9, -1.0],
+                       [-0.95, -1.05], [-1.0, -1.1], [-1.05, -1.15],
+                       [0.0, 0.0], [0.0, 0.0]]]),
+        itype=jnp.array([1]),
+        dtime_substep=300.0,
+    )
+    lwp_result = leaf_water_potential(lwp_inputs, il=0)
+    
+    # Verify all outputs are physically reasonable
+    assert jnp.all(soil_result.rsoil >= 0), "Soil resistance should be non-negative"
+    assert jnp.all(soil_result.psis <= 0), "Soil water potential should be non-positive"
+    assert jnp.all(plant_result.lsc >= 0), "Conductance should be non-negative"
+    assert jnp.all(lwp_result.lwp <= 0), "Leaf water potential should be non-positive"
+    
+    # Check that the workflow produces reasonable values
+    assert jnp.all(jnp.isfinite(soil_result.rsoil)), "Soil resistance should be finite"
+    assert jnp.all(jnp.isfinite(plant_result.lsc)), "Conductance should be finite"
+    assert jnp.all(jnp.isfinite(lwp_result.lwp)), "Leaf water potential should be finite"

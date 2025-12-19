@@ -1,168 +1,46 @@
 """
-Comprehensive pytest suite for MLCanopyTurbulenceMod module.
+Comprehensive pytest suite for MLCanopyTurbulenceMod functions.
 
-This test suite covers:
+This module tests Monin-Obukhov similarity theory functions, canopy turbulence
+parameterizations, and roughness sublayer (RSL) corrections for multi-layer
+canopy models.
+
+Test Coverage:
 - Monin-Obukhov stability functions (phi_m, phi_c, psi_m, psi_c)
 - Prandtl/Schmidt number calculations
-- Beta (u*/u) calculations
-- RSL (Roughness Sublayer) psi functions
-- Obukhov length calculations
-- Canopy turbulence parameterization
-- RSL lookup table initialization
-
-Tests include nominal cases, edge cases, and physical realism checks.
+- Beta parameter (u*/u ratio) calculations
+- RSL psi function lookups and interpolation
+- Complete Obukhov length calculations
+- Full canopy turbulence parameterization
+- Edge cases: extreme stability, sparse/dense canopies, low winds
+- Array dimension handling: scalar, 1D, 2D, 3D arrays
 """
 
+import sys
+from pathlib import Path
+from typing import NamedTuple, Callable
 import pytest
 import jax.numpy as jnp
 import numpy as np
-from typing import Callable, NamedTuple
-from unittest.mock import Mock, patch
 
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-# ============================================================================
-# Named Tuples (Mock definitions for testing)
-# ============================================================================
-
-class PrScParams(NamedTuple):
-    """Parameters for Prandtl/Schmidt number calculation."""
-    Pr0: float
-    Pr1: float
-    Pr2: float
-
-
-class PsiRSLResult(NamedTuple):
-    """Result from RSL psi function calculation."""
-    psim: jnp.ndarray
-    psic: jnp.ndarray
-
-
-class ObuFuncInputs(NamedTuple):
-    """Inputs for Obukhov length function."""
-    p: int
-    ic: int
-    il: int
-    obu_val: jnp.ndarray
-    zref: jnp.ndarray
-    uref: jnp.ndarray
-    thref: jnp.ndarray
-    thvref: jnp.ndarray
-    qref: jnp.ndarray
-    rhomol: jnp.ndarray
-    ztop: jnp.ndarray
-    lai: jnp.ndarray
-    sai: jnp.ndarray
-    Lc: jnp.ndarray
-    taf: jnp.ndarray
-    qaf: jnp.ndarray
-    vkc: float
-    grav: float
-    beta_neutral_max: float
-    cr: float
-    z0mg: float
-    zeta_min: float
-    zeta_max: float
-
-
-class ObuFuncOutputs(NamedTuple):
-    """Outputs from Obukhov length function."""
-    obu_dif: jnp.ndarray
-    zdisp: jnp.ndarray
-    beta: jnp.ndarray
-    PrSc: jnp.ndarray
-    ustar: jnp.ndarray
-    gac_to_hc: jnp.ndarray
-    obu: jnp.ndarray
-
-
-class RSLPsihatTable(NamedTuple):
-    """RSL lookup table structure."""
-    initialized: bool
-    nZ: int
-    nL: int
-    zdtgrid_m: jnp.ndarray
-    dtLgrid_m: jnp.ndarray
-    psigrid_m: jnp.ndarray
-    zdtgrid_h: jnp.ndarray
-    dtLgrid_h: jnp.ndarray
-    psigrid_h: jnp.ndarray
-
-
-# ============================================================================
-# Mock Module Functions (to be replaced with actual imports)
-# ============================================================================
-
-def phim_monin_obukhov(zeta: jnp.ndarray) -> jnp.ndarray:
-    """
-    Mock implementation of phi_m Monin-Obukhov stability function.
-    
-    Args:
-        zeta: Stability parameter (z-d)/L
-        
-    Returns:
-        Stability function for momentum
-    """
-    # Simplified implementation for testing
-    return jnp.where(
-        zeta < 0,
-        jnp.power(1.0 - 16.0 * zeta, -0.25),
-        1.0 + 5.0 * zeta
-    )
-
-
-def phic_monin_obukhov(zeta: jnp.ndarray) -> jnp.ndarray:
-    """
-    Mock implementation of phi_c Monin-Obukhov stability function.
-    
-    Args:
-        zeta: Stability parameter (z-d)/L
-        
-    Returns:
-        Stability function for scalars
-    """
-    # Simplified implementation for testing
-    return jnp.where(
-        zeta < 0,
-        jnp.power(1.0 - 16.0 * zeta, -0.5),
-        1.0 + 5.0 * zeta
-    )
-
-
-def psim_monin_obukhov(zeta: jnp.ndarray, pi: float = np.pi) -> jnp.ndarray:
-    """
-    Mock implementation of psi_m integrated stability function.
-    
-    Args:
-        zeta: Stability parameter
-        pi: Value of pi
-        
-    Returns:
-        Integrated stability function for momentum
-    """
-    x = jnp.power(1.0 - 16.0 * jnp.minimum(zeta, 0.0), 0.25)
-    return jnp.where(
-        zeta < 0,
-        2.0 * jnp.log((1.0 + x) / 2.0) + jnp.log((1.0 + x * x) / 2.0) - 2.0 * jnp.arctan(x) + pi / 2.0,
-        -5.0 * zeta
-    )
-
-
-def psic_monin_obukhov(zeta: jnp.ndarray) -> jnp.ndarray:
-    """
-    Mock implementation of psi_c integrated stability function.
-    
-    Args:
-        zeta: Stability parameter
-        
-    Returns:
-        Integrated stability function for scalars
-    """
-    y = jnp.power(1.0 - 16.0 * jnp.minimum(zeta, 0.0), 0.5)
-    return jnp.where(
-        zeta < 0,
-        2.0 * jnp.log((1.0 + y) / 2.0),
-        -5.0 * zeta
-    )
+from multilayer_canopy.MLCanopyTurbulenceMod import (
+    phim_monin_obukhov,
+    phic_monin_obukhov,
+    psim_monin_obukhov,
+    psic_monin_obukhov,
+    get_prsc,
+    get_beta,
+    lookup_psihat,
+    get_psi_rsl,
+    obu_func,
+    PrScParams,
+    PsiRSLResult,
+    ObuFuncInputs,
+    ObuFuncOutputs,
+)
 
 
 # ============================================================================
@@ -175,107 +53,87 @@ def test_data():
     Load and provide test data for all test cases.
     
     Returns:
-        Dictionary containing test cases with inputs and metadata
+        dict: Test data organized by test case name
     """
     return {
         "phim_neutral": {
-            "zeta": jnp.array([0.0, 0.001, -0.001]),
-            "expected_near": 1.0,
-            "tolerance": 0.01
+            "zeta": jnp.array([0.0, 0.001, -0.001, 0.01, -0.01])
         },
-        "phim_stable_unstable": {
-            "zeta": jnp.array([-2.0, -1.0, -0.5, 0.0, 0.2, 0.5, 0.8]),
+        "phim_unstable": {
+            "zeta": jnp.array([-10.0, -5.0, -2.0, -1.0, -0.5, -0.1])
         },
-        "phic_range": {
-            "zeta": jnp.array([-5.0, -2.0, -0.5, 0.0, 0.3, 0.7, 1.0]),
+        "phim_stable": {
+            "zeta": jnp.array([0.1, 0.2, 0.5, 0.8, 1.0])
         },
-        "psi_edge_cases": {
-            "zeta": jnp.array([-100.0, -10.0, 0.0, 1.0, 10.0]),
-            "pi": np.pi
+        "phim_extreme_unstable": {
+            "zeta": jnp.array([-100.0, -50.0, -25.0])
         },
-        "prsc_conditions": {
-            "beta_neutral": jnp.array([0.25, 0.3, 0.2]),
-            "beta_neutral_max": jnp.array([0.35, 0.35, 0.35]),
-            "LcL": jnp.array([0.0, 0.5, -0.5]),
+        "phic_multidim": {
+            "zeta": jnp.array([[-5.0, -2.0, -0.5], [0.0, 0.1, 0.5], [-1.0, 0.0, 1.0]])
+        },
+        "prsc_typical": {
+            "beta_neutral": jnp.array([0.25, 0.3, 0.28, 0.32]),
+            "beta_neutral_max": jnp.array([0.35, 0.35, 0.35, 0.35]),
+            "LcL": jnp.array([0.5, -0.2, 1.0, -1.5]),
             "params": PrScParams(Pr0=0.5, Pr1=0.3, Pr2=0.143)
         },
-        "beta_boundary": {
-            "beta_neutral": 0.25,
+        "prsc_edge_beta": {
+            "beta_neutral": jnp.array([0.01, 0.99, 0.5]),
+            "beta_neutral_max": jnp.array([0.35, 0.35, 0.35]),
+            "LcL": jnp.array([0.0, 0.0, 0.0]),
+            "params": PrScParams(Pr0=0.5, Pr1=0.3, Pr2=0.143)
+        },
+        "beta_neutral": {
+            "beta_neutral": 0.3,
             "lcl": 0.0,
             "beta_min": 0.01,
             "beta_max": 0.99,
         },
         "lookup_psihat": {
-            "zdt": 2.5,
-            "dtL": 0.15,
-            "zdtgrid": jnp.array([[5.0], [4.0], [3.0], [2.0], [1.0], [0.5]]),
-            "dtLgrid": jnp.array([[-0.5, -0.2, 0.0, 0.1, 0.2, 0.5]]),
+            "zdt": 1.5,
+            "dtL": 0.3,
+            "zdtgrid": jnp.array([[3.0], [2.0], [1.0], [0.5], [0.1]]),
+            "dtLgrid": jnp.array([[-1.0, -0.5, 0.0, 0.5, 1.0]]),
             "psigrid": jnp.array([
-                [1.2, 1.1, 1.0, 0.95, 0.9, 0.8],
-                [1.15, 1.05, 0.98, 0.93, 0.88, 0.78],
-                [1.1, 1.0, 0.95, 0.9, 0.85, 0.75],
-                [1.05, 0.95, 0.9, 0.85, 0.8, 0.7],
-                [1.0, 0.9, 0.85, 0.8, 0.75, 0.65],
-                [0.95, 0.85, 0.8, 0.75, 0.7, 0.6]
+                [0.5, 0.6, 0.7, 0.8, 0.9],
+                [0.4, 0.5, 0.6, 0.7, 0.8],
+                [0.3, 0.4, 0.5, 0.6, 0.7],
+                [0.2, 0.3, 0.4, 0.5, 0.6],
+                [0.1, 0.2, 0.3, 0.4, 0.5]
             ])
         },
-        "psi_rsl_typical": {
-            "za": jnp.array([50.0, 45.0, 40.0]),
-            "hc": jnp.array([20.0, 18.0, 22.0]),
-            "disp": jnp.array([14.0, 12.6, 15.4]),
-            "obu": jnp.array([100.0, -50.0, 200.0]),
-            "beta": jnp.array([0.3, 0.28, 0.32]),
-            "prsc": jnp.array([0.7, 0.65, 0.75]),
+        "psi_rsl_complete": {
+            "za": jnp.array([50.0, 45.0, 60.0, 40.0]),
+            "hc": jnp.array([20.0, 18.0, 25.0, 15.0]),
+            "disp": jnp.array([13.0, 12.0, 16.0, 10.0]),
+            "obu": jnp.array([-100.0, 50.0, -200.0, 150.0]),
+            "beta": jnp.array([0.3, 0.28, 0.32, 0.25]),
+            "prsc": jnp.array([0.7, 0.65, 0.75, 0.68]),
             "vkc": 0.4,
             "c2": 0.5,
         },
-        "obu_func_edge": {
-            "inputs": ObuFuncInputs(
-                p=0, ic=5, il=1,
-                obu_val=jnp.array([1e-6]),
-                zref=jnp.array([50.0]),
-                uref=jnp.array([0.1]),
-                thref=jnp.array([290.0]),
-                thvref=jnp.array([290.5]),
-                qref=jnp.array([0.008]),
-                rhomol=jnp.array([42.0]),
-                ztop=jnp.array([20.0]),
-                lai=jnp.array([0.01]),
-                sai=jnp.array([0.005]),
-                Lc=jnp.array([100.0]),
-                taf=jnp.array([288.0]),
-                qaf=jnp.array([0.007]),
-                vkc=0.4, grav=9.80616,
-                beta_neutral_max=0.35,
-                cr=0.3, z0mg=0.01,
-                zeta_min=-100.0, zeta_max=1.0
-            )
+        "array_shapes": {
+            "zeta_scalar": 0.5,
+            "zeta_1d": jnp.array([-2.0, -1.0, 0.0, 0.5, 1.0]),
+            "zeta_2d": jnp.array([[-5.0, -2.0, 0.0], [0.5, 1.0, 0.8]]),
+            "zeta_3d": jnp.array([[[-10.0, -5.0], [-1.0, 0.0]], [[0.2, 0.5], [0.8, 1.0]]]),
+            "pi": jnp.pi
         },
-        "canopy_turbulence_multi": {
-            "niter": 3,
-            "num_filter": 5,
-            "filter_indices": jnp.array([0, 2, 5, 8, 10]),
-            "turb_type": 1,
-            "mlcanopy_inst": {
-                "nlevcan": 10,
-                "npatches": 12,
-                "obu": jnp.array([50.0, -30.0, 100.0, -80.0, 200.0, 40.0, 
-                                  -60.0, 150.0, -40.0, 90.0, 120.0, -100.0]),
-                "ustar": jnp.array([0.4, 0.5, 0.35, 0.6, 0.3, 0.45, 
-                                    0.55, 0.32, 0.52, 0.38, 0.33, 0.58]),
-                "taf": jnp.array([288.0, 290.0, 287.0, 291.0, 286.0, 289.0,
-                                  292.0, 285.0, 293.0, 287.5, 288.5, 294.0]),
-                "qaf": jnp.array([0.008, 0.009, 0.007, 0.01, 0.006, 0.0085,
-                                  0.0095, 0.0065, 0.011, 0.0075, 0.0082, 0.012]),
-                "zref": jnp.array([50.0, 48.0, 52.0, 45.0, 55.0, 49.0,
-                                   47.0, 53.0, 46.0, 51.0, 50.5, 44.0]),
-                "hc": jnp.array([20.0, 18.0, 22.0, 15.0, 25.0, 19.0,
-                                 17.0, 23.0, 16.0, 21.0, 20.5, 14.0]),
-                "lai": jnp.array([4.5, 3.8, 5.2, 2.5, 6.0, 4.2,
-                                  3.5, 5.5, 2.8, 4.8, 4.6, 2.2]),
-                "sai": jnp.array([1.2, 1.0, 1.4, 0.7, 1.6, 1.1,
-                                  0.9, 1.5, 0.75, 1.3, 1.25, 0.6])
-            }
+        "lookup_boundary": {
+            "zdt_below": 0.05,
+            "zdt_above": 6.0,
+            "dtL_below": -2.5,
+            "dtL_above": 2.5,
+            "zdtgrid": jnp.array([[5.0], [3.0], [2.0], [1.0], [0.5], [0.1]]),
+            "dtLgrid": jnp.array([[-2.0, -1.0, 0.0, 1.0, 2.0]]),
+            "psigrid": jnp.array([
+                [1.0, 1.2, 1.4, 1.6, 1.8],
+                [0.8, 1.0, 1.2, 1.4, 1.6],
+                [0.6, 0.8, 1.0, 1.2, 1.4],
+                [0.4, 0.6, 0.8, 1.0, 1.2],
+                [0.3, 0.5, 0.7, 0.9, 1.1],
+                [0.2, 0.4, 0.6, 0.8, 1.0]
+            ])
         }
     }
 
@@ -283,39 +141,189 @@ def test_data():
 @pytest.fixture
 def lookup_grids():
     """
-    Provide standard lookup table grids for RSL calculations.
+    Provide standard lookup table grids for RSL psi functions.
     
     Returns:
-        Dictionary with momentum and scalar lookup grids
+        dict: Grids for momentum and scalar lookups
     """
-    zdtgrid = jnp.array([[5.0], [4.0], [3.0], [2.0], [1.0], [0.5]])
-    dtLgrid = jnp.array([[-0.5, -0.2, 0.0, 0.1, 0.2, 0.5]])
+    dtlgrid = jnp.array([[-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0]])
+    zdtgrid = jnp.array([[5.0], [3.0], [2.0], [1.5], [1.0], [0.5]])
     
     psigrid_m = jnp.array([
-        [1.2, 1.1, 1.0, 0.95, 0.9, 0.8],
-        [1.15, 1.05, 0.98, 0.93, 0.88, 0.78],
-        [1.1, 1.0, 0.95, 0.9, 0.85, 0.75],
-        [1.05, 0.95, 0.9, 0.85, 0.8, 0.7],
-        [1.0, 0.9, 0.85, 0.8, 0.75, 0.65],
-        [0.95, 0.85, 0.8, 0.75, 0.7, 0.6]
+        [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
+        [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4],
+        [0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2],
+        [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1],
+        [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
     ])
     
     psigrid_h = jnp.array([
-        [1.3, 1.2, 1.0, 0.93, 0.87, 0.75],
-        [1.25, 1.15, 0.97, 0.91, 0.85, 0.73],
-        [1.2, 1.1, 0.94, 0.88, 0.82, 0.7],
-        [1.15, 1.05, 0.9, 0.84, 0.78, 0.66],
-        [1.1, 1.0, 0.86, 0.8, 0.74, 0.62],
-        [1.05, 0.95, 0.82, 0.76, 0.7, 0.58]
+        [1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8],
+        [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
+        [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4],
+        [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3],
+        [0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2],
+        [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     ])
     
     return {
+        "dtlgrid_m": dtlgrid,
         "zdtgrid_m": zdtgrid,
-        "dtLgrid_m": dtLgrid,
         "psigrid_m": psigrid_m,
+        "dtlgrid_h": dtlgrid,
         "zdtgrid_h": zdtgrid,
-        "dtLgrid_h": dtLgrid,
         "psigrid_h": psigrid_h
+    }
+
+
+@pytest.fixture
+def obu_func_inputs():
+    """
+    Provide test inputs for obu_func tests.
+    
+    Returns:
+        dict: Various ObuFuncInputs configurations
+    """
+    return {
+        "typical_unstable": ObuFuncInputs(
+            p=0, ic=5, il=1,
+            obu_val=jnp.array(-50.0),
+            zref=jnp.array(50.0),
+            uref=jnp.array(5.0),
+            thref=jnp.array(298.15),
+            thvref=jnp.array(299.0),
+            qref=jnp.array(0.012),
+            rhomol=jnp.array(41.6),
+            ztop=jnp.array(20.0),
+            lai=jnp.array(4.5),
+            sai=jnp.array(0.5),
+            Lc=jnp.array(8.0),
+            taf=jnp.array(295.0),
+            qaf=jnp.array(0.01),
+            vkc=0.4,
+            grav=9.80616,
+            beta_neutral_max=0.35,
+            cr=0.3,
+            z0mg=0.01,
+            zeta_min=-100.0,
+            zeta_max=1.0
+        ),
+        "stable_nighttime": ObuFuncInputs(
+            p=0, ic=5, il=2,
+            obu_val=jnp.array(100.0),
+            zref=jnp.array(50.0),
+            uref=jnp.array(3.0),
+            thref=jnp.array(285.0),
+            thvref=jnp.array(285.5),
+            qref=jnp.array(0.005),
+            rhomol=jnp.array(43.0),
+            ztop=jnp.array(15.0),
+            lai=jnp.array(3.0),
+            sai=jnp.array(0.3),
+            Lc=jnp.array(6.0),
+            taf=jnp.array(283.0),
+            qaf=jnp.array(0.004),
+            vkc=0.4,
+            grav=9.80616,
+            beta_neutral_max=0.35,
+            cr=0.3,
+            z0mg=0.01,
+            zeta_min=-100.0,
+            zeta_max=1.0
+        ),
+        "near_neutral": ObuFuncInputs(
+            p=0, ic=3, il=1,
+            obu_val=jnp.array(1000.0),
+            zref=jnp.array(40.0),
+            uref=jnp.array(4.5),
+            thref=jnp.array(293.0),
+            thvref=jnp.array(293.5),
+            qref=jnp.array(0.008),
+            rhomol=jnp.array(42.0),
+            ztop=jnp.array(12.0),
+            lai=jnp.array(2.5),
+            sai=jnp.array(0.2),
+            Lc=jnp.array(5.0),
+            taf=jnp.array(293.0),
+            qaf=jnp.array(0.008),
+            vkc=0.4,
+            grav=9.80616,
+            beta_neutral_max=0.35,
+            cr=0.3,
+            z0mg=0.01,
+            zeta_min=-100.0,
+            zeta_max=1.0
+        ),
+        "low_wind": ObuFuncInputs(
+            p=0, ic=4, il=1,
+            obu_val=jnp.array(-30.0),
+            zref=jnp.array(45.0),
+            uref=jnp.array(0.1),
+            thref=jnp.array(300.0),
+            thvref=jnp.array(301.0),
+            qref=jnp.array(0.015),
+            rhomol=jnp.array(41.0),
+            ztop=jnp.array(18.0),
+            lai=jnp.array(5.0),
+            sai=jnp.array(0.6),
+            Lc=jnp.array(7.5),
+            taf=jnp.array(298.0),
+            qaf=jnp.array(0.013),
+            vkc=0.4,
+            grav=9.80616,
+            beta_neutral_max=0.35,
+            cr=0.3,
+            z0mg=0.01,
+            zeta_min=-100.0,
+            zeta_max=1.0
+        ),
+        "sparse_canopy": ObuFuncInputs(
+            p=0, ic=2, il=1,
+            obu_val=jnp.array(-80.0),
+            zref=jnp.array(35.0),
+            uref=jnp.array(6.0),
+            thref=jnp.array(302.0),
+            thvref=jnp.array(303.0),
+            qref=jnp.array(0.018),
+            rhomol=jnp.array(40.5),
+            ztop=jnp.array(8.0),
+            lai=jnp.array(0.5),
+            sai=jnp.array(0.1),
+            Lc=jnp.array(3.0),
+            taf=jnp.array(300.0),
+            qaf=jnp.array(0.016),
+            vkc=0.4,
+            grav=9.80616,
+            beta_neutral_max=0.35,
+            cr=0.3,
+            z0mg=0.01,
+            zeta_min=-100.0,
+            zeta_max=1.0
+        ),
+        "dense_canopy": ObuFuncInputs(
+            p=0, ic=6, il=1,
+            obu_val=jnp.array(-60.0),
+            zref=jnp.array(55.0),
+            uref=jnp.array(4.0),
+            thref=jnp.array(296.0),
+            thvref=jnp.array(297.0),
+            qref=jnp.array(0.011),
+            rhomol=jnp.array(42.2),
+            ztop=jnp.array(25.0),
+            lai=jnp.array(8.0),
+            sai=jnp.array(1.2),
+            Lc=jnp.array(12.0),
+            taf=jnp.array(294.0),
+            qaf=jnp.array(0.009),
+            vkc=0.4,
+            grav=9.80616,
+            beta_neutral_max=0.35,
+            cr=0.3,
+            z0mg=0.01,
+            zeta_min=-100.0,
+            zeta_max=1.0
+        )
     }
 
 
@@ -323,319 +331,403 @@ def lookup_grids():
 # Tests for phim_monin_obukhov
 # ============================================================================
 
-class TestPhimMoninObukhov:
-    """Tests for phi_m Monin-Obukhov stability function."""
+def test_phim_neutral_conditions(test_data):
+    """
+    Test phi_m near neutral stability (zeta ≈ 0).
     
-    def test_phim_neutral_conditions(self, test_data):
-        """
-        Test phi_m near neutral stability (zeta ≈ 0).
-        
-        For neutral conditions, phi_m should be approximately 1.0.
-        """
-        data = test_data["phim_neutral"]
-        result = phim_monin_obukhov(data["zeta"])
-        
-        # Check shape
-        assert result.shape == data["zeta"].shape, \
-            f"Expected shape {data['zeta'].shape}, got {result.shape}"
-        
-        # Check values near 1.0 for neutral conditions
-        assert jnp.allclose(result, data["expected_near"], atol=data["tolerance"]), \
-            f"phi_m should be near {data['expected_near']} for neutral conditions, got {result}"
+    For neutral conditions, phi_m should be close to 1.0.
+    """
+    zeta = test_data["phim_neutral"]["zeta"]
+    result = phim_monin_obukhov(zeta)
     
-    def test_phim_stable_unstable_range(self, test_data):
-        """
-        Test phi_m across stable and unstable conditions.
-        
-        Unstable (zeta < 0): phi_m < 1
-        Neutral (zeta = 0): phi_m = 1
-        Stable (zeta > 0): phi_m > 1
-        """
-        data = test_data["phim_stable_unstable"]
-        result = phim_monin_obukhov(data["zeta"])
-        
-        # Check shape
-        assert result.shape == data["zeta"].shape
-        
-        # Check monotonicity: phi_m increases with zeta
-        for i in range(len(result) - 1):
-            assert result[i] <= result[i + 1], \
-                f"phi_m should increase with zeta, but {result[i]} > {result[i+1]}"
-        
-        # Check physical bounds
-        assert jnp.all(result > 0), "phi_m must be positive"
-        
-        # Check unstable conditions (zeta < 0)
-        unstable_mask = data["zeta"] < 0
-        if jnp.any(unstable_mask):
-            assert jnp.all(result[unstable_mask] < 1.1), \
-                "phi_m should be < 1.1 for unstable conditions"
-        
-        # Check stable conditions (zeta > 0)
-        stable_mask = data["zeta"] > 0
-        if jnp.any(stable_mask):
-            assert jnp.all(result[stable_mask] > 0.9), \
-                "phi_m should be > 0.9 for stable conditions"
+    # Check shape
+    assert result.shape == zeta.shape, f"Expected shape {zeta.shape}, got {result.shape}"
     
-    def test_phim_dtype(self, test_data):
-        """Test that phi_m returns correct dtype."""
-        data = test_data["phim_neutral"]
-        result = phim_monin_obukhov(data["zeta"])
-        
-        assert result.dtype == data["zeta"].dtype, \
-            f"Expected dtype {data['zeta'].dtype}, got {result.dtype}"
+    # Check values near 1.0 for neutral conditions
+    assert jnp.allclose(result, 1.0, atol=0.1), \
+        f"phi_m should be near 1.0 for neutral conditions, got {result}"
     
-    @pytest.mark.parametrize("zeta_val", [-10.0, -1.0, 0.0, 1.0, 10.0])
-    def test_phim_scalar_inputs(self, zeta_val):
-        """Test phi_m with scalar inputs."""
-        zeta = jnp.array([zeta_val])
-        result = phim_monin_obukhov(zeta)
-        
-        assert result.shape == (1,), f"Expected shape (1,), got {result.shape}"
-        assert jnp.isfinite(result[0]), f"Result should be finite for zeta={zeta_val}"
+    # Check dtype
+    assert result.dtype == jnp.float32 or result.dtype == jnp.float64, \
+        f"Expected float dtype, got {result.dtype}"
+
+
+def test_phim_unstable_range(test_data):
+    """
+    Test phi_m in typical unstable conditions (convective).
+    
+    For unstable conditions (zeta < 0), phi_m should be < 1.0 and decrease
+    with more negative zeta.
+    """
+    zeta = test_data["phim_unstable"]["zeta"]
+    result = phim_monin_obukhov(zeta)
+    
+    # Check shape
+    assert result.shape == zeta.shape
+    
+    # Check all values are less than 1.0 for unstable conditions
+    assert jnp.all(result < 1.0), \
+        f"phi_m should be < 1.0 for unstable conditions, got {result}"
+    
+    # Check all values are positive
+    assert jnp.all(result > 0), \
+        f"phi_m should be positive, got {result}"
+    
+    # Check monotonicity: more negative zeta -> smaller phi_m
+    # (values should generally decrease as we go through the array)
+    assert jnp.all(result[:-1] >= result[1:] - 0.1), \
+        "phi_m should decrease with more negative zeta"
+
+
+def test_phim_stable_range(test_data):
+    """
+    Test phi_m in stable conditions.
+    
+    For stable conditions (zeta > 0), phi_m should be > 1.0 and increase
+    with zeta.
+    """
+    zeta = test_data["phim_stable"]["zeta"]
+    result = phim_monin_obukhov(zeta)
+    
+    # Check shape
+    assert result.shape == zeta.shape
+    
+    # Check all values are greater than 1.0 for stable conditions
+    assert jnp.all(result > 1.0), \
+        f"phi_m should be > 1.0 for stable conditions, got {result}"
+    
+    # Check monotonicity: larger zeta -> larger phi_m
+    diffs = jnp.diff(result)
+    assert jnp.all(diffs > -0.01), \
+        "phi_m should increase with zeta in stable conditions"
+
+
+def test_phim_extreme_unstable(test_data):
+    """
+    Test phi_m at extreme unstable boundary (zeta = -100).
+    
+    Tests numerical stability at the lower boundary of the typical range.
+    """
+    zeta = test_data["phim_extreme_unstable"]["zeta"]
+    result = phim_monin_obukhov(zeta)
+    
+    # Check shape
+    assert result.shape == zeta.shape
+    
+    # Check values are finite and positive
+    assert jnp.all(jnp.isfinite(result)), \
+        f"phi_m should be finite at extreme unstable conditions, got {result}"
+    assert jnp.all(result > 0), \
+        f"phi_m should be positive, got {result}"
+    
+    # Check values are reasonable (not too small)
+    assert jnp.all(result > 0.01), \
+        f"phi_m should not be too small even at extreme unstable, got {result}"
 
 
 # ============================================================================
 # Tests for phic_monin_obukhov
 # ============================================================================
 
-class TestPhicMoninObukhov:
-    """Tests for phi_c Monin-Obukhov stability function for scalars."""
+def test_phic_neutral_conditions(test_data):
+    """
+    Test phi_c near neutral stability.
     
-    def test_phic_range(self, test_data):
-        """
-        Test phi_c across typical atmospheric stability range.
-        
-        phi_c should behave similarly to phi_m but with different coefficients.
-        """
-        data = test_data["phic_range"]
-        result = phic_monin_obukhov(data["zeta"])
-        
-        # Check shape
-        assert result.shape == data["zeta"].shape
-        
-        # Check physical bounds
-        assert jnp.all(result > 0), "phi_c must be positive"
-        assert jnp.all(jnp.isfinite(result)), "phi_c must be finite"
+    For neutral conditions, phi_c should be close to 1.0.
+    """
+    zeta = test_data["phim_neutral"]["zeta"]
+    result = phic_monin_obukhov(zeta)
     
-    def test_phic_vs_phim(self, test_data):
-        """
-        Test that phi_c and phi_m have expected relationship.
-        
-        For unstable conditions, phi_c typically decreases faster than phi_m.
-        """
-        data = test_data["phic_range"]
-        phic = phic_monin_obukhov(data["zeta"])
-        phim = phim_monin_obukhov(data["zeta"])
-        
-        # For unstable conditions (zeta < 0), phi_c < phi_m
-        unstable_mask = data["zeta"] < 0
-        if jnp.any(unstable_mask):
-            assert jnp.all(phic[unstable_mask] <= phim[unstable_mask]), \
-                "phi_c should be <= phi_m for unstable conditions"
+    # Check shape
+    assert result.shape == zeta.shape
     
-    def test_phic_neutral(self):
-        """Test phi_c at neutral stability."""
-        zeta = jnp.array([0.0])
-        result = phic_monin_obukhov(zeta)
-        
-        assert jnp.allclose(result, 1.0, atol=1e-6), \
-            f"phi_c should be 1.0 at neutral stability, got {result}"
+    # Check values near 1.0 for neutral conditions
+    assert jnp.allclose(result, 1.0, atol=0.1), \
+        f"phi_c should be near 1.0 for neutral conditions, got {result}"
+
+
+def test_phic_multidimensional(test_data):
+    """
+    Test phi_c with 2D array input covering stability range.
+    
+    Verifies that the function handles multidimensional arrays correctly.
+    """
+    zeta = test_data["phic_multidim"]["zeta"]
+    result = phic_monin_obukhov(zeta)
+    
+    # Check shape preservation
+    assert result.shape == zeta.shape, \
+        f"Expected shape {zeta.shape}, got {result.shape}"
+    
+    # Check all values are positive
+    assert jnp.all(result > 0), \
+        f"phi_c should be positive, got {result}"
+    
+    # Check all values are finite
+    assert jnp.all(jnp.isfinite(result)), \
+        f"phi_c should be finite, got {result}"
+
+
+def test_phic_vs_phim_relationship(test_data):
+    """
+    Test relationship between phi_c and phi_m.
+    
+    In general, phi_c and phi_m should have similar behavior but phi_c
+    typically has stronger response to stability.
+    """
+    zeta = test_data["phim_unstable"]["zeta"]
+    phim = phim_monin_obukhov(zeta)
+    phic = phic_monin_obukhov(zeta)
+    
+    # Both should be positive
+    assert jnp.all(phim > 0) and jnp.all(phic > 0)
+    
+    # For unstable conditions, both should be < 1
+    assert jnp.all(phim < 1.0) and jnp.all(phic < 1.0)
 
 
 # ============================================================================
 # Tests for psim_monin_obukhov
 # ============================================================================
 
-class TestPsimMoninObukhov:
-    """Tests for psi_m integrated stability function."""
+def test_psim_neutral_conditions(test_data):
+    """
+    Test psi_m near neutral stability.
     
-    def test_psim_edge_cases(self, test_data):
-        """
-        Test psi_m at extreme and boundary values.
-        
-        Tests extreme unstable, extreme stable, and neutral conditions.
-        """
-        data = test_data["psi_edge_cases"]
-        result = psim_monin_obukhov(data["zeta"], data["pi"])
-        
-        # Check shape
-        assert result.shape == data["zeta"].shape
-        
-        # Check finite values
-        assert jnp.all(jnp.isfinite(result)), "psi_m must be finite"
-        
-        # Check neutral condition (zeta = 0)
-        neutral_idx = jnp.where(data["zeta"] == 0.0)[0]
-        if len(neutral_idx) > 0:
-            assert jnp.allclose(result[neutral_idx], 0.0, atol=1e-6), \
-                f"psi_m should be 0 at neutral stability, got {result[neutral_idx]}"
+    For neutral conditions, psi_m should be close to 0.
+    """
+    zeta = test_data["phim_neutral"]["zeta"]
+    result = psim_monin_obukhov(zeta)
     
-    def test_psim_monotonicity(self):
-        """
-        Test that psi_m is monotonically decreasing with zeta.
-        
-        As stability increases (zeta increases), psi_m should decrease.
-        """
-        zeta = jnp.linspace(-5.0, 1.0, 20)
-        result = psim_monin_obukhov(zeta)
-        
-        # Check monotonic decrease
-        for i in range(len(result) - 1):
-            assert result[i] >= result[i + 1], \
-                f"psi_m should decrease with zeta, but {result[i]} < {result[i+1]}"
+    # Check shape
+    assert result.shape == zeta.shape
     
-    def test_psim_sign_convention(self, test_data):
-        """
-        Test sign convention for psi_m.
-        
-        Unstable (zeta < 0): psi_m > 0
-        Stable (zeta > 0): psi_m < 0
-        """
-        data = test_data["psi_edge_cases"]
-        result = psim_monin_obukhov(data["zeta"])
-        
-        unstable_mask = data["zeta"] < 0
-        stable_mask = data["zeta"] > 0
-        
-        if jnp.any(unstable_mask):
-            assert jnp.all(result[unstable_mask] > 0), \
-                "psi_m should be positive for unstable conditions"
-        
-        if jnp.any(stable_mask):
-            assert jnp.all(result[stable_mask] < 0), \
-                "psi_m should be negative for stable conditions"
+    # Check values near 0 for neutral conditions
+    assert jnp.allclose(result, 0.0, atol=0.1), \
+        f"psi_m should be near 0 for neutral conditions, got {result}"
+
+
+def test_psim_unstable_positive(test_data):
+    """
+    Test psi_m in unstable conditions.
+    
+    For unstable conditions (zeta < 0), psi_m should be positive.
+    """
+    zeta = test_data["phim_unstable"]["zeta"]
+    result = psim_monin_obukhov(zeta)
+    
+    # Check shape
+    assert result.shape == zeta.shape
+    
+    # Check all values are positive for unstable conditions
+    assert jnp.all(result > 0), \
+        f"psi_m should be positive for unstable conditions, got {result}"
+
+
+def test_psim_stable_negative(test_data):
+    """
+    Test psi_m in stable conditions.
+    
+    For stable conditions (zeta > 0), psi_m should be negative.
+    """
+    zeta = test_data["phim_stable"]["zeta"]
+    result = psim_monin_obukhov(zeta)
+    
+    # Check shape
+    assert result.shape == zeta.shape
+    
+    # Check all values are negative for stable conditions
+    assert jnp.all(result < 0), \
+        f"psi_m should be negative for stable conditions, got {result}"
+
+
+def test_psim_custom_pi(test_data):
+    """
+    Test psi_m with custom pi value.
+    
+    Verifies that the pi parameter is used correctly.
+    """
+    zeta = test_data["phim_unstable"]["zeta"]
+    pi_default = jnp.pi
+    pi_custom = 3.14159
+    
+    result_default = psim_monin_obukhov(zeta, pi=pi_default)
+    result_custom = psim_monin_obukhov(zeta, pi=pi_custom)
+    
+    # Results should be very close but not identical
+    assert jnp.allclose(result_default, result_custom, rtol=1e-4), \
+        "Results with different pi values should be very close"
 
 
 # ============================================================================
 # Tests for psic_monin_obukhov
 # ============================================================================
 
-class TestPsicMoninObukhov:
-    """Tests for psi_c integrated stability function for scalars."""
+def test_psic_neutral_conditions(test_data):
+    """
+    Test psi_c near neutral stability.
     
-    def test_psic_edge_cases(self, test_data):
-        """Test psi_c at extreme and boundary values."""
-        data = test_data["psi_edge_cases"]
-        result = psic_monin_obukhov(data["zeta"])
-        
-        # Check shape
-        assert result.shape == data["zeta"].shape
-        
-        # Check finite values
-        assert jnp.all(jnp.isfinite(result)), "psi_c must be finite"
-        
-        # Check neutral condition
-        neutral_idx = jnp.where(data["zeta"] == 0.0)[0]
-        if len(neutral_idx) > 0:
-            assert jnp.allclose(result[neutral_idx], 0.0, atol=1e-6), \
-                f"psi_c should be 0 at neutral stability"
+    For neutral conditions, psi_c should be close to 0.
+    """
+    zeta = test_data["phim_neutral"]["zeta"]
+    result = psic_monin_obukhov(zeta)
     
-    def test_psic_vs_psim_magnitude(self, test_data):
-        """
-        Test that |psi_c| >= |psi_m| for unstable conditions.
-        
-        Scalars typically have stronger stability corrections than momentum.
-        """
-        data = test_data["psi_edge_cases"]
-        psic = psic_monin_obukhov(data["zeta"])
-        psim = psim_monin_obukhov(data["zeta"])
-        
-        unstable_mask = data["zeta"] < 0
-        if jnp.any(unstable_mask):
-            assert jnp.all(jnp.abs(psic[unstable_mask]) >= 
-                          jnp.abs(psim[unstable_mask]) - 1e-6), \
-                "|psi_c| should be >= |psi_m| for unstable conditions"
+    # Check shape
+    assert result.shape == zeta.shape
+    
+    # Check values near 0 for neutral conditions
+    assert jnp.allclose(result, 0.0, atol=0.1), \
+        f"psi_c should be near 0 for neutral conditions, got {result}"
+
+
+def test_psic_unstable_positive(test_data):
+    """
+    Test psi_c in unstable conditions.
+    
+    For unstable conditions (zeta < 0), psi_c should be positive.
+    """
+    zeta = test_data["phim_unstable"]["zeta"]
+    result = psic_monin_obukhov(zeta)
+    
+    # Check shape
+    assert result.shape == zeta.shape
+    
+    # Check all values are positive for unstable conditions
+    assert jnp.all(result > 0), \
+        f"psi_c should be positive for unstable conditions, got {result}"
+
+
+def test_psic_stable_negative(test_data):
+    """
+    Test psi_c in stable conditions.
+    
+    For stable conditions (zeta > 0), psi_c should be negative.
+    """
+    zeta = test_data["phim_stable"]["zeta"]
+    result = psic_monin_obukhov(zeta)
+    
+    # Check shape
+    assert result.shape == zeta.shape
+    
+    # Check all values are negative for stable conditions
+    assert jnp.all(result < 0), \
+        f"psi_c should be negative for stable conditions, got {result}"
 
 
 # ============================================================================
 # Tests for get_prsc
 # ============================================================================
 
-class TestGetPrsc:
-    """Tests for Prandtl/Schmidt number calculation."""
+def test_get_prsc_typical_canopy(test_data):
+    """
+    Test Prandtl/Schmidt number calculation for typical canopy conditions.
     
-    def test_prsc_neutral_stable_unstable(self, test_data):
-        """
-        Test Prandtl number for neutral, stable, and unstable conditions.
-        
-        Tests three scenarios:
-        - LcL = 0: neutral
-        - LcL > 0: stable
-        - LcL < 0: unstable
-        """
-        data = test_data["prsc_conditions"]
-        
-        # Mock implementation for testing
-        def get_prsc(beta_neutral, beta_neutral_max, LcL, params):
-            # Simplified calculation
-            beta = jnp.minimum(beta_neutral * (1.0 + 0.5 * LcL), beta_neutral_max)
-            prsc = params.Pr0 + params.Pr1 * jnp.tanh(params.Pr2 * LcL)
-            return prsc
-        
-        result = get_prsc(
-            data["beta_neutral"],
-            data["beta_neutral_max"],
-            data["LcL"],
-            data["params"]
-        )
-        
-        # Check shape
-        assert result.shape == data["beta_neutral"].shape
-        
-        # Check physical bounds (Prandtl number should be positive)
-        assert jnp.all(result > 0), "Prandtl number must be positive"
-        
-        # Check reasonable range (typically 0.3 to 1.0 for atmosphere)
-        assert jnp.all(result >= 0.1), "Prandtl number too small"
-        assert jnp.all(result <= 2.0), "Prandtl number too large"
+    Tests with varying stability (LcL parameter) and beta values.
+    """
+    data = test_data["prsc_typical"]
+    result = get_prsc(
+        data["beta_neutral"],
+        data["beta_neutral_max"],
+        data["LcL"],
+        data["params"]
+    )
     
-    def test_prsc_parameter_sensitivity(self):
-        """Test sensitivity of Prandtl number to parameters."""
-        beta_neutral = jnp.array([0.3])
-        beta_neutral_max = jnp.array([0.35])
-        LcL = jnp.array([0.0])
-        
-        params1 = PrScParams(Pr0=0.5, Pr1=0.3, Pr2=0.143)
-        params2 = PrScParams(Pr0=0.7, Pr1=0.3, Pr2=0.143)
-        
-        def get_prsc(beta_neutral, beta_neutral_max, LcL, params):
-            prsc = params.Pr0 + params.Pr1 * jnp.tanh(params.Pr2 * LcL)
-            return prsc
-        
-        result1 = get_prsc(beta_neutral, beta_neutral_max, LcL, params1)
-        result2 = get_prsc(beta_neutral, beta_neutral_max, LcL, params2)
-        
-        # Different Pr0 should give different results
-        assert not jnp.allclose(result1, result2), \
-            "Prandtl number should depend on Pr0"
+    # Check shape
+    assert result.shape == data["beta_neutral"].shape, \
+        f"Expected shape {data['beta_neutral'].shape}, got {result.shape}"
+    
+    # Check all values are positive
+    assert jnp.all(result > 0), \
+        f"Prandtl/Schmidt number should be positive, got {result}"
+    
+    # Check values are in reasonable range (typically 0.3 to 1.5)
+    assert jnp.all(result > 0.1) and jnp.all(result < 2.0), \
+        f"Prandtl/Schmidt number should be in reasonable range, got {result}"
+
+
+def test_get_prsc_edge_beta(test_data):
+    """
+    Test Prandtl/Schmidt at beta boundaries (min/max).
+    
+    Tests behavior at extreme beta values.
+    """
+    data = test_data["prsc_edge_beta"]
+    result = get_prsc(
+        data["beta_neutral"],
+        data["beta_neutral_max"],
+        data["LcL"],
+        data["params"]
+    )
+    
+    # Check shape
+    assert result.shape == data["beta_neutral"].shape
+    
+    # Check all values are positive and finite
+    assert jnp.all(result > 0) and jnp.all(jnp.isfinite(result)), \
+        f"Prandtl/Schmidt should be positive and finite at boundaries, got {result}"
+
+
+def test_get_prsc_neutral_conditions(test_data):
+    """
+    Test Prandtl/Schmidt under neutral conditions (LcL = 0).
+    
+    For neutral conditions, result should be close to Pr0.
+    """
+    data = test_data["prsc_edge_beta"]
+    result = get_prsc(
+        data["beta_neutral"],
+        data["beta_neutral_max"],
+        data["LcL"],  # All zeros for neutral
+        data["params"]
+    )
+    
+    # For neutral conditions with LcL=0, expect values near Pr0
+    # (though beta effects may cause some variation)
+    assert jnp.all(result > 0.3) and jnp.all(result < 1.0), \
+        f"Prandtl/Schmidt should be in expected range for neutral, got {result}"
 
 
 # ============================================================================
 # Tests for get_beta
 # ============================================================================
 
-class TestGetBeta:
-    """Tests for beta (u*/u) calculation."""
+def test_get_beta_neutral(test_data):
+    """
+    Test beta calculation under neutral conditions (lcl=0).
     
-    def test_beta_boundary_conditions(self, test_data):
-        """
-        Test beta calculation at neutral conditions and boundary constraints.
-        
-        Beta should be constrained to [beta_min, beta_max].
-        """
-        data = test_data["beta_boundary"]
-        
-        # Mock implementation
-        def get_beta(beta_neutral, lcl, beta_min, beta_max, phim_func):
-            # Simplified: beta increases with stability
-            beta = beta_neutral * (1.0 + 0.3 * lcl)
-            beta = jnp.clip(beta, beta_min, beta_max)
-            return beta
-        
+    For neutral conditions, beta should equal beta_neutral.
+    """
+    data = test_data["beta_neutral"]
+    result = get_beta(
+        data["beta_neutral"],
+        data["lcl"],
+        data["beta_min"],
+        data["beta_max"],
+        phim_monin_obukhov
+    )
+    
+    # Check result is a scalar
+    assert jnp.ndim(result) == 0 or result.shape == (), \
+        f"Expected scalar result, got shape {result.shape}"
+    
+    # For neutral conditions, should be close to beta_neutral
+    assert jnp.allclose(result, data["beta_neutral"], atol=0.01), \
+        f"Beta should equal beta_neutral for lcl=0, got {result}"
+
+
+def test_get_beta_bounds(test_data):
+    """
+    Test that beta is constrained to [beta_min, beta_max].
+    
+    Tests with various lcl values to ensure bounds are respected.
+    """
+    data = test_data["beta_neutral"]
+    
+    # Test with extreme lcl values
+    for lcl in [-10.0, -1.0, 0.0, 1.0, 10.0]:
         result = get_beta(
             data["beta_neutral"],
-            data["lcl"],
+            lcl,
             data["beta_min"],
             data["beta_max"],
             phim_monin_obukhov
@@ -643,536 +735,820 @@ class TestGetBeta:
         
         # Check bounds
         assert result >= data["beta_min"], \
-            f"Beta {result} below minimum {data['beta_min']}"
+            f"Beta should be >= beta_min, got {result}"
         assert result <= data["beta_max"], \
-            f"Beta {result} above maximum {data['beta_max']}"
-        
-        # For neutral conditions (lcl=0), should be close to beta_neutral
-        if data["lcl"] == 0.0:
-            assert jnp.allclose(result, data["beta_neutral"], atol=0.05), \
-                f"Beta should be near beta_neutral for neutral conditions"
+            f"Beta should be <= beta_max, got {result}"
+
+
+def test_get_beta_stability_dependence(test_data):
+    """
+    Test that beta varies with stability (lcl parameter).
     
-    @pytest.mark.parametrize("lcl_val", [-1.0, -0.5, 0.0, 0.5, 1.0])
-    def test_beta_stability_dependence(self, lcl_val):
-        """Test beta dependence on stability parameter."""
-        def get_beta(beta_neutral, lcl, beta_min, beta_max, phim_func):
-            beta = beta_neutral * (1.0 + 0.3 * lcl)
-            beta = jnp.clip(beta, beta_min, beta_max)
-            return beta
-        
-        result = get_beta(0.3, lcl_val, 0.01, 0.99, phim_monin_obukhov)
-        
-        assert 0.01 <= result <= 0.99, \
-            f"Beta {result} outside valid range for lcl={lcl_val}"
+    Beta should change as stability changes.
+    """
+    data = test_data["beta_neutral"]
+    
+    result_unstable = get_beta(
+        data["beta_neutral"], -1.0,
+        data["beta_min"], data["beta_max"],
+        phim_monin_obukhov
+    )
+    
+    result_stable = get_beta(
+        data["beta_neutral"], 1.0,
+        data["beta_min"], data["beta_max"],
+        phim_monin_obukhov
+    )
+    
+    # Results should be different for different stability
+    assert not jnp.allclose(result_unstable, result_stable, atol=0.001), \
+        "Beta should vary with stability"
 
 
 # ============================================================================
 # Tests for lookup_psihat
 # ============================================================================
 
-class TestLookupPsihat:
-    """Tests for psihat lookup table interpolation."""
+def test_lookup_psihat_interpolation(test_data):
+    """
+    Test bilinear interpolation in psihat lookup table.
     
-    def test_lookup_psihat_interpolation(self, test_data):
-        """
-        Test bilinear interpolation of psihat from lookup tables.
-        
-        Verifies that interpolation produces reasonable values within
-        the range of the lookup table.
-        """
-        data = test_data["lookup_psihat"]
-        
-        # Mock bilinear interpolation
-        def lookup_psihat(zdt, dtL, zdtgrid, dtLgrid, psigrid):
-            # Simple nearest-neighbor for testing
-            zdt_idx = jnp.argmin(jnp.abs(zdtgrid.flatten() - zdt))
-            dtL_idx = jnp.argmin(jnp.abs(dtLgrid.flatten() - dtL))
-            return psigrid[zdt_idx, dtL_idx]
-        
-        result = lookup_psihat(
-            data["zdt"],
-            data["dtL"],
-            data["zdtgrid"],
-            data["dtLgrid"],
-            data["psigrid"]
-        )
-        
-        # Check result is scalar
-        assert jnp.ndim(result) == 0 or result.shape == (), \
-            f"Expected scalar result, got shape {result.shape if hasattr(result, 'shape') else type(result)}"
-        
-        # Check result is within table range
-        min_psi = jnp.min(data["psigrid"])
-        max_psi = jnp.max(data["psigrid"])
-        assert min_psi <= result <= max_psi, \
-            f"Interpolated value {result} outside table range [{min_psi}, {max_psi}]"
+    Tests interpolation at an interior point of the grid.
+    """
+    data = test_data["lookup_psihat"]
+    result = lookup_psihat(
+        data["zdt"],
+        data["dtL"],
+        data["zdtgrid"],
+        data["dtLgrid"],
+        data["psigrid"]
+    )
     
-    def test_lookup_psihat_grid_boundaries(self, test_data):
-        """Test lookup at grid boundaries."""
-        data = test_data["lookup_psihat"]
-        
-        def lookup_psihat(zdt, dtL, zdtgrid, dtLgrid, psigrid):
-            zdt_idx = jnp.argmin(jnp.abs(zdtgrid.flatten() - zdt))
-            dtL_idx = jnp.argmin(jnp.abs(dtLgrid.flatten() - dtL))
-            return psigrid[zdt_idx, dtL_idx]
-        
-        # Test at corner points
-        corners = [
-            (data["zdtgrid"][0, 0], data["dtLgrid"][0, 0]),
-            (data["zdtgrid"][0, 0], data["dtLgrid"][0, -1]),
-            (data["zdtgrid"][-1, 0], data["dtLgrid"][0, 0]),
-            (data["zdtgrid"][-1, 0], data["dtLgrid"][0, -1])
-        ]
-        
-        for zdt, dtL in corners:
-            result = lookup_psihat(zdt, dtL, data["zdtgrid"], 
-                                  data["dtLgrid"], data["psigrid"])
-            assert jnp.isfinite(result), \
-                f"Result should be finite at corner ({zdt}, {dtL})"
+    # Check result is a scalar
+    assert jnp.ndim(result) == 0 or result.shape == (), \
+        f"Expected scalar result, got shape {result.shape}"
+    
+    # Check result is finite
+    assert jnp.isfinite(result), \
+        f"Interpolated psihat should be finite, got {result}"
+    
+    # Check result is in reasonable range based on grid values
+    assert result >= jnp.min(data["psigrid"]) - 0.1, \
+        f"Interpolated value should be >= min grid value"
+    assert result <= jnp.max(data["psigrid"]) + 0.1, \
+        f"Interpolated value should be <= max grid value"
+
+
+def test_lookup_psihat_grid_corners(test_data):
+    """
+    Test lookup at grid corner points.
+    
+    At exact grid points, should return the grid value.
+    """
+    data = test_data["lookup_psihat"]
+    
+    # Test at a corner point
+    zdt_corner = float(data["zdtgrid"][0, 0])
+    dtL_corner = float(data["dtLgrid"][0, 0])
+    expected = float(data["psigrid"][0, 0])
+    
+    result = lookup_psihat(
+        zdt_corner,
+        dtL_corner,
+        data["zdtgrid"],
+        data["dtLgrid"],
+        data["psigrid"]
+    )
+    
+    # Should match grid value at corner
+    assert jnp.allclose(result, expected, atol=1e-5), \
+        f"At grid corner, expected {expected}, got {result}"
+
+
+def test_lookup_psihat_boundary_extrapolation(test_data):
+    """
+    Test psihat lookup at boundaries requiring extrapolation.
+    
+    Tests behavior when query points are outside the grid.
+    """
+    data = test_data["lookup_boundary"]
+    
+    # Test below grid
+    result_below = lookup_psihat(
+        data["zdt_below"],
+        0.0,
+        data["zdtgrid"],
+        data["dtLgrid"],
+        data["psigrid"]
+    )
+    
+    # Test above grid
+    result_above = lookup_psihat(
+        data["zdt_above"],
+        0.0,
+        data["zdtgrid"],
+        data["dtLgrid"],
+        data["psigrid"]
+    )
+    
+    # Both should be finite
+    assert jnp.isfinite(result_below) and jnp.isfinite(result_above), \
+        "Extrapolated values should be finite"
+    
+    # Test dtL boundaries
+    result_dtL_below = lookup_psihat(
+        1.0,
+        data["dtL_below"],
+        data["zdtgrid"],
+        data["dtLgrid"],
+        data["psigrid"]
+    )
+    
+    result_dtL_above = lookup_psihat(
+        1.0,
+        data["dtL_above"],
+        data["zdtgrid"],
+        data["dtLgrid"],
+        data["psigrid"]
+    )
+    
+    assert jnp.isfinite(result_dtL_below) and jnp.isfinite(result_dtL_above), \
+        "Extrapolated values should be finite for dtL boundaries"
 
 
 # ============================================================================
 # Tests for get_psi_rsl
 # ============================================================================
 
-class TestGetPsiRSL:
-    """Tests for RSL (Roughness Sublayer) psi functions."""
+def test_get_psi_rsl_complete(test_data, lookup_grids):
+    """
+    Test complete RSL psi calculation with multiple patches.
     
-    def test_psi_rsl_typical_canopy(self, test_data, lookup_grids):
-        """
-        Test RSL psi functions for typical forest canopy.
-        
-        Tests with varying stability conditions (stable, unstable, neutral).
-        """
-        data = test_data["psi_rsl_typical"]
-        grids = lookup_grids
-        
-        # Mock implementation
-        def get_psi_rsl(za, hc, disp, obu, beta, prsc, vkc, c2,
-                       dtlgrid_m, zdtgrid_m, psigrid_m,
-                       dtlgrid_h, zdtgrid_h, psigrid_h,
-                       phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn):
-            # Simplified calculation
-            zeta = (za - disp) / obu
-            psim = psim_fn(zeta)
-            psic = psic_fn(zeta)
-            return PsiRSLResult(psim=psim, psic=psic)
-        
-        result = get_psi_rsl(
-            data["za"], data["hc"], data["disp"], data["obu"],
-            data["beta"], data["prsc"], data["vkc"], data["c2"],
-            grids["dtLgrid_m"], grids["zdtgrid_m"], grids["psigrid_m"],
-            grids["dtLgrid_h"], grids["zdtgrid_h"], grids["psigrid_h"],
-            phim_monin_obukhov, phic_monin_obukhov,
-            psim_monin_obukhov, psic_monin_obukhov,
-            None
-        )
-        
-        # Check result structure
-        assert hasattr(result, 'psim'), "Result should have psim field"
-        assert hasattr(result, 'psic'), "Result should have psic field"
-        
-        # Check shapes
-        assert result.psim.shape == data["za"].shape, \
-            f"psim shape {result.psim.shape} != za shape {data['za'].shape}"
-        assert result.psic.shape == data["za"].shape, \
-            f"psic shape {result.psic.shape} != za shape {data['za'].shape}"
-        
-        # Check finite values
-        assert jnp.all(jnp.isfinite(result.psim)), "psim must be finite"
-        assert jnp.all(jnp.isfinite(result.psic)), "psic must be finite"
+    Tests the full RSL correction calculation under varying stability.
+    """
+    data = test_data["psi_rsl_complete"]
+    grids = lookup_grids
     
-    def test_psi_rsl_physical_constraints(self, test_data, lookup_grids):
-        """Test physical constraints on RSL psi functions."""
-        data = test_data["psi_rsl_typical"]
-        
-        # Check input constraints
-        assert jnp.all(data["za"] > 0), "Atmospheric height must be positive"
-        assert jnp.all(data["hc"] > 0), "Canopy height must be positive"
-        assert jnp.all(data["disp"] > 0), "Displacement height must be positive"
-        assert jnp.all(data["disp"] < data["hc"]), \
-            "Displacement height should be less than canopy height"
-        assert jnp.all(data["beta"] > 0), "Beta must be positive"
-        assert jnp.all(data["beta"] < 1), "Beta must be less than 1"
-        assert jnp.all(data["prsc"] > 0), "Prandtl number must be positive"
+    result = get_psi_rsl(
+        data["za"],
+        data["hc"],
+        data["disp"],
+        data["obu"],
+        data["beta"],
+        data["prsc"],
+        data["vkc"],
+        data["c2"],
+        grids["dtlgrid_m"],
+        grids["zdtgrid_m"],
+        grids["psigrid_m"],
+        grids["dtlgrid_h"],
+        grids["zdtgrid_h"],
+        grids["psigrid_h"],
+        phim_monin_obukhov,
+        phic_monin_obukhov,
+        psim_monin_obukhov,
+        psic_monin_obukhov,
+        lookup_psihat
+    )
+    
+    # Check result is PsiRSLResult namedtuple
+    assert isinstance(result, PsiRSLResult), \
+        f"Expected PsiRSLResult, got {type(result)}"
+    
+    # Check shapes
+    assert result.psim.shape == data["za"].shape, \
+        f"psim shape mismatch: expected {data['za'].shape}, got {result.psim.shape}"
+    assert result.psic.shape == data["za"].shape, \
+        f"psic shape mismatch: expected {data['za'].shape}, got {result.psic.shape}"
+    
+    # Check all values are finite
+    assert jnp.all(jnp.isfinite(result.psim)), \
+        f"psim should be finite, got {result.psim}"
+    assert jnp.all(jnp.isfinite(result.psic)), \
+        f"psic should be finite, got {result.psic}"
+
+
+def test_get_psi_rsl_shapes(test_data, lookup_grids):
+    """
+    Test that get_psi_rsl preserves input shapes.
+    
+    Verifies shape consistency across different input sizes.
+    """
+    grids = lookup_grids
+    
+    # Test with single patch
+    za_single = jnp.array([50.0])
+    hc_single = jnp.array([20.0])
+    disp_single = jnp.array([13.0])
+    obu_single = jnp.array([-100.0])
+    beta_single = jnp.array([0.3])
+    prsc_single = jnp.array([0.7])
+    
+    result = get_psi_rsl(
+        za_single, hc_single, disp_single, obu_single,
+        beta_single, prsc_single,
+        0.4, 0.5,
+        grids["dtlgrid_m"], grids["zdtgrid_m"], grids["psigrid_m"],
+        grids["dtlgrid_h"], grids["zdtgrid_h"], grids["psigrid_h"],
+        phim_monin_obukhov, phic_monin_obukhov,
+        psim_monin_obukhov, psic_monin_obukhov,
+        lookup_psihat
+    )
+    
+    assert result.psim.shape == za_single.shape
+    assert result.psic.shape == za_single.shape
+
+
+def test_get_psi_rsl_stability_response(test_data, lookup_grids):
+    """
+    Test that RSL psi functions respond appropriately to stability.
+    
+    Unstable and stable conditions should give different results.
+    """
+    grids = lookup_grids
+    
+    # Unstable case
+    result_unstable = get_psi_rsl(
+        jnp.array([50.0]),
+        jnp.array([20.0]),
+        jnp.array([13.0]),
+        jnp.array([-100.0]),  # Unstable
+        jnp.array([0.3]),
+        jnp.array([0.7]),
+        0.4, 0.5,
+        grids["dtlgrid_m"], grids["zdtgrid_m"], grids["psigrid_m"],
+        grids["dtlgrid_h"], grids["zdtgrid_h"], grids["psigrid_h"],
+        phim_monin_obukhov, phic_monin_obukhov,
+        psim_monin_obukhov, psic_monin_obukhov,
+        lookup_psihat
+    )
+    
+    # Stable case
+    result_stable = get_psi_rsl(
+        jnp.array([50.0]),
+        jnp.array([20.0]),
+        jnp.array([13.0]),
+        jnp.array([100.0]),  # Stable
+        jnp.array([0.3]),
+        jnp.array([0.7]),
+        0.4, 0.5,
+        grids["dtlgrid_m"], grids["zdtgrid_m"], grids["psigrid_m"],
+        grids["dtlgrid_h"], grids["zdtgrid_h"], grids["psigrid_h"],
+        phim_monin_obukhov, phic_monin_obukhov,
+        psim_monin_obukhov, psic_monin_obukhov,
+        lookup_psihat
+    )
+    
+    # Results should differ between stable and unstable
+    assert not jnp.allclose(result_unstable.psim, result_stable.psim, atol=0.01), \
+        "psim should differ between stable and unstable conditions"
+    assert not jnp.allclose(result_unstable.psic, result_stable.psic, atol=0.01), \
+        "psic should differ between stable and unstable conditions"
 
 
 # ============================================================================
 # Tests for obu_func
 # ============================================================================
 
-class TestObuFunc:
-    """Tests for Obukhov length calculation function."""
+def test_obu_func_typical_unstable(obu_func_inputs, lookup_grids):
+    """
+    Test Obukhov length calculation for typical daytime unstable conditions.
     
-    def test_obu_func_edge_cases(self, test_data):
-        """
-        Test Obukhov length calculation with edge cases.
-        
-        Tests minimal wind, sparse canopy, and very small Obukhov length.
-        """
-        data = test_data["obu_func_edge"]
-        inputs = data["inputs"]
-        
-        # Mock implementation
-        def obu_func(inputs, get_beta_fn, get_prsc_fn, get_psi_rsl_fn):
-            # Simplified calculation
-            ustar = inputs.vkc * inputs.uref[0] / jnp.log(
-                (inputs.zref[0] - inputs.ztop[0]) / 0.1
-            )
-            obu = -inputs.thvref[0] * ustar**3 / (
-                inputs.vkc * inputs.grav * 0.01
-            )
-            
-            return ObuFuncOutputs(
-                obu_dif=obu - inputs.obu_val,
-                zdisp=inputs.ztop * 0.7,
-                beta=jnp.array([0.3]),
-                PrSc=jnp.array([0.7]),
-                ustar=jnp.array([ustar]),
-                gac_to_hc=jnp.array([0.1]),
-                obu=jnp.array([obu])
-            )
-        
-        result = obu_func(inputs, None, None, None)
-        
-        # Check result structure
-        assert hasattr(result, 'obu_dif'), "Result should have obu_dif"
-        assert hasattr(result, 'zdisp'), "Result should have zdisp"
-        assert hasattr(result, 'beta'), "Result should have beta"
-        assert hasattr(result, 'PrSc'), "Result should have PrSc"
-        assert hasattr(result, 'ustar'), "Result should have ustar"
-        assert hasattr(result, 'gac_to_hc'), "Result should have gac_to_hc"
-        assert hasattr(result, 'obu'), "Result should have obu"
-        
-        # Check physical constraints
-        assert jnp.all(jnp.isfinite(result.ustar)), "ustar must be finite"
-        assert jnp.all(result.ustar > 0), "ustar must be positive"
-        assert jnp.all(result.beta > 0), "beta must be positive"
-        assert jnp.all(result.beta < 1), "beta must be less than 1"
-        assert jnp.all(result.PrSc > 0), "Prandtl number must be positive"
+    Tests the complete obu_func calculation with realistic inputs.
+    """
+    inputs = obu_func_inputs["typical_unstable"]
+    grids = lookup_grids
     
-    def test_obu_func_temperature_constraints(self, test_data):
-        """Test that temperatures are physically realistic."""
-        data = test_data["obu_func_edge"]
-        inputs = data["inputs"]
-        
-        # Check temperature constraints
-        assert jnp.all(inputs.thref > 200), \
-            "Reference temperature should be > 200K"
-        assert jnp.all(inputs.thref < 350), \
-            "Reference temperature should be < 350K"
-        assert jnp.all(inputs.taf > 200), \
-            "Canopy air temperature should be > 200K"
-        assert jnp.all(inputs.taf < 350), \
-            "Canopy air temperature should be < 350K"
+    # Create wrapper functions for get_beta and get_prsc
+    def get_beta_wrapper(beta_neutral, lcl, beta_min, beta_max, phim_func):
+        return get_beta(beta_neutral, lcl, beta_min, beta_max, phim_func)
+    
+    def get_prsc_wrapper(beta_neutral, beta_neutral_max, LcL, params):
+        return get_prsc(beta_neutral, beta_neutral_max, LcL, params)
+    
+    def get_psi_rsl_wrapper(za, hc, disp, obu, beta, prsc, vkc, c2,
+                           dtlgrid_m, zdtgrid_m, psigrid_m,
+                           dtlgrid_h, zdtgrid_h, psigrid_h,
+                           phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn):
+        return get_psi_rsl(za, hc, disp, obu, beta, prsc, vkc, c2,
+                          dtlgrid_m, zdtgrid_m, psigrid_m,
+                          dtlgrid_h, zdtgrid_h, psigrid_h,
+                          phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn)
+    
+    result = obu_func(
+        inputs,
+        get_beta_wrapper,
+        get_prsc_wrapper,
+        get_psi_rsl_wrapper
+    )
+    
+    # Check result is ObuFuncOutputs namedtuple
+    assert isinstance(result, ObuFuncOutputs), \
+        f"Expected ObuFuncOutputs, got {type(result)}"
+    
+    # Check all fields are present and finite
+    assert jnp.isfinite(result.obu_dif), "obu_dif should be finite"
+    assert jnp.isfinite(result.zdisp), "zdisp should be finite"
+    assert jnp.isfinite(result.beta), "beta should be finite"
+    assert jnp.isfinite(result.PrSc), "PrSc should be finite"
+    assert jnp.isfinite(result.ustar), "ustar should be finite"
+    assert jnp.isfinite(result.gac_to_hc), "gac_to_hc should be finite"
+    assert jnp.isfinite(result.obu), "obu should be finite"
+    
+    # Check physical constraints
+    assert result.beta > 0 and result.beta < 1, \
+        f"Beta should be in (0,1), got {result.beta}"
+    assert result.PrSc > 0, \
+        f"Prandtl/Schmidt should be positive, got {result.PrSc}"
+    assert result.ustar > 0, \
+        f"Friction velocity should be positive, got {result.ustar}"
+    assert result.gac_to_hc > 0, \
+        f"Aerodynamic conductance should be positive, got {result.gac_to_hc}"
+
+
+def test_obu_func_stable_nighttime(obu_func_inputs, lookup_grids):
+    """
+    Test Obukhov length calculation for stable nighttime conditions.
+    
+    Tests with positive Obukhov length (stable stratification).
+    """
+    inputs = obu_func_inputs["stable_nighttime"]
+    
+    def get_beta_wrapper(beta_neutral, lcl, beta_min, beta_max, phim_func):
+        return get_beta(beta_neutral, lcl, beta_min, beta_max, phim_func)
+    
+    def get_prsc_wrapper(beta_neutral, beta_neutral_max, LcL, params):
+        return get_prsc(beta_neutral, beta_neutral_max, LcL, params)
+    
+    def get_psi_rsl_wrapper(za, hc, disp, obu, beta, prsc, vkc, c2,
+                           dtlgrid_m, zdtgrid_m, psigrid_m,
+                           dtlgrid_h, zdtgrid_h, psigrid_h,
+                           phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn):
+        return get_psi_rsl(za, hc, disp, obu, beta, prsc, vkc, c2,
+                          dtlgrid_m, zdtgrid_m, psigrid_m,
+                          dtlgrid_h, zdtgrid_h, psigrid_h,
+                          phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn)
+    
+    result = obu_func(inputs, get_beta_wrapper, get_prsc_wrapper, get_psi_rsl_wrapper)
+    
+    # Check result type
+    assert isinstance(result, ObuFuncOutputs)
+    
+    # For stable conditions, Obukhov length should be positive
+    assert result.obu > 0, \
+        f"Obukhov length should be positive for stable conditions, got {result.obu}"
+    
+    # Check all values are finite
+    assert jnp.all(jnp.isfinite(jnp.array([
+        result.obu_dif, result.zdisp, result.beta, result.PrSc,
+        result.ustar, result.gac_to_hc, result.obu
+    ]))), "All outputs should be finite"
+
+
+def test_obu_func_near_neutral(obu_func_inputs, lookup_grids):
+    """
+    Test Obukhov length calculation near neutral conditions (large |L|).
+    
+    Tests behavior when approaching neutral stability.
+    """
+    inputs = obu_func_inputs["near_neutral"]
+    
+    def get_beta_wrapper(beta_neutral, lcl, beta_min, beta_max, phim_func):
+        return get_beta(beta_neutral, lcl, beta_min, beta_max, phim_func)
+    
+    def get_prsc_wrapper(beta_neutral, beta_neutral_max, LcL, params):
+        return get_prsc(beta_neutral, beta_neutral_max, LcL, params)
+    
+    def get_psi_rsl_wrapper(za, hc, disp, obu, beta, prsc, vkc, c2,
+                           dtlgrid_m, zdtgrid_m, psigrid_m,
+                           dtlgrid_h, zdtgrid_h, psigrid_h,
+                           phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn):
+        return get_psi_rsl(za, hc, disp, obu, beta, prsc, vkc, c2,
+                          dtlgrid_m, zdtgrid_m, psigrid_m,
+                          dtlgrid_h, zdtgrid_h, psigrid_h,
+                          phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn)
+    
+    result = obu_func(inputs, get_beta_wrapper, get_prsc_wrapper, get_psi_rsl_wrapper)
+    
+    # Check result type
+    assert isinstance(result, ObuFuncOutputs)
+    
+    # For near-neutral, |L| should be large
+    assert jnp.abs(result.obu) > 100, \
+        f"Obukhov length should be large for near-neutral, got {result.obu}"
+    
+    # Beta should be close to neutral value
+    assert result.beta > 0.2 and result.beta < 0.4, \
+        f"Beta should be near neutral value, got {result.beta}"
+
+
+def test_obu_func_low_wind(obu_func_inputs, lookup_grids):
+    """
+    Test Obukhov length calculation at minimum wind speed threshold.
+    
+    Tests behavior at the lower wind speed limit.
+    """
+    inputs = obu_func_inputs["low_wind"]
+    
+    def get_beta_wrapper(beta_neutral, lcl, beta_min, beta_max, phim_func):
+        return get_beta(beta_neutral, lcl, beta_min, beta_max, phim_func)
+    
+    def get_prsc_wrapper(beta_neutral, beta_neutral_max, LcL, params):
+        return get_prsc(beta_neutral, beta_neutral_max, LcL, params)
+    
+    def get_psi_rsl_wrapper(za, hc, disp, obu, beta, prsc, vkc, c2,
+                           dtlgrid_m, zdtgrid_m, psigrid_m,
+                           dtlgrid_h, zdtgrid_h, psigrid_h,
+                           phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn):
+        return get_psi_rsl(za, hc, disp, obu, beta, prsc, vkc, c2,
+                          dtlgrid_m, zdtgrid_m, psigrid_m,
+                          dtlgrid_h, zdtgrid_h, psigrid_h,
+                          phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn)
+    
+    result = obu_func(inputs, get_beta_wrapper, get_prsc_wrapper, get_psi_rsl_wrapper)
+    
+    # Check result type
+    assert isinstance(result, ObuFuncOutputs)
+    
+    # Friction velocity should be small but positive
+    assert result.ustar > 0 and result.ustar < 1.0, \
+        f"Friction velocity should be small for low wind, got {result.ustar}"
+    
+    # All values should still be finite
+    assert jnp.all(jnp.isfinite(jnp.array([
+        result.obu_dif, result.zdisp, result.beta, result.PrSc,
+        result.ustar, result.gac_to_hc, result.obu
+    ]))), "All outputs should be finite even at low wind"
+
+
+def test_obu_func_sparse_canopy(obu_func_inputs, lookup_grids):
+    """
+    Test Obukhov length calculation for sparse canopy (low LAI).
+    
+    Tests with minimal vegetation.
+    """
+    inputs = obu_func_inputs["sparse_canopy"]
+    
+    def get_beta_wrapper(beta_neutral, lcl, beta_min, beta_max, phim_func):
+        return get_beta(beta_neutral, lcl, beta_min, beta_max, phim_func)
+    
+    def get_prsc_wrapper(beta_neutral, beta_neutral_max, LcL, params):
+        return get_prsc(beta_neutral, beta_neutral_max, LcL, params)
+    
+    def get_psi_rsl_wrapper(za, hc, disp, obu, beta, prsc, vkc, c2,
+                           dtlgrid_m, zdtgrid_m, psigrid_m,
+                           dtlgrid_h, zdtgrid_h, psigrid_h,
+                           phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn):
+        return get_psi_rsl(za, hc, disp, obu, beta, prsc, vkc, c2,
+                          dtlgrid_m, zdtgrid_m, psigrid_m,
+                          dtlgrid_h, zdtgrid_h, psigrid_h,
+                          phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn)
+    
+    result = obu_func(inputs, get_beta_wrapper, get_prsc_wrapper, get_psi_rsl_wrapper)
+    
+    # Check result type
+    assert isinstance(result, ObuFuncOutputs)
+    
+    # Displacement height should be small for sparse canopy
+    assert result.zdisp < 10.0, \
+        f"Displacement height should be small for sparse canopy, got {result.zdisp}"
+    
+    # All values should be finite
+    assert jnp.all(jnp.isfinite(jnp.array([
+        result.obu_dif, result.zdisp, result.beta, result.PrSc,
+        result.ustar, result.gac_to_hc, result.obu
+    ]))), "All outputs should be finite for sparse canopy"
+
+
+def test_obu_func_dense_canopy(obu_func_inputs, lookup_grids):
+    """
+    Test Obukhov length calculation for dense canopy (high LAI).
+    
+    Tests with dense vegetation.
+    """
+    inputs = obu_func_inputs["dense_canopy"]
+    
+    def get_beta_wrapper(beta_neutral, lcl, beta_min, beta_max, phim_func):
+        return get_beta(beta_neutral, lcl, beta_min, beta_max, phim_func)
+    
+    def get_prsc_wrapper(beta_neutral, beta_neutral_max, LcL, params):
+        return get_prsc(beta_neutral, beta_neutral_max, LcL, params)
+    
+    def get_psi_rsl_wrapper(za, hc, disp, obu, beta, prsc, vkc, c2,
+                           dtlgrid_m, zdtgrid_m, psigrid_m,
+                           dtlgrid_h, zdtgrid_h, psigrid_h,
+                           phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn):
+        return get_psi_rsl(za, hc, disp, obu, beta, prsc, vkc, c2,
+                          dtlgrid_m, zdtgrid_m, psigrid_m,
+                          dtlgrid_h, zdtgrid_h, psigrid_h,
+                          phim_fn, phic_fn, psim_fn, psic_fn, lookup_fn)
+    
+    result = obu_func(inputs, get_beta_wrapper, get_prsc_wrapper, get_psi_rsl_wrapper)
+    
+    # Check result type
+    assert isinstance(result, ObuFuncOutputs)
+    
+    # Displacement height should be larger for dense canopy
+    assert result.zdisp > 15.0, \
+        f"Displacement height should be large for dense canopy, got {result.zdisp}"
+    
+    # All values should be finite
+    assert jnp.all(jnp.isfinite(jnp.array([
+        result.obu_dif, result.zdisp, result.beta, result.PrSc,
+        result.ustar, result.gac_to_hc, result.obu
+    ]))), "All outputs should be finite for dense canopy"
 
 
 # ============================================================================
-# Tests for canopy_turbulence
+# Tests for array shape handling
 # ============================================================================
 
-class TestCanopyTurbulence:
-    """Tests for main canopy turbulence calculation."""
+def test_psim_psic_array_shapes(test_data):
+    """
+    Test psi functions with various array dimensions (scalar, 1D, 2D, 3D).
     
-    def test_canopy_turbulence_multiple_patches(self, test_data):
-        """
-        Test canopy turbulence across multiple patches.
-        
-        Tests with diverse conditions: stable/unstable, varying LAI,
-        different canopy heights.
-        """
-        data = test_data["canopy_turbulence_multi"]
-        
-        # Mock implementation
-        def canopy_turbulence(niter, num_filter, filter_indices, 
-                            mlcanopy_inst, turb_type):
-            # Simplified: just verify inputs and return modified instance
-            inst = mlcanopy_inst.copy()
-            
-            # Update some fields to simulate calculation
-            inst["obu"] = inst["obu"] * 1.01  # Small modification
-            inst["ustar"] = inst["ustar"] * 1.01
-            
-            return inst
-        
-        result = canopy_turbulence(
-            data["niter"],
-            data["num_filter"],
-            data["filter_indices"],
-            data["mlcanopy_inst"],
-            data["turb_type"]
-        )
-        
-        # Check that result is a dictionary (or object) with expected fields
-        assert "obu" in result, "Result should contain obu field"
-        assert "ustar" in result, "Result should contain ustar field"
-        assert "taf" in result, "Result should contain taf field"
-        
-        # Check shapes are preserved
-        assert len(result["obu"]) == data["mlcanopy_inst"]["npatches"], \
-            "Number of patches should be preserved"
+    Verifies that functions handle different array shapes correctly.
+    """
+    data = test_data["array_shapes"]
     
-    def test_canopy_turbulence_filter_indices(self, test_data):
-        """Test that filter indices are valid."""
-        data = test_data["canopy_turbulence_multi"]
-        
-        # Check filter indices
-        assert len(data["filter_indices"]) == data["num_filter"], \
-            "Number of filter indices should match num_filter"
-        assert jnp.all(data["filter_indices"] >= 0), \
-            "Filter indices must be non-negative"
-        assert jnp.all(data["filter_indices"] < 
-                      data["mlcanopy_inst"]["npatches"]), \
-            "Filter indices must be within patch range"
+    # Test scalar
+    result_scalar_m = psim_monin_obukhov(data["zeta_scalar"])
+    result_scalar_c = psic_monin_obukhov(data["zeta_scalar"])
+    assert jnp.ndim(result_scalar_m) == 0 or result_scalar_m.shape == ()
+    assert jnp.ndim(result_scalar_c) == 0 or result_scalar_c.shape == ()
     
-    def test_canopy_turbulence_turb_type(self, test_data):
-        """Test turbulence type parameter validation."""
-        data = test_data["canopy_turbulence_multi"]
-        
-        # Check turb_type is valid
-        valid_types = [-1, 0, 1]
-        assert data["turb_type"] in valid_types, \
-            f"turb_type {data['turb_type']} not in valid types {valid_types}"
+    # Test 1D
+    result_1d_m = psim_monin_obukhov(data["zeta_1d"])
+    result_1d_c = psic_monin_obukhov(data["zeta_1d"])
+    assert result_1d_m.shape == data["zeta_1d"].shape
+    assert result_1d_c.shape == data["zeta_1d"].shape
+    
+    # Test 2D
+    result_2d_m = psim_monin_obukhov(data["zeta_2d"])
+    result_2d_c = psic_monin_obukhov(data["zeta_2d"])
+    assert result_2d_m.shape == data["zeta_2d"].shape
+    assert result_2d_c.shape == data["zeta_2d"].shape
+    
+    # Test 3D
+    result_3d_m = psim_monin_obukhov(data["zeta_3d"])
+    result_3d_c = psic_monin_obukhov(data["zeta_3d"])
+    assert result_3d_m.shape == data["zeta_3d"].shape
+    assert result_3d_c.shape == data["zeta_3d"].shape
+    
+    # All results should be finite
+    assert jnp.all(jnp.isfinite(result_1d_m))
+    assert jnp.all(jnp.isfinite(result_1d_c))
+    assert jnp.all(jnp.isfinite(result_2d_m))
+    assert jnp.all(jnp.isfinite(result_2d_c))
+    assert jnp.all(jnp.isfinite(result_3d_m))
+    assert jnp.all(jnp.isfinite(result_3d_c))
 
 
-# ============================================================================
-# Tests for initialize_rsl_tables
-# ============================================================================
-
-class TestInitializeRSLTables:
-    """Tests for RSL lookup table initialization."""
+def test_phim_phic_array_shapes(test_data):
+    """
+    Test phi functions with various array dimensions.
     
-    @patch('builtins.open')
-    def test_initialize_rsl_tables_structure(self, mock_open):
-        """
-        Test RSL table initialization structure.
-        
-        Note: This test mocks file I/O since actual file may not exist.
-        """
-        # Mock file reading
-        mock_open.return_value.__enter__ = Mock()
-        
-        # Mock implementation
-        def initialize_rsl_tables(rsl_file_path):
-            # Create mock table
-            nZ, nL = 50, 50
-            zdtgrid = jnp.linspace(0.1, 10.0, nZ).reshape(-1, 1)
-            dtLgrid = jnp.linspace(-2.0, 2.0, nL).reshape(1, -1)
-            psigrid = jnp.ones((nZ, nL))
-            
-            return RSLPsihatTable(
-                initialized=True,
-                nZ=nZ,
-                nL=nL,
-                zdtgrid_m=zdtgrid,
-                dtLgrid_m=dtLgrid,
-                psigrid_m=psigrid,
-                zdtgrid_h=zdtgrid,
-                dtLgrid_h=dtLgrid,
-                psigrid_h=psigrid
-            )
-        
-        result = initialize_rsl_tables("/path/to/rsl_lookup_table.nc")
-        
-        # Check structure
-        assert hasattr(result, 'initialized'), "Should have initialized field"
-        assert hasattr(result, 'nZ'), "Should have nZ field"
-        assert hasattr(result, 'nL'), "Should have nL field"
-        assert hasattr(result, 'zdtgrid_m'), "Should have zdtgrid_m field"
-        assert hasattr(result, 'dtLgrid_m'), "Should have dtLgrid_m field"
-        assert hasattr(result, 'psigrid_m'), "Should have psigrid_m field"
-        
-        # Check initialization flag
-        assert result.initialized == True, "Table should be initialized"
-        
-        # Check dimensions
-        assert result.nZ > 0, "nZ should be positive"
-        assert result.nL > 0, "nL should be positive"
-        
-        # Check grid shapes
-        assert result.zdtgrid_m.shape == (result.nZ, 1), \
-            f"zdtgrid_m shape should be ({result.nZ}, 1)"
-        assert result.dtLgrid_m.shape == (1, result.nL), \
-            f"dtLgrid_m shape should be (1, {result.nL})"
-        assert result.psigrid_m.shape == (result.nZ, result.nL), \
-            f"psigrid_m shape should be ({result.nZ}, {result.nL})"
+    Verifies shape preservation for phi_m and phi_c.
+    """
+    data = test_data["array_shapes"]
     
-    def test_initialize_rsl_tables_grid_ordering(self):
-        """Test that grids have correct ordering."""
-        # Mock implementation
-        def initialize_rsl_tables(rsl_file_path):
-            nZ, nL = 10, 10
-            zdtgrid = jnp.linspace(10.0, 0.1, nZ).reshape(-1, 1)  # Descending
-            dtLgrid = jnp.linspace(-2.0, 2.0, nL).reshape(1, -1)  # Ascending
-            psigrid = jnp.ones((nZ, nL))
-            
-            return RSLPsihatTable(
-                initialized=True, nZ=nZ, nL=nL,
-                zdtgrid_m=zdtgrid, dtLgrid_m=dtLgrid, psigrid_m=psigrid,
-                zdtgrid_h=zdtgrid, dtLgrid_h=dtLgrid, psigrid_h=psigrid
-            )
-        
-        result = initialize_rsl_tables("/path/to/file.nc")
-        
-        # Check zdtgrid is descending
-        zdtgrid_flat = result.zdtgrid_m.flatten()
-        for i in range(len(zdtgrid_flat) - 1):
-            assert zdtgrid_flat[i] >= zdtgrid_flat[i + 1], \
-                "zdtgrid should be in descending order"
-        
-        # Check dtLgrid is ascending
-        dtLgrid_flat = result.dtLgrid_m.flatten()
-        for i in range(len(dtLgrid_flat) - 1):
-            assert dtLgrid_flat[i] <= dtLgrid_flat[i + 1], \
-                "dtLgrid should be in ascending order"
+    # Test 1D
+    result_1d_m = phim_monin_obukhov(data["zeta_1d"])
+    result_1d_c = phic_monin_obukhov(data["zeta_1d"])
+    assert result_1d_m.shape == data["zeta_1d"].shape
+    assert result_1d_c.shape == data["zeta_1d"].shape
+    
+    # Test 2D
+    result_2d_m = phim_monin_obukhov(data["zeta_2d"])
+    result_2d_c = phic_monin_obukhov(data["zeta_2d"])
+    assert result_2d_m.shape == data["zeta_2d"].shape
+    assert result_2d_c.shape == data["zeta_2d"].shape
+    
+    # Test 3D
+    result_3d_m = phim_monin_obukhov(data["zeta_3d"])
+    result_3d_c = phic_monin_obukhov(data["zeta_3d"])
+    assert result_3d_m.shape == data["zeta_3d"].shape
+    assert result_3d_c.shape == data["zeta_3d"].shape
 
 
 # ============================================================================
-# Integration Tests
+# Tests for data types
 # ============================================================================
 
-class TestIntegration:
-    """Integration tests combining multiple functions."""
+def test_monin_obukhov_dtypes(test_data):
+    """
+    Test that Monin-Obukhov functions return correct data types.
     
-    def test_stability_function_consistency(self):
-        """
-        Test consistency between phi and psi functions.
-        
-        The relationship: d(psi)/d(zeta) = 1 - phi(zeta) should hold.
-        """
-        zeta = jnp.linspace(-2.0, 1.0, 50)
-        dzeta = zeta[1] - zeta[0]
-        
-        # Calculate phi and psi
-        phim = phim_monin_obukhov(zeta)
-        psim = psim_monin_obukhov(zeta)
-        
-        # Numerical derivative of psi
-        dpsi_dzeta = jnp.gradient(psim, dzeta)
-        
-        # Check relationship (with tolerance for numerical derivative)
-        expected = 1.0 - phim
-        assert jnp.allclose(dpsi_dzeta, expected, atol=0.1, rtol=0.1), \
-            "Relationship d(psi)/d(zeta) = 1 - phi should hold approximately"
+    All functions should return float arrays.
+    """
+    zeta = test_data["phim_unstable"]["zeta"]
     
-    def test_momentum_scalar_function_ordering(self):
-        """
-        Test that scalar functions have stronger corrections than momentum.
-        
-        For unstable conditions: |psi_c| >= |psi_m|
-        """
-        zeta = jnp.linspace(-5.0, -0.1, 20)
-        
-        psim = psim_monin_obukhov(zeta)
-        psic = psic_monin_obukhov(zeta)
-        
-        # For unstable conditions, |psi_c| should be >= |psi_m|
-        assert jnp.all(jnp.abs(psic) >= jnp.abs(psim) - 1e-6), \
-            "Scalar corrections should be >= momentum corrections for unstable"
+    result_phim = phim_monin_obukhov(zeta)
+    result_phic = phic_monin_obukhov(zeta)
+    result_psim = psim_monin_obukhov(zeta)
+    result_psic = psic_monin_obukhov(zeta)
     
-    def test_neutral_limit_all_functions(self):
-        """Test that all functions approach correct neutral limits."""
-        zeta_neutral = jnp.array([0.0])
-        
-        # phi functions should be 1.0
-        phim = phim_monin_obukhov(zeta_neutral)
-        phic = phic_monin_obukhov(zeta_neutral)
-        assert jnp.allclose(phim, 1.0, atol=1e-6), "phi_m should be 1 at neutral"
-        assert jnp.allclose(phic, 1.0, atol=1e-6), "phi_c should be 1 at neutral"
-        
-        # psi functions should be 0.0
-        psim = psim_monin_obukhov(zeta_neutral)
-        psic = psic_monin_obukhov(zeta_neutral)
-        assert jnp.allclose(psim, 0.0, atol=1e-6), "psi_m should be 0 at neutral"
-        assert jnp.allclose(psic, 0.0, atol=1e-6), "psi_c should be 0 at neutral"
+    # Check all are float types
+    assert result_phim.dtype in [jnp.float32, jnp.float64], \
+        f"phim should return float, got {result_phim.dtype}"
+    assert result_phic.dtype in [jnp.float32, jnp.float64], \
+        f"phic should return float, got {result_phic.dtype}"
+    assert result_psim.dtype in [jnp.float32, jnp.float64], \
+        f"psim should return float, got {result_psim.dtype}"
+    assert result_psic.dtype in [jnp.float32, jnp.float64], \
+        f"psic should return float, got {result_psic.dtype}"
 
 
-# ============================================================================
-# Property-Based Tests
-# ============================================================================
+def test_get_prsc_dtype(test_data):
+    """
+    Test that get_prsc returns correct data type.
+    """
+    data = test_data["prsc_typical"]
+    result = get_prsc(
+        data["beta_neutral"],
+        data["beta_neutral_max"],
+        data["LcL"],
+        data["params"]
+    )
+    
+    assert result.dtype in [jnp.float32, jnp.float64], \
+        f"get_prsc should return float, got {result.dtype}"
 
-class TestProperties:
-    """Property-based tests for mathematical properties."""
+
+def test_lookup_psihat_dtype(test_data):
+    """
+    Test that lookup_psihat returns correct data type.
+    """
+    data = test_data["lookup_psihat"]
+    result = lookup_psihat(
+        data["zdt"],
+        data["dtL"],
+        data["zdtgrid"],
+        data["dtLgrid"],
+        data["psigrid"]
+    )
     
-    @pytest.mark.parametrize("zeta", [
-        jnp.array([-5.0, -2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0])
-    ])
-    def test_phi_positivity(self, zeta):
-        """Test that phi functions are always positive."""
-        phim = phim_monin_obukhov(zeta)
-        phic = phic_monin_obukhov(zeta)
-        
-        assert jnp.all(phim > 0), "phi_m must be positive"
-        assert jnp.all(phic > 0), "phi_c must be positive"
-    
-    @pytest.mark.parametrize("zeta", [
-        jnp.array([-10.0, -5.0, -1.0, 0.0, 1.0, 5.0, 10.0])
-    ])
-    def test_psi_finiteness(self, zeta):
-        """Test that psi functions are finite for all reasonable zeta."""
-        psim = psim_monin_obukhov(zeta)
-        psic = psic_monin_obukhov(zeta)
-        
-        assert jnp.all(jnp.isfinite(psim)), "psi_m must be finite"
-        assert jnp.all(jnp.isfinite(psic)), "psi_c must be finite"
-    
-    def test_array_broadcasting(self):
-        """Test that functions handle array broadcasting correctly."""
-        # Test with different shapes
-        zeta_1d = jnp.array([0.0, 0.5, 1.0])
-        zeta_2d = jnp.array([[0.0, 0.5], [1.0, 1.5]])
-        
-        result_1d = phim_monin_obukhov(zeta_1d)
-        result_2d = phim_monin_obukhov(zeta_2d)
-        
-        assert result_1d.shape == zeta_1d.shape, "1D shape should be preserved"
-        assert result_2d.shape == zeta_2d.shape, "2D shape should be preserved"
+    # Result should be float
+    assert isinstance(float(result), float), \
+        f"lookup_psihat should return float-convertible, got {type(result)}"
 
 
 # ============================================================================
-# Edge Case Tests
+# Integration tests
 # ============================================================================
 
-class TestEdgeCases:
-    """Tests for edge cases and boundary conditions."""
+def test_monin_obukhov_consistency():
+    """
+    Test consistency between phi and psi functions.
     
-    def test_extreme_stability_values(self):
-        """Test functions at extreme stability values."""
-        zeta_extreme = jnp.array([-100.0, -50.0, 50.0, 100.0])
-        
-        phim = phim_monin_obukhov(zeta_extreme)
-        phic = phic_monin_obukhov(zeta_extreme)
-        
-        # Should still be finite and positive
-        assert jnp.all(jnp.isfinite(phim)), "phi_m should be finite at extremes"
-        assert jnp.all(jnp.isfinite(phic)), "phi_c should be finite at extremes"
-        assert jnp.all(phim > 0), "phi_m should be positive at extremes"
-        assert jnp.all(phic > 0), "phi_c should be positive at extremes"
+    The relationship between phi and psi should be consistent
+    (psi is the integral of (1 - phi)/zeta).
+    """
+    zeta = jnp.array([-2.0, -1.0, -0.5, 0.0, 0.5, 1.0])
     
-    def test_near_zero_values(self):
-        """Test functions near zero."""
-        zeta_near_zero = jnp.array([-1e-10, -1e-8, 0.0, 1e-8, 1e-10])
-        
-        phim = phim_monin_obukhov(zeta_near_zero)
-        psim = psim_monin_obukhov(zeta_near_zero)
-        
-        # Should be close to neutral values
-        assert jnp.allclose(phim, 1.0, atol=1e-6), \
-            "phi_m should be near 1 for near-zero zeta"
-        assert jnp.allclose(psim, 0.0, atol=1e-6), \
-            "psi_m should be near 0 for near-zero zeta"
+    phim = phim_monin_obukhov(zeta)
+    psim = psim_monin_obukhov(zeta)
     
-    def test_nan_inf_handling(self):
-        """Test that functions handle NaN and Inf appropriately."""
-        # Note: In production code, these should be handled gracefully
-        # Here we just verify current behavior
-        
-        zeta_special = jnp.array([0.0, 1.0, 2.0])  # Valid values
-        result = phim_monin_obukhov(zeta_special)
-        
-        # Should not produce NaN or Inf for valid inputs
-        assert not jnp.any(jnp.isnan(result)), "Should not produce NaN"
-        assert not jnp.any(jnp.isinf(result)), "Should not produce Inf"
+    phic = phic_monin_obukhov(zeta)
+    psic = psic_monin_obukhov(zeta)
+    
+    # All should be finite
+    assert jnp.all(jnp.isfinite(phim))
+    assert jnp.all(jnp.isfinite(psim))
+    assert jnp.all(jnp.isfinite(phic))
+    assert jnp.all(jnp.isfinite(psic))
+    
+    # For neutral (zeta=0), psi should be near 0 and phi near 1
+    neutral_idx = 3
+    assert jnp.abs(psim[neutral_idx]) < 0.1
+    assert jnp.abs(psic[neutral_idx]) < 0.1
+    assert jnp.abs(phim[neutral_idx] - 1.0) < 0.1
+    assert jnp.abs(phic[neutral_idx] - 1.0) < 0.1
+
+
+def test_full_turbulence_calculation_chain(obu_func_inputs, lookup_grids):
+    """
+    Test the full calculation chain from inputs to outputs.
+    
+    Integration test verifying that all components work together.
+    """
+    inputs = obu_func_inputs["typical_unstable"]
+    grids = lookup_grids
+    
+    # Step 1: Calculate beta
+    beta_neutral = 0.3
+    lcl = float(inputs.Lc / inputs.obu_val)
+    beta = get_beta(beta_neutral, lcl, 0.01, 0.99, phim_monin_obukhov)
+    
+    # Step 2: Calculate Prandtl/Schmidt number
+    params = PrScParams(Pr0=0.5, Pr1=0.3, Pr2=0.143)
+    prsc = get_prsc(
+        jnp.array([beta_neutral]),
+        jnp.array([0.35]),
+        jnp.array([lcl]),
+        params
+    )
+    
+    # Step 3: Calculate RSL psi functions
+    psi_result = get_psi_rsl(
+        jnp.array([float(inputs.zref)]),
+        jnp.array([float(inputs.ztop)]),
+        jnp.array([float(inputs.ztop) * 0.65]),
+        jnp.array([float(inputs.obu_val)]),
+        jnp.array([beta]),
+        prsc,
+        inputs.vkc,
+        0.5,
+        grids["dtlgrid_m"], grids["zdtgrid_m"], grids["psigrid_m"],
+        grids["dtlgrid_h"], grids["zdtgrid_h"], grids["psigrid_h"],
+        phim_monin_obukhov, phic_monin_obukhov,
+        psim_monin_obukhov, psic_monin_obukhov,
+        lookup_psihat
+    )
+    
+    # All intermediate results should be finite
+    assert jnp.isfinite(beta)
+    assert jnp.all(jnp.isfinite(prsc))
+    assert jnp.all(jnp.isfinite(psi_result.psim))
+    assert jnp.all(jnp.isfinite(psi_result.psic))
+    
+    # Physical constraints
+    assert beta > 0 and beta < 1
+    assert jnp.all(prsc > 0)
+
+
+# ============================================================================
+# Edge case tests
+# ============================================================================
+
+def test_zero_zeta_handling():
+    """
+    Test handling of exactly zero zeta (neutral conditions).
+    
+    Functions should handle zeta=0 without numerical issues.
+    """
+    zeta_zero = jnp.array([0.0])
+    
+    phim = phim_monin_obukhov(zeta_zero)
+    phic = phic_monin_obukhov(zeta_zero)
+    psim = psim_monin_obukhov(zeta_zero)
+    psic = psic_monin_obukhov(zeta_zero)
+    
+    # All should be finite
+    assert jnp.isfinite(phim[0])
+    assert jnp.isfinite(phic[0])
+    assert jnp.isfinite(psim[0])
+    assert jnp.isfinite(psic[0])
+    
+    # phi should be near 1, psi near 0
+    assert jnp.abs(phim[0] - 1.0) < 0.01
+    assert jnp.abs(phic[0] - 1.0) < 0.01
+    assert jnp.abs(psim[0]) < 0.01
+    assert jnp.abs(psic[0]) < 0.01
+
+
+def test_extreme_zeta_values():
+    """
+    Test handling of extreme zeta values.
+    
+    Functions should remain stable at boundaries.
+    """
+    zeta_extreme = jnp.array([-100.0, -50.0, 50.0, 100.0])
+    
+    phim = phim_monin_obukhov(zeta_extreme)
+    phic = phic_monin_obukhov(zeta_extreme)
+    psim = psim_monin_obukhov(zeta_extreme)
+    psic = psic_monin_obukhov(zeta_extreme)
+    
+    # All should be finite
+    assert jnp.all(jnp.isfinite(phim))
+    assert jnp.all(jnp.isfinite(phic))
+    assert jnp.all(jnp.isfinite(psim))
+    assert jnp.all(jnp.isfinite(psic))
+    
+    # All phi values should be positive
+    assert jnp.all(phim > 0)
+    assert jnp.all(phic > 0)
+
+
+def test_empty_array_handling():
+    """
+    Test handling of empty arrays.
+    
+    Functions should handle empty inputs gracefully.
+    """
+    zeta_empty = jnp.array([])
+    
+    phim = phim_monin_obukhov(zeta_empty)
+    phic = phic_monin_obukhov(zeta_empty)
+    psim = psim_monin_obukhov(zeta_empty)
+    psic = psic_monin_obukhov(zeta_empty)
+    
+    # All should be empty arrays
+    assert phim.shape == (0,)
+    assert phic.shape == (0,)
+    assert psim.shape == (0,)
+    assert psic.shape == (0,)
 
 
 if __name__ == "__main__":

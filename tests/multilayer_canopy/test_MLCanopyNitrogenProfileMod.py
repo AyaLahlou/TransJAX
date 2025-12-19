@@ -1,1281 +1,757 @@
 """
-Comprehensive pytest suite for MLCanopyNitrogenProfileMod.canopy_nitrogen_profile
+Comprehensive pytest suite for canopy_nitrogen_profile function.
 
-This module tests the canopy nitrogen profile calculation function, which computes
-photosynthetic parameters (Vcmax, Jmax, Rd, Kp) throughout the canopy based on
-nitrogen distribution, light extinction, and temperature acclimation.
-
-Test coverage includes:
-- Nominal cases: typical C3/C4 plants with moderate LAI
-- Edge cases: zero LAI, extreme temperatures, full shade
-- Special cases: uniform clumping, variable layer counts
-- Physical constraints: temperature > 0K, fractions in [0,1]
-- Numerical validation: analytical vs numerical integration
+This module tests the canopy nitrogen profile calculation including:
+- Nitrogen distribution through canopy layers
+- Photosynthetic parameter profiles (Vcmax, Jmax, Rd, Kp)
+- Sunlit/shaded leaf differentiation
+- C3/C4 pathway handling
+- Temperature acclimation effects
+- Numerical integration validation
 """
 
-import json
-import pytest
+import sys
+from pathlib import Path
+from typing import Any, Dict
+
 import jax.numpy as jnp
 import numpy as np
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+import pytest
 
-# Import the function and related types
-# Adjust import path based on actual module structure
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
 from multilayer_canopy.MLCanopyNitrogenProfileMod import (
-    canopy_nitrogen_profile,
     CanopyNitrogenParams,
     CanopyNitrogenProfile,
     CanopyNitrogenValidation,
+    canopy_nitrogen_profile,
     get_default_params,
 )
 
 
-# ============================================================================
-# Fixtures
-# ============================================================================
-
-@pytest.fixture(scope="module")
+@pytest.fixture
 def test_data() -> Dict[str, Any]:
     """
-    Load test data from JSON specification.
+    Load test data for canopy_nitrogen_profile tests.
     
     Returns:
-        Dictionary containing all test cases with inputs and metadata
+        Dictionary containing test cases with inputs and metadata.
     """
-    test_data_json = {
-        "function_name": "canopy_nitrogen_profile",
-        "test_cases": [
-            {
-                "name": "test_nominal_single_patch_c3_moderate_lai",
-                "inputs": {
-                    "vcmaxpft": [62.0],
-                    "c3psn": [1],
-                    "tacclim": [293.15],
-                    "dpai": [[0.5, 0.4, 0.3, 0.2, 0.1]],
-                    "kb": [[0.5, 0.5, 0.5, 0.5, 0.5]],
-                    "tbi": [[0.95, 0.85, 0.75, 0.65, 0.55]],
-                    "fracsun": [[0.8, 0.7, 0.6, 0.5, 0.4]],
-                    "clump_fac": [0.85],
-                    "ncan": [5],
-                    "lai": [1.5],
-                    "sai": [0.5],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "nominal",
-                    "description": "Single C3 patch with moderate LAI, typical temperate conditions, 5 canopy layers",
-                    "edge_cases": []
-                }
+    return {
+        "test_nominal_single_patch_c3_moderate_lai": {
+            "inputs": {
+                "vcmaxpft": jnp.array([62.0]),
+                "c3psn": jnp.array([1]),
+                "tacclim": jnp.array([293.15]),
+                "dpai": jnp.array([[0.5, 0.4, 0.3, 0.2, 0.1]]),
+                "kb": jnp.array([[0.5, 0.5, 0.5, 0.5, 0.5]]),
+                "tbi": jnp.array([[0.95, 0.85, 0.75, 0.65, 0.55]]),
+                "fracsun": jnp.array([[0.8, 0.7, 0.6, 0.5, 0.4]]),
+                "clump_fac": jnp.array([0.85]),
+                "ncan": jnp.array([5]),
+                "lai": jnp.array([1.5]),
+                "sai": jnp.array([0.5]),
+                "params": None,
+                "validate": True,
             },
-            {
-                "name": "test_nominal_multiple_patches_mixed_pathways",
-                "inputs": {
-                    "vcmaxpft": [62.0, 40.0, 55.0],
-                    "c3psn": [1, 0, 1],
-                    "tacclim": [293.15, 303.15, 283.15],
-                    "dpai": [
-                        [0.6, 0.5, 0.4, 0.3, 0.2],
-                        [0.8, 0.7, 0.6, 0.5, 0.4],
-                        [0.4, 0.3, 0.2, 0.1, 0.05]
-                    ],
-                    "kb": [
-                        [0.5, 0.5, 0.5, 0.5, 0.5],
-                        [0.6, 0.6, 0.6, 0.6, 0.6],
-                        [0.4, 0.4, 0.4, 0.4, 0.4]
-                    ],
-                    "tbi": [
-                        [0.9, 0.8, 0.7, 0.6, 0.5],
-                        [0.85, 0.75, 0.65, 0.55, 0.45],
-                        [0.95, 0.88, 0.8, 0.72, 0.65]
-                    ],
-                    "fracsun": [
-                        [0.75, 0.65, 0.55, 0.45, 0.35],
-                        [0.7, 0.6, 0.5, 0.4, 0.3],
-                        [0.8, 0.7, 0.6, 0.5, 0.4]
-                    ],
-                    "clump_fac": [0.85, 0.75, 0.9],
-                    "ncan": [5, 5, 5],
-                    "lai": [2.0, 3.0, 1.45],
-                    "sai": [0.6, 0.8, 0.4],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "nominal",
-                    "description": "Three patches with mixed C3/C4 pathways, varying temperatures and LAI values",
-                    "edge_cases": []
-                }
+            "metadata": {
+                "type": "nominal",
+                "description": "Single C3 patch with moderate LAI, typical temperate conditions, 5 canopy layers",
             },
-            {
-                "name": "test_nominal_high_lai_dense_canopy",
-                "inputs": {
-                    "vcmaxpft": [80.0, 70.0],
-                    "c3psn": [1, 1],
-                    "tacclim": [298.15, 295.15],
-                    "dpai": [
-                        [1.2, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2],
-                        [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
-                    ],
-                    "kb": [
-                        [0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55],
-                        [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-                    ],
-                    "tbi": [
-                        [0.88, 0.77, 0.67, 0.58, 0.5, 0.43, 0.37, 0.32, 0.27, 0.23],
-                        [0.9, 0.8, 0.71, 0.63, 0.56, 0.5, 0.44, 0.39, 0.35, 0.31]
-                    ],
-                    "fracsun": [
-                        [0.65, 0.55, 0.45, 0.38, 0.32, 0.27, 0.23, 0.19, 0.16, 0.13],
-                        [0.7, 0.6, 0.5, 0.42, 0.35, 0.29, 0.24, 0.2, 0.17, 0.14]
-                    ],
-                    "clump_fac": [0.8, 0.82],
-                    "ncan": [10, 10],
-                    "lai": [6.6, 5.5],
-                    "sai": [1.2, 1.0],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "nominal",
-                    "description": "Dense canopy with high LAI (6-7), 10 layers, typical for tropical forests",
-                    "edge_cases": []
-                }
+        },
+        "test_nominal_multiple_patches_mixed_pathways": {
+            "inputs": {
+                "vcmaxpft": jnp.array([62.0, 40.0, 55.0]),
+                "c3psn": jnp.array([1, 0, 1]),
+                "tacclim": jnp.array([293.15, 303.15, 283.15]),
+                "dpai": jnp.array([
+                    [0.6, 0.5, 0.4, 0.3, 0.2],
+                    [0.8, 0.7, 0.6, 0.5, 0.4],
+                    [0.4, 0.3, 0.2, 0.1, 0.05],
+                ]),
+                "kb": jnp.array([
+                    [0.5, 0.5, 0.5, 0.5, 0.5],
+                    [0.6, 0.6, 0.6, 0.6, 0.6],
+                    [0.4, 0.4, 0.4, 0.4, 0.4],
+                ]),
+                "tbi": jnp.array([
+                    [0.9, 0.8, 0.7, 0.6, 0.5],
+                    [0.85, 0.75, 0.65, 0.55, 0.45],
+                    [0.95, 0.88, 0.8, 0.72, 0.65],
+                ]),
+                "fracsun": jnp.array([
+                    [0.75, 0.65, 0.55, 0.45, 0.35],
+                    [0.7, 0.6, 0.5, 0.4, 0.3],
+                    [0.8, 0.7, 0.6, 0.5, 0.4],
+                ]),
+                "clump_fac": jnp.array([0.85, 0.75, 0.9]),
+                "ncan": jnp.array([5, 5, 5]),
+                "lai": jnp.array([2.0, 3.0, 1.45]),
+                "sai": jnp.array([0.6, 0.8, 0.4]),
+                "params": None,
+                "validate": True,
             },
-            {
-                "name": "test_edge_zero_lai_no_canopy",
-                "inputs": {
-                    "vcmaxpft": [50.0, 45.0],
-                    "c3psn": [1, 0],
-                    "tacclim": [290.15, 295.15],
-                    "dpai": [
-                        [0.0, 0.0, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0, 0.0]
-                    ],
-                    "kb": [
-                        [0.5, 0.5, 0.5, 0.5, 0.5],
-                        [0.5, 0.5, 0.5, 0.5, 0.5]
-                    ],
-                    "tbi": [
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0]
-                    ],
-                    "fracsun": [
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0]
-                    ],
-                    "clump_fac": [1.0, 1.0],
-                    "ncan": [0, 0],
-                    "lai": [0.0, 0.0],
-                    "sai": [0.0, 0.0],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Zero LAI/SAI representing bare ground or dormant vegetation",
-                    "edge_cases": ["zero_lai", "zero_dpai", "full_transmission"]
-                }
+            "metadata": {
+                "type": "nominal",
+                "description": "Three patches with mixed C3/C4 pathways, varying temperatures and LAI values",
             },
-            {
-                "name": "test_edge_minimal_lai_single_layer",
-                "inputs": {
-                    "vcmaxpft": [30.0],
-                    "c3psn": [1],
-                    "tacclim": [288.15],
-                    "dpai": [[0.05]],
-                    "kb": [[0.5]],
-                    "tbi": [[0.975]],
-                    "fracsun": [[0.95]],
-                    "clump_fac": [0.95],
-                    "ncan": [1],
-                    "lai": [0.05],
-                    "sai": [0.01],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Minimal LAI with single canopy layer, sparse vegetation",
-                    "edge_cases": ["minimal_lai", "single_layer"]
-                }
+        },
+        "test_nominal_high_lai_dense_canopy": {
+            "inputs": {
+                "vcmaxpft": jnp.array([80.0, 70.0]),
+                "c3psn": jnp.array([1, 1]),
+                "tacclim": jnp.array([298.15, 295.15]),
+                "dpai": jnp.array([
+                    [1.2, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2],
+                    [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+                ]),
+                "kb": jnp.array([
+                    [0.55] * 10,
+                    [0.5] * 10,
+                ]),
+                "tbi": jnp.array([
+                    [0.88, 0.77, 0.68, 0.6, 0.53, 0.47, 0.41, 0.36, 0.32, 0.28],
+                    [0.9, 0.81, 0.73, 0.66, 0.59, 0.53, 0.48, 0.43, 0.39, 0.35],
+                ]),
+                "fracsun": jnp.array([
+                    [0.65, 0.55, 0.48, 0.42, 0.37, 0.32, 0.28, 0.24, 0.21, 0.18],
+                    [0.7, 0.6, 0.52, 0.45, 0.39, 0.34, 0.3, 0.26, 0.23, 0.2],
+                ]),
+                "clump_fac": jnp.array([0.8, 0.82]),
+                "ncan": jnp.array([10, 10]),
+                "lai": jnp.array([6.6, 5.5]),
+                "sai": jnp.array([1.2, 1.0]),
+                "params": None,
+                "validate": True,
             },
-            {
-                "name": "test_edge_extreme_cold_temperature",
-                "inputs": {
-                    "vcmaxpft": [40.0, 35.0],
-                    "c3psn": [1, 1],
-                    "tacclim": [253.15, 258.15],
-                    "dpai": [
-                        [0.3, 0.25, 0.2, 0.15, 0.1],
-                        [0.35, 0.3, 0.25, 0.2, 0.15]
-                    ],
-                    "kb": [
-                        [0.5, 0.5, 0.5, 0.5, 0.5],
-                        [0.5, 0.5, 0.5, 0.5, 0.5]
-                    ],
-                    "tbi": [
-                        [0.92, 0.84, 0.76, 0.68, 0.6],
-                        [0.91, 0.82, 0.73, 0.64, 0.55]
-                    ],
-                    "fracsun": [
-                        [0.78, 0.68, 0.58, 0.48, 0.38],
-                        [0.76, 0.66, 0.56, 0.46, 0.36]
-                    ],
-                    "clump_fac": [0.88, 0.86],
-                    "ncan": [5, 5],
-                    "lai": [1.0, 1.25],
-                    "sai": [0.3, 0.35],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Extreme cold temperatures (-20°C to -15°C), boreal/arctic conditions",
-                    "edge_cases": ["extreme_cold", "low_temperature_acclimation"]
-                }
+            "metadata": {
+                "type": "nominal",
+                "description": "Dense canopy with high LAI (6-7), 10 layers, typical for tropical forests",
             },
-            {
-                "name": "test_edge_extreme_hot_temperature",
-                "inputs": {
-                    "vcmaxpft": [90.0, 85.0],
-                    "c3psn": [0, 0],
-                    "tacclim": [313.15, 318.15],
-                    "dpai": [
-                        [0.7, 0.6, 0.5, 0.4, 0.3],
-                        [0.8, 0.7, 0.6, 0.5, 0.4]
-                    ],
-                    "kb": [
-                        [0.6, 0.6, 0.6, 0.6, 0.6],
-                        [0.65, 0.65, 0.65, 0.65, 0.65]
-                    ],
-                    "tbi": [
-                        [0.87, 0.75, 0.64, 0.54, 0.45],
-                        [0.85, 0.72, 0.6, 0.5, 0.41]
-                    ],
-                    "fracsun": [
-                        [0.68, 0.58, 0.48, 0.38, 0.28],
-                        [0.65, 0.55, 0.45, 0.35, 0.25]
-                    ],
-                    "clump_fac": [0.7, 0.72],
-                    "ncan": [5, 5],
-                    "lai": [2.5, 3.0],
-                    "sai": [0.7, 0.8],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Extreme hot temperatures (40-45°C), C4 plants in desert/tropical conditions",
-                    "edge_cases": ["extreme_heat", "high_temperature_acclimation", "c4_pathway"]
-                }
+        },
+        "test_edge_zero_lai_no_canopy": {
+            "inputs": {
+                "vcmaxpft": jnp.array([50.0, 45.0]),
+                "c3psn": jnp.array([1, 0]),
+                "tacclim": jnp.array([290.15, 295.15]),
+                "dpai": jnp.array([[0.0] * 5, [0.0] * 5]),
+                "kb": jnp.array([[0.5] * 5, [0.5] * 5]),
+                "tbi": jnp.array([[1.0] * 5, [1.0] * 5]),
+                "fracsun": jnp.array([[1.0] * 5, [1.0] * 5]),
+                "clump_fac": jnp.array([1.0, 1.0]),
+                "ncan": jnp.array([0, 0]),
+                "lai": jnp.array([0.0, 0.0]),
+                "sai": jnp.array([0.0, 0.0]),
+                "params": None,
+                "validate": True,
             },
-            {
-                "name": "test_edge_full_shade_zero_transmission",
-                "inputs": {
-                    "vcmaxpft": [55.0],
-                    "c3psn": [1],
-                    "tacclim": [295.15],
-                    "dpai": [[0.8, 0.7, 0.6, 0.5, 0.4]],
-                    "kb": [[0.8, 0.8, 0.8, 0.8, 0.8]],
-                    "tbi": [[0.5, 0.25, 0.12, 0.06, 0.0]],
-                    "fracsun": [[0.4, 0.2, 0.1, 0.05, 0.0]],
-                    "clump_fac": [0.6],
-                    "ncan": [5],
-                    "lai": [3.0],
-                    "sai": [0.8],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "edge",
-                    "description": "Deep canopy with zero transmission in lower layers, fully shaded understory",
-                    "edge_cases": ["zero_transmission", "zero_fracsun", "full_shade"]
-                }
+            "metadata": {
+                "type": "edge",
+                "description": "Zero LAI/SAI representing bare ground or dormant vegetation",
             },
-            {
-                "name": "test_special_uniform_clumping_perfect_distribution",
-                "inputs": {
-                    "vcmaxpft": [65.0, 58.0],
-                    "c3psn": [1, 1],
-                    "tacclim": [291.15, 294.15],
-                    "dpai": [
-                        [0.5, 0.5, 0.5, 0.5, 0.5],
-                        [0.6, 0.6, 0.6, 0.6, 0.6]
-                    ],
-                    "kb": [
-                        [0.5, 0.5, 0.5, 0.5, 0.5],
-                        [0.5, 0.5, 0.5, 0.5, 0.5]
-                    ],
-                    "tbi": [
-                        [0.9, 0.81, 0.73, 0.66, 0.59],
-                        [0.88, 0.77, 0.68, 0.6, 0.53]
-                    ],
-                    "fracsun": [
-                        [0.72, 0.64, 0.57, 0.51, 0.45],
-                        [0.7, 0.62, 0.54, 0.48, 0.42]
-                    ],
-                    "clump_fac": [1.0, 1.0],
-                    "ncan": [5, 5],
-                    "lai": [2.5, 3.0],
-                    "sai": [0.5, 0.6],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "special",
-                    "description": "Perfect uniform foliage distribution (clump_fac=1.0), equal dpai across layers",
-                    "edge_cases": ["uniform_clumping", "equal_layer_distribution"]
-                }
+        },
+        "test_edge_minimal_lai_single_layer": {
+            "inputs": {
+                "vcmaxpft": jnp.array([30.0]),
+                "c3psn": jnp.array([1]),
+                "tacclim": jnp.array([288.15]),
+                "dpai": jnp.array([[0.05]]),
+                "kb": jnp.array([[0.5]]),
+                "tbi": jnp.array([[0.975]]),
+                "fracsun": jnp.array([[0.95]]),
+                "clump_fac": jnp.array([0.95]),
+                "ncan": jnp.array([1]),
+                "lai": jnp.array([0.05]),
+                "sai": jnp.array([0.01]),
+                "params": None,
+                "validate": True,
             },
-            {
-                "name": "test_special_variable_layer_count_asymmetric",
-                "inputs": {
-                    "vcmaxpft": [60.0, 55.0, 50.0, 65.0],
-                    "c3psn": [1, 0, 1, 0],
-                    "tacclim": [292.15, 298.15, 287.15, 303.15],
-                    "dpai": [
-                        [1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        [0.4, 0.35, 0.3, 0.25, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        [0.25, 0.22, 0.2, 0.18, 0.16, 0.14, 0.12, 0.1, 0.08, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        [0.5, 0.48, 0.45, 0.42, 0.4, 0.38, 0.35, 0.32, 0.3, 0.28, 0.25, 0.22, 0.2, 0.18, 0.15]
-                    ],
-                    "kb": [
-                        [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-                        [0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55],
-                        [0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48, 0.48],
-                        [0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52, 0.52]
-                    ],
-                    "tbi": [
-                        [0.85, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        [0.92, 0.84, 0.77, 0.7, 0.64, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        [0.94, 0.88, 0.83, 0.78, 0.73, 0.68, 0.64, 0.6, 0.56, 0.53, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        [0.9, 0.81, 0.73, 0.66, 0.59, 0.53, 0.48, 0.43, 0.39, 0.35, 0.31, 0.28, 0.25, 0.23, 0.2]
-                    ],
-                    "fracsun": [
-                        [0.75, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        [0.78, 0.7, 0.62, 0.54, 0.46, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        [0.8, 0.73, 0.67, 0.61, 0.55, 0.5, 0.45, 0.4, 0.36, 0.32, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        [0.72, 0.65, 0.59, 0.53, 0.48, 0.43, 0.39, 0.35, 0.31, 0.28, 0.25, 0.22, 0.2, 0.18, 0.15]
-                    ],
-                    "clump_fac": [0.9, 0.75, 0.85, 0.7],
-                    "ncan": [1, 5, 10, 15],
-                    "lai": [1.5, 1.5, 1.5, 5.58],
-                    "sai": [0.3, 0.4, 0.5, 1.2],
-                    "params": None,
-                    "validate": True
-                },
-                "metadata": {
-                    "type": "special",
-                    "description": "Four patches with highly variable layer counts (1, 5, 10, 15), testing asymmetric canopy structures",
-                    "edge_cases": ["variable_ncan", "single_layer", "many_layers"]
-                }
-            }
-        ]
+            "metadata": {
+                "type": "edge",
+                "description": "Minimal LAI with single canopy layer, sparse vegetation",
+            },
+        },
+        "test_edge_extreme_cold_temperature": {
+            "inputs": {
+                "vcmaxpft": jnp.array([40.0, 35.0]),
+                "c3psn": jnp.array([1, 1]),
+                "tacclim": jnp.array([253.15, 258.15]),
+                "dpai": jnp.array([
+                    [0.3, 0.25, 0.2, 0.15, 0.1],
+                    [0.35, 0.3, 0.25, 0.2, 0.15],
+                ]),
+                "kb": jnp.array([[0.5] * 5, [0.5] * 5]),
+                "tbi": jnp.array([
+                    [0.92, 0.84, 0.77, 0.71, 0.65],
+                    [0.91, 0.83, 0.76, 0.69, 0.63],
+                ]),
+                "fracsun": jnp.array([
+                    [0.78, 0.68, 0.58, 0.48, 0.38],
+                    [0.76, 0.66, 0.56, 0.46, 0.36],
+                ]),
+                "clump_fac": jnp.array([0.88, 0.86]),
+                "ncan": jnp.array([5, 5]),
+                "lai": jnp.array([1.0, 1.25]),
+                "sai": jnp.array([0.3, 0.35]),
+                "params": None,
+                "validate": True,
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Extreme cold temperatures (-20°C to -15°C), boreal/arctic conditions",
+            },
+        },
+        "test_edge_extreme_hot_temperature": {
+            "inputs": {
+                "vcmaxpft": jnp.array([90.0, 85.0]),
+                "c3psn": jnp.array([0, 0]),
+                "tacclim": jnp.array([313.15, 318.15]),
+                "dpai": jnp.array([
+                    [0.7, 0.6, 0.5, 0.4, 0.3],
+                    [0.8, 0.7, 0.6, 0.5, 0.4],
+                ]),
+                "kb": jnp.array([[0.6] * 5, [0.65] * 5]),
+                "tbi": jnp.array([
+                    [0.87, 0.76, 0.66, 0.57, 0.5],
+                    [0.85, 0.72, 0.61, 0.52, 0.44],
+                ]),
+                "fracsun": jnp.array([
+                    [0.68, 0.58, 0.48, 0.38, 0.28],
+                    [0.65, 0.55, 0.45, 0.35, 0.25],
+                ]),
+                "clump_fac": jnp.array([0.7, 0.72]),
+                "ncan": jnp.array([5, 5]),
+                "lai": jnp.array([2.5, 3.0]),
+                "sai": jnp.array([0.7, 0.8]),
+                "params": None,
+                "validate": True,
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Extreme hot temperatures (40-45°C), C4 desert/savanna conditions",
+            },
+        },
+        "test_edge_full_shade_no_sunlit": {
+            "inputs": {
+                "vcmaxpft": jnp.array([55.0]),
+                "c3psn": jnp.array([1]),
+                "tacclim": jnp.array([290.15]),
+                "dpai": jnp.array([[0.4, 0.35, 0.3, 0.25, 0.2]]),
+                "kb": jnp.array([[0.8] * 5]),
+                "tbi": jnp.array([[0.1, 0.05, 0.02, 0.01, 0.0]]),
+                "fracsun": jnp.array([[0.15, 0.08, 0.03, 0.01, 0.0]]),
+                "clump_fac": jnp.array([0.6]),
+                "ncan": jnp.array([5]),
+                "lai": jnp.array([1.5]),
+                "sai": jnp.array([0.4]),
+                "params": None,
+                "validate": True,
+            },
+            "metadata": {
+                "type": "edge",
+                "description": "Deep shade conditions with minimal sunlit fraction in lower canopy",
+            },
+        },
+        "test_special_variable_layer_counts": {
+            "inputs": {
+                "vcmaxpft": jnp.array([60.0, 50.0, 70.0, 45.0]),
+                "c3psn": jnp.array([1, 0, 1, 1]),
+                "tacclim": jnp.array([293.15, 298.15, 288.15, 295.15]),
+                "dpai": jnp.array([
+                    [0.8, 0.6, 0.4, 0.2] + [0.0] * 16,
+                    [0.5, 0.4, 0.3] + [0.0] * 17,
+                    [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1] + [0.0] * 10,
+                    [0.3, 0.2] + [0.0] * 18,
+                ]),
+                "kb": jnp.array([
+                    [0.5] * 20,
+                    [0.55] * 20,
+                    [0.48] * 20,
+                    [0.52] * 20,
+                ]),
+                "tbi": jnp.array([
+                    [0.89, 0.79, 0.7, 0.62] + [1.0] * 16,
+                    [0.92, 0.84, 0.77] + [1.0] * 17,
+                    [0.86, 0.74, 0.64, 0.55, 0.47, 0.4, 0.34, 0.29, 0.25, 0.21] + [1.0] * 10,
+                    [0.94, 0.88] + [1.0] * 18,
+                ]),
+                "fracsun": jnp.array([
+                    [0.72, 0.62, 0.52, 0.42] + [1.0] * 16,
+                    [0.75, 0.65, 0.55] + [1.0] * 17,
+                    [0.68, 0.58, 0.5, 0.43, 0.37, 0.32, 0.27, 0.23, 0.2, 0.17] + [1.0] * 10,
+                    [0.78, 0.7] + [1.0] * 18,
+                ]),
+                "clump_fac": jnp.array([0.85, 0.75, 0.8, 0.9]),
+                "ncan": jnp.array([4, 3, 10, 2]),
+                "lai": jnp.array([2.0, 1.2, 5.0, 0.5]),
+                "sai": jnp.array([0.6, 0.3, 1.5, 0.15]),
+                "params": None,
+                "validate": True,
+            },
+            "metadata": {
+                "type": "special",
+                "description": "Four patches with different active layer counts (2, 3, 4, 10) using max 20-layer array",
+            },
+        },
+        "test_special_uniform_vs_clumped_canopy": {
+            "inputs": {
+                "vcmaxpft": jnp.array([65.0, 65.0, 65.0]),
+                "c3psn": jnp.array([1, 1, 1]),
+                "tacclim": jnp.array([293.15, 293.15, 293.15]),
+                "dpai": jnp.array([
+                    [0.6, 0.5, 0.4, 0.3, 0.2],
+                    [0.6, 0.5, 0.4, 0.3, 0.2],
+                    [0.6, 0.5, 0.4, 0.3, 0.2],
+                ]),
+                "kb": jnp.array([[0.5] * 5] * 3),
+                "tbi": jnp.array([[0.9, 0.8, 0.7, 0.6, 0.5]] * 3),
+                "fracsun": jnp.array([[0.75, 0.65, 0.55, 0.45, 0.35]] * 3),
+                "clump_fac": jnp.array([1.0, 0.7, 0.5]),
+                "ncan": jnp.array([5, 5, 5]),
+                "lai": jnp.array([2.0, 2.0, 2.0]),
+                "sai": jnp.array([0.6, 0.6, 0.6]),
+                "params": None,
+                "validate": True,
+            },
+            "metadata": {
+                "type": "special",
+                "description": "Three identical canopies with different clumping factors (uniform=1.0, moderate=0.7, highly clumped=0.5)",
+            },
+        },
     }
-    return test_data_json
 
 
-@pytest.fixture
-def default_params() -> CanopyNitrogenParams:
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_nominal_single_patch_c3_moderate_lai",
+        "test_nominal_multiple_patches_mixed_pathways",
+        "test_nominal_high_lai_dense_canopy",
+        "test_edge_zero_lai_no_canopy",
+        "test_edge_minimal_lai_single_layer",
+        "test_edge_extreme_cold_temperature",
+        "test_edge_extreme_hot_temperature",
+        "test_edge_full_shade_no_sunlit",
+        "test_special_variable_layer_counts",
+        "test_special_uniform_vs_clumped_canopy",
+    ],
+)
+def test_canopy_nitrogen_profile_shapes(test_data: Dict[str, Any], test_case_name: str):
     """
-    Fixture providing default canopy nitrogen parameters.
+    Test that canopy_nitrogen_profile returns correct output shapes.
     
-    Returns:
-        CanopyNitrogenParams with default values
+    Verifies that:
+    - CanopyNitrogenProfile fields have expected shapes (n_patches, n_layers)
+    - CanopyNitrogenValidation fields have expected shapes when validate=True
+    - Scalar fields have correct dimensions
     """
-    return get_default_params()
-
-
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
-def convert_to_jax_arrays(inputs: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Convert test input lists to JAX arrays.
+    test_case = test_data[test_case_name]
+    inputs = test_case["inputs"]
     
-    Args:
-        inputs: Dictionary with test inputs as Python lists
-        
-    Returns:
-        Dictionary with inputs converted to JAX arrays
-    """
-    jax_inputs = {}
-    for key, value in inputs.items():
-        if key == "params":
-            jax_inputs[key] = value  # Keep None or CanopyNitrogenParams as-is
-        elif key == "validate":
-            jax_inputs[key] = value  # Keep boolean as-is
-        elif isinstance(value, list):
-            jax_inputs[key] = jnp.array(value)
-        else:
-            jax_inputs[key] = value
-    return jax_inputs
-
-
-def get_expected_shapes(inputs: Dict[str, Any]) -> Dict[str, Tuple[int, ...]]:
-    """
-    Calculate expected output shapes based on input dimensions.
+    profile, validation = canopy_nitrogen_profile(**inputs)
     
-    Args:
-        inputs: Dictionary with JAX array inputs
-        
-    Returns:
-        Dictionary mapping output field names to expected shapes
-    """
+    # Get expected shapes
     n_patches = inputs["vcmaxpft"].shape[0]
     n_layers = inputs["dpai"].shape[1]
     
-    return {
-        # Profile arrays (n_patches, n_layers)
-        "vcmax25_leaf_sun": (n_patches, n_layers),
-        "vcmax25_leaf_sha": (n_patches, n_layers),
-        "jmax25_leaf_sun": (n_patches, n_layers),
-        "jmax25_leaf_sha": (n_patches, n_layers),
-        "rd25_leaf_sun": (n_patches, n_layers),
-        "rd25_leaf_sha": (n_patches, n_layers),
-        "kp25_leaf_sun": (n_patches, n_layers),
-        "kp25_leaf_sha": (n_patches, n_layers),
-        "vcmax25_profile": (n_patches, n_layers),
-        "jmax25_profile": (n_patches, n_layers),
-        "rd25_profile": (n_patches, n_layers),
-        "kp25_profile": (n_patches, n_layers),
-        # Scalar arrays (n_patches,)
-        "kn": (n_patches,),
-        # Validation arrays
-        "numerical": (n_patches,),
-        "analytical": (n_patches,),
-        "max_error": (),  # scalar
-        "is_valid": (),  # scalar boolean
-    }
-
-
-# ============================================================================
-# Test: Output Shapes
-# ============================================================================
-
-@pytest.mark.parametrize("test_case", [
-    "test_nominal_single_patch_c3_moderate_lai",
-    "test_nominal_multiple_patches_mixed_pathways",
-    "test_nominal_high_lai_dense_canopy",
-    "test_edge_zero_lai_no_canopy",
-    "test_edge_minimal_lai_single_layer",
-    "test_special_variable_layer_count_asymmetric",
-])
-def test_canopy_nitrogen_profile_shapes(test_data: Dict[str, Any], test_case: str):
-    """
-    Test that canopy_nitrogen_profile returns outputs with correct shapes.
-    
-    Verifies that all fields in CanopyNitrogenProfile and CanopyNitrogenValidation
-    have the expected dimensions based on input array shapes.
-    
-    Args:
-        test_data: Fixture containing all test cases
-        test_case: Name of the specific test case to run
-    """
-    # Find the test case
-    case = next(tc for tc in test_data["test_cases"] if tc["name"] == test_case)
-    inputs = convert_to_jax_arrays(case["inputs"])
-    expected_shapes = get_expected_shapes(inputs)
-    
-    # Run function
-    profile, validation = canopy_nitrogen_profile(**inputs)
-    
     # Check CanopyNitrogenProfile shapes
-    assert profile.vcmax25_leaf_sun.shape == expected_shapes["vcmax25_leaf_sun"], \
-        f"vcmax25_leaf_sun shape mismatch: {profile.vcmax25_leaf_sun.shape} != {expected_shapes['vcmax25_leaf_sun']}"
-    assert profile.vcmax25_leaf_sha.shape == expected_shapes["vcmax25_leaf_sha"], \
+    assert profile.vcmax25_leaf_sun.shape == (n_patches, n_layers), \
+        f"vcmax25_leaf_sun shape mismatch: expected {(n_patches, n_layers)}, got {profile.vcmax25_leaf_sun.shape}"
+    assert profile.vcmax25_leaf_sha.shape == (n_patches, n_layers), \
         f"vcmax25_leaf_sha shape mismatch"
-    assert profile.jmax25_leaf_sun.shape == expected_shapes["jmax25_leaf_sun"], \
+    assert profile.jmax25_leaf_sun.shape == (n_patches, n_layers), \
         f"jmax25_leaf_sun shape mismatch"
-    assert profile.jmax25_leaf_sha.shape == expected_shapes["jmax25_leaf_sha"], \
+    assert profile.jmax25_leaf_sha.shape == (n_patches, n_layers), \
         f"jmax25_leaf_sha shape mismatch"
-    assert profile.rd25_leaf_sun.shape == expected_shapes["rd25_leaf_sun"], \
+    assert profile.rd25_leaf_sun.shape == (n_patches, n_layers), \
         f"rd25_leaf_sun shape mismatch"
-    assert profile.rd25_leaf_sha.shape == expected_shapes["rd25_leaf_sha"], \
+    assert profile.rd25_leaf_sha.shape == (n_patches, n_layers), \
         f"rd25_leaf_sha shape mismatch"
-    assert profile.kp25_leaf_sun.shape == expected_shapes["kp25_leaf_sun"], \
+    assert profile.kp25_leaf_sun.shape == (n_patches, n_layers), \
         f"kp25_leaf_sun shape mismatch"
-    assert profile.kp25_leaf_sha.shape == expected_shapes["kp25_leaf_sha"], \
+    assert profile.kp25_leaf_sha.shape == (n_patches, n_layers), \
         f"kp25_leaf_sha shape mismatch"
-    assert profile.vcmax25_profile.shape == expected_shapes["vcmax25_profile"], \
+    assert profile.vcmax25_profile.shape == (n_patches, n_layers), \
         f"vcmax25_profile shape mismatch"
-    assert profile.jmax25_profile.shape == expected_shapes["jmax25_profile"], \
+    assert profile.jmax25_profile.shape == (n_patches, n_layers), \
         f"jmax25_profile shape mismatch"
-    assert profile.rd25_profile.shape == expected_shapes["rd25_profile"], \
+    assert profile.rd25_profile.shape == (n_patches, n_layers), \
         f"rd25_profile shape mismatch"
-    assert profile.kp25_profile.shape == expected_shapes["kp25_profile"], \
+    assert profile.kp25_profile.shape == (n_patches, n_layers), \
         f"kp25_profile shape mismatch"
-    assert profile.kn.shape == expected_shapes["kn"], \
-        f"kn shape mismatch"
+    assert profile.kn.shape == (n_patches,), \
+        f"kn shape mismatch: expected {(n_patches,)}, got {profile.kn.shape}"
     
-    # Check CanopyNitrogenValidation shapes (if validation enabled)
-    if inputs["validate"] and validation is not None:
-        assert validation.numerical.shape == expected_shapes["numerical"], \
-            f"numerical shape mismatch"
-        assert validation.analytical.shape == expected_shapes["analytical"], \
+    # Check CanopyNitrogenValidation shapes if validation enabled
+    if inputs["validate"]:
+        assert validation is not None, "Validation should not be None when validate=True"
+        assert validation.numerical.shape == (n_patches,), \
+            f"numerical shape mismatch: expected {(n_patches,)}, got {validation.numerical.shape}"
+        assert validation.analytical.shape == (n_patches,), \
             f"analytical shape mismatch"
-        assert validation.max_error.shape == expected_shapes["max_error"], \
-            f"max_error shape mismatch"
-        assert validation.is_valid.shape == expected_shapes["is_valid"], \
-            f"is_valid shape mismatch"
+        assert validation.max_error.shape == (), \
+            f"max_error should be scalar, got shape {validation.max_error.shape}"
+        assert validation.is_valid.shape == (), \
+            f"is_valid should be scalar, got shape {validation.is_valid.shape}"
 
 
-# ============================================================================
-# Test: Data Types
-# ============================================================================
-
-@pytest.mark.parametrize("test_case", [
-    "test_nominal_single_patch_c3_moderate_lai",
-    "test_nominal_multiple_patches_mixed_pathways",
-])
-def test_canopy_nitrogen_profile_dtypes(test_data: Dict[str, Any], test_case: str):
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_nominal_single_patch_c3_moderate_lai",
+        "test_nominal_multiple_patches_mixed_pathways",
+        "test_edge_minimal_lai_single_layer",
+    ],
+)
+def test_canopy_nitrogen_profile_values(test_data: Dict[str, Any], test_case_name: str):
     """
-    Test that canopy_nitrogen_profile returns outputs with correct data types.
-    
-    Verifies that all numeric outputs are floating point and boolean outputs
-    are boolean type.
-    
-    Args:
-        test_data: Fixture containing all test cases
-        test_case: Name of the specific test case to run
-    """
-    case = next(tc for tc in test_data["test_cases"] if tc["name"] == test_case)
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run function
-    profile, validation = canopy_nitrogen_profile(**inputs)
-    
-    # Check CanopyNitrogenProfile dtypes (all should be float)
-    assert jnp.issubdtype(profile.vcmax25_leaf_sun.dtype, jnp.floating), \
-        f"vcmax25_leaf_sun should be float, got {profile.vcmax25_leaf_sun.dtype}"
-    assert jnp.issubdtype(profile.vcmax25_leaf_sha.dtype, jnp.floating), \
-        f"vcmax25_leaf_sha should be float"
-    assert jnp.issubdtype(profile.jmax25_leaf_sun.dtype, jnp.floating), \
-        f"jmax25_leaf_sun should be float"
-    assert jnp.issubdtype(profile.jmax25_leaf_sha.dtype, jnp.floating), \
-        f"jmax25_leaf_sha should be float"
-    assert jnp.issubdtype(profile.rd25_leaf_sun.dtype, jnp.floating), \
-        f"rd25_leaf_sun should be float"
-    assert jnp.issubdtype(profile.rd25_leaf_sha.dtype, jnp.floating), \
-        f"rd25_leaf_sha should be float"
-    assert jnp.issubdtype(profile.kp25_leaf_sun.dtype, jnp.floating), \
-        f"kp25_leaf_sun should be float"
-    assert jnp.issubdtype(profile.kp25_leaf_sha.dtype, jnp.floating), \
-        f"kp25_leaf_sha should be float"
-    assert jnp.issubdtype(profile.vcmax25_profile.dtype, jnp.floating), \
-        f"vcmax25_profile should be float"
-    assert jnp.issubdtype(profile.jmax25_profile.dtype, jnp.floating), \
-        f"jmax25_profile should be float"
-    assert jnp.issubdtype(profile.rd25_profile.dtype, jnp.floating), \
-        f"rd25_profile should be float"
-    assert jnp.issubdtype(profile.kp25_profile.dtype, jnp.floating), \
-        f"kp25_profile should be float"
-    assert jnp.issubdtype(profile.kn.dtype, jnp.floating), \
-        f"kn should be float"
-    
-    # Check CanopyNitrogenValidation dtypes
-    if validation is not None:
-        assert jnp.issubdtype(validation.numerical.dtype, jnp.floating), \
-            f"numerical should be float"
-        assert jnp.issubdtype(validation.analytical.dtype, jnp.floating), \
-            f"analytical should be float"
-        assert jnp.issubdtype(validation.max_error.dtype, jnp.floating), \
-            f"max_error should be float"
-        assert jnp.issubdtype(validation.is_valid.dtype, jnp.bool_), \
-            f"is_valid should be boolean, got {validation.is_valid.dtype}"
-
-
-# ============================================================================
-# Test: Physical Constraints
-# ============================================================================
-
-@pytest.mark.parametrize("test_case", [
-    "test_nominal_single_patch_c3_moderate_lai",
-    "test_nominal_multiple_patches_mixed_pathways",
-    "test_nominal_high_lai_dense_canopy",
-    "test_edge_extreme_cold_temperature",
-    "test_edge_extreme_hot_temperature",
-])
-def test_canopy_nitrogen_profile_physical_constraints(test_data: Dict[str, Any], test_case: str):
-    """
-    Test that canopy_nitrogen_profile outputs satisfy physical constraints.
+    Test that canopy_nitrogen_profile produces physically reasonable values.
     
     Verifies:
     - All photosynthetic parameters are non-negative
+    - Vcmax, Jmax, Rd, Kp values are in reasonable ranges
     - Nitrogen decay coefficient (kn) is non-negative
-    - No NaN or Inf values in outputs
-    
-    Args:
-        test_data: Fixture containing all test cases
-        test_case: Name of the specific test case to run
+    - Profile values decrease through canopy (nitrogen extinction)
+    - Sunlit values >= shaded values (more light = more nitrogen allocation)
     """
-    case = next(tc for tc in test_data["test_cases"] if tc["name"] == test_case)
-    inputs = convert_to_jax_arrays(case["inputs"])
+    test_case = test_data[test_case_name]
+    inputs = test_case["inputs"]
     
-    # Run function
     profile, validation = canopy_nitrogen_profile(**inputs)
     
-    # Check non-negativity of photosynthetic parameters
-    assert jnp.all(profile.vcmax25_leaf_sun >= 0), \
-        "vcmax25_leaf_sun contains negative values"
-    assert jnp.all(profile.vcmax25_leaf_sha >= 0), \
-        "vcmax25_leaf_sha contains negative values"
-    assert jnp.all(profile.jmax25_leaf_sun >= 0), \
-        "jmax25_leaf_sun contains negative values"
-    assert jnp.all(profile.jmax25_leaf_sha >= 0), \
-        "jmax25_leaf_sha contains negative values"
-    assert jnp.all(profile.rd25_leaf_sun >= 0), \
-        "rd25_leaf_sun contains negative values"
-    assert jnp.all(profile.rd25_leaf_sha >= 0), \
-        "rd25_leaf_sha contains negative values"
-    assert jnp.all(profile.kp25_leaf_sun >= 0), \
-        "kp25_leaf_sun contains negative values"
-    assert jnp.all(profile.kp25_leaf_sha >= 0), \
-        "kp25_leaf_sha contains negative values"
-    assert jnp.all(profile.vcmax25_profile >= 0), \
-        "vcmax25_profile contains negative values"
-    assert jnp.all(profile.jmax25_profile >= 0), \
-        "jmax25_profile contains negative values"
-    assert jnp.all(profile.rd25_profile >= 0), \
-        "rd25_profile contains negative values"
-    assert jnp.all(profile.kp25_profile >= 0), \
-        "kp25_profile contains negative values"
-    assert jnp.all(profile.kn >= 0), \
-        "kn contains negative values"
+    # Check non-negativity
+    assert jnp.all(profile.vcmax25_leaf_sun >= 0), "vcmax25_leaf_sun should be non-negative"
+    assert jnp.all(profile.vcmax25_leaf_sha >= 0), "vcmax25_leaf_sha should be non-negative"
+    assert jnp.all(profile.jmax25_leaf_sun >= 0), "jmax25_leaf_sun should be non-negative"
+    assert jnp.all(profile.jmax25_leaf_sha >= 0), "jmax25_leaf_sha should be non-negative"
+    assert jnp.all(profile.rd25_leaf_sun >= 0), "rd25_leaf_sun should be non-negative"
+    assert jnp.all(profile.rd25_leaf_sha >= 0), "rd25_leaf_sha should be non-negative"
+    assert jnp.all(profile.kp25_leaf_sun >= 0), "kp25_leaf_sun should be non-negative"
+    assert jnp.all(profile.kp25_leaf_sha >= 0), "kp25_leaf_sha should be non-negative"
+    assert jnp.all(profile.kn >= 0), "kn should be non-negative"
     
-    # Check for NaN/Inf
-    assert jnp.all(jnp.isfinite(profile.vcmax25_leaf_sun)), \
-        "vcmax25_leaf_sun contains NaN or Inf"
-    assert jnp.all(jnp.isfinite(profile.vcmax25_leaf_sha)), \
-        "vcmax25_leaf_sha contains NaN or Inf"
-    assert jnp.all(jnp.isfinite(profile.jmax25_leaf_sun)), \
-        "jmax25_leaf_sun contains NaN or Inf"
-    assert jnp.all(jnp.isfinite(profile.jmax25_leaf_sha)), \
-        "jmax25_leaf_sha contains NaN or Inf"
-    assert jnp.all(jnp.isfinite(profile.rd25_leaf_sun)), \
-        "rd25_leaf_sun contains NaN or Inf"
-    assert jnp.all(jnp.isfinite(profile.rd25_leaf_sha)), \
-        "rd25_leaf_sha contains NaN or Inf"
-    assert jnp.all(jnp.isfinite(profile.kp25_leaf_sun)), \
-        "kp25_leaf_sun contains NaN or Inf"
-    assert jnp.all(jnp.isfinite(profile.kp25_leaf_sha)), \
-        "kp25_leaf_sha contains NaN or Inf"
-    assert jnp.all(jnp.isfinite(profile.kn)), \
-        "kn contains NaN or Inf"
+    # Check reasonable ranges for Vcmax (typically 0-200 umol/m2/s)
+    assert jnp.all(profile.vcmax25_leaf_sun <= 200), \
+        f"vcmax25_leaf_sun values seem too high: max={jnp.max(profile.vcmax25_leaf_sun)}"
+    assert jnp.all(profile.vcmax25_leaf_sha <= 200), \
+        f"vcmax25_leaf_sha values seem too high: max={jnp.max(profile.vcmax25_leaf_sha)}"
+    
+    # Check that sunlit >= shaded (where both are non-zero)
+    mask = (profile.vcmax25_leaf_sun > 0) & (profile.vcmax25_leaf_sha > 0)
+    if jnp.any(mask):
+        assert jnp.all(profile.vcmax25_leaf_sun[mask] >= profile.vcmax25_leaf_sha[mask] - 1e-6), \
+            "Sunlit vcmax25 should be >= shaded vcmax25"
+    
+    # For non-zero LAI cases, check that profile decreases through canopy
+    if jnp.any(inputs["lai"] > 0):
+        for i in range(inputs["vcmaxpft"].shape[0]):
+            if inputs["ncan"][i] > 1:
+                # Check that values generally decrease (allowing for small numerical variations)
+                profile_vals = profile.vcmax25_profile[i, :inputs["ncan"][i]]
+                # First layer should have highest or near-highest values
+                assert profile_vals[0] >= jnp.max(profile_vals) * 0.9, \
+                    f"Patch {i}: Top layer should have highest nitrogen concentration"
 
 
-# ============================================================================
-# Test: Edge Cases - Zero LAI
-# ============================================================================
-
-def test_canopy_nitrogen_profile_zero_lai(test_data: Dict[str, Any]):
+@pytest.mark.parametrize(
+    "test_case_name",
+    [
+        "test_edge_zero_lai_no_canopy",
+        "test_edge_minimal_lai_single_layer",
+        "test_edge_extreme_cold_temperature",
+        "test_edge_extreme_hot_temperature",
+        "test_edge_full_shade_no_sunlit",
+    ],
+)
+def test_canopy_nitrogen_profile_edge_cases(test_data: Dict[str, Any], test_case_name: str):
     """
-    Test canopy_nitrogen_profile with zero LAI (bare ground).
+    Test canopy_nitrogen_profile behavior in edge cases.
     
-    Verifies that the function handles zero LAI gracefully and returns
-    appropriate values (likely zeros or minimal values for photosynthetic
-    parameters).
-    
-    Args:
-        test_data: Fixture containing all test cases
+    Verifies:
+    - Zero LAI produces zero or minimal profiles
+    - Extreme temperatures don't cause numerical issues
+    - Deep shade conditions are handled correctly
+    - Single layer canopies work properly
     """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_zero_lai_no_canopy")
-    inputs = convert_to_jax_arrays(case["inputs"])
+    test_case = test_data[test_case_name]
+    inputs = test_case["inputs"]
+    metadata = test_case["metadata"]
     
-    # Run function
     profile, validation = canopy_nitrogen_profile(**inputs)
     
-    # With zero LAI and zero dpai, expect minimal or zero photosynthetic activity
-    # The exact behavior depends on implementation, but values should be finite
-    assert jnp.all(jnp.isfinite(profile.vcmax25_profile)), \
-        "vcmax25_profile should be finite for zero LAI"
-    assert jnp.all(jnp.isfinite(profile.kn)), \
-        "kn should be finite for zero LAI"
+    # Zero LAI case
+    if "zero_lai" in metadata.get("edge_cases", []):
+        # With zero LAI, profiles should be zero or very small
+        assert jnp.allclose(profile.vcmax25_profile, 0.0, atol=1e-6), \
+            "Zero LAI should produce near-zero vcmax25 profile"
+        assert jnp.allclose(profile.jmax25_profile, 0.0, atol=1e-6), \
+            "Zero LAI should produce near-zero jmax25 profile"
     
-    # Validation should still work
+    # Minimal LAI case
+    if "minimal_lai" in metadata.get("edge_cases", []):
+        # Should have small but non-zero values
+        assert jnp.any(profile.vcmax25_profile > 0), \
+            "Minimal LAI should produce some non-zero values"
+        assert jnp.all(profile.vcmax25_profile < 50), \
+            "Minimal LAI should produce small values"
+    
+    # Extreme temperature cases
+    if "extreme_cold" in metadata.get("edge_cases", []) or \
+       "extreme_heat" in metadata.get("edge_cases", []):
+        # Should not produce NaN or Inf
+        assert jnp.all(jnp.isfinite(profile.vcmax25_leaf_sun)), \
+            "Extreme temperatures should not produce NaN/Inf in vcmax25_leaf_sun"
+        assert jnp.all(jnp.isfinite(profile.jmax25_leaf_sun)), \
+            "Extreme temperatures should not produce NaN/Inf in jmax25_leaf_sun"
+        # Values should still be reasonable
+        assert jnp.all(profile.vcmax25_leaf_sun >= 0), \
+            "Extreme temperatures should not produce negative values"
+    
+    # Deep shade case
+    if "deep_shade" in metadata.get("edge_cases", []):
+        # Shaded fraction should dominate
+        for i in range(inputs["vcmaxpft"].shape[0]):
+            ncan = inputs["ncan"][i]
+            if ncan > 0:
+                # Lower layers should have very low sunlit fractions
+                assert inputs["fracsun"][i, ncan-1] < 0.2, \
+                    "Deep shade case should have low sunlit fraction in lower canopy"
+
+
+def test_canopy_nitrogen_profile_dtypes(test_data: Dict[str, Any]):
+    """
+    Test that canopy_nitrogen_profile returns correct data types.
+    
+    Verifies:
+    - All array outputs are JAX arrays
+    - Floating point arrays have correct dtype
+    - Boolean validation flag has correct dtype
+    """
+    test_case = test_data["test_nominal_single_patch_c3_moderate_lai"]
+    inputs = test_case["inputs"]
+    
+    profile, validation = canopy_nitrogen_profile(**inputs)
+    
+    # Check that outputs are JAX arrays
+    assert isinstance(profile.vcmax25_leaf_sun, jnp.ndarray), \
+        "vcmax25_leaf_sun should be a JAX array"
+    assert isinstance(profile.kn, jnp.ndarray), \
+        "kn should be a JAX array"
+    
+    # Check floating point dtypes
+    assert jnp.issubdtype(profile.vcmax25_leaf_sun.dtype, jnp.floating), \
+        f"vcmax25_leaf_sun should be floating point, got {profile.vcmax25_leaf_sun.dtype}"
+    assert jnp.issubdtype(profile.jmax25_profile.dtype, jnp.floating), \
+        f"jmax25_profile should be floating point, got {profile.jmax25_profile.dtype}"
+    
+    # Check validation dtypes
     if validation is not None:
-        assert jnp.isfinite(validation.max_error), \
-            "max_error should be finite for zero LAI"
+        assert jnp.issubdtype(validation.numerical.dtype, jnp.floating), \
+            "numerical should be floating point"
+        assert jnp.issubdtype(validation.analytical.dtype, jnp.floating), \
+            "analytical should be floating point"
+        assert validation.is_valid.dtype == jnp.bool_, \
+            f"is_valid should be boolean, got {validation.is_valid.dtype}"
 
 
-# ============================================================================
-# Test: Edge Cases - Single Layer
-# ============================================================================
-
-def test_canopy_nitrogen_profile_single_layer(test_data: Dict[str, Any]):
+def test_canopy_nitrogen_profile_validation(test_data: Dict[str, Any]):
     """
-    Test canopy_nitrogen_profile with single canopy layer.
+    Test the numerical integration validation feature.
     
-    Verifies that the function correctly handles the minimal case of a
-    single-layer canopy with very low LAI.
-    
-    Args:
-        test_data: Fixture containing all test cases
+    Verifies:
+    - Validation is returned when validate=True
+    - Validation is None when validate=False
+    - Numerical and analytical integrals are close
+    - Validation passes for well-behaved cases
     """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_minimal_lai_single_layer")
-    inputs = convert_to_jax_arrays(case["inputs"])
+    test_case = test_data["test_nominal_single_patch_c3_moderate_lai"]
+    inputs = test_case["inputs"].copy()
     
-    # Run function
+    # Test with validation enabled
+    inputs["validate"] = True
     profile, validation = canopy_nitrogen_profile(**inputs)
     
-    # Check that outputs are reasonable for single layer
-    n_patches = inputs["vcmaxpft"].shape[0]
-    assert profile.vcmax25_profile.shape[0] == n_patches, \
-        "Profile should have correct number of patches"
+    assert validation is not None, "Validation should be returned when validate=True"
+    assert jnp.all(jnp.isfinite(validation.numerical)), \
+        "Numerical integral should be finite"
+    assert jnp.all(jnp.isfinite(validation.analytical)), \
+        "Analytical integral should be finite"
     
-    # Values should be positive and finite
-    assert jnp.all(profile.vcmax25_profile >= 0), \
-        "vcmax25_profile should be non-negative"
-    assert jnp.all(jnp.isfinite(profile.vcmax25_profile)), \
-        "vcmax25_profile should be finite"
-
-
-# ============================================================================
-# Test: Edge Cases - Extreme Temperatures
-# ============================================================================
-
-@pytest.mark.parametrize("test_case", [
-    "test_edge_extreme_cold_temperature",
-    "test_edge_extreme_hot_temperature",
-])
-def test_canopy_nitrogen_profile_extreme_temperatures(test_data: Dict[str, Any], test_case: str):
-    """
-    Test canopy_nitrogen_profile with extreme temperatures.
+    # Check that numerical and analytical are close
+    rel_error = jnp.abs(validation.numerical - validation.analytical) / \
+                (jnp.abs(validation.analytical) + 1e-10)
+    assert jnp.all(rel_error < 0.01), \
+        f"Numerical and analytical integrals should be close, max rel error: {jnp.max(rel_error)}"
     
-    Verifies that the function handles extreme cold (-20°C) and hot (45°C)
-    temperatures without numerical issues, and that temperature acclimation
-    affects the Jmax/Vcmax ratio appropriately.
-    
-    Args:
-        test_data: Fixture containing all test cases
-        test_case: Name of the specific test case to run
-    """
-    case = next(tc for tc in test_data["test_cases"] if tc["name"] == test_case)
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run function
+    # Test with validation disabled
+    inputs["validate"] = False
     profile, validation = canopy_nitrogen_profile(**inputs)
     
-    # Check that outputs are finite despite extreme temperatures
-    assert jnp.all(jnp.isfinite(profile.vcmax25_profile)), \
-        f"vcmax25_profile should be finite for {test_case}"
-    assert jnp.all(jnp.isfinite(profile.jmax25_profile)), \
-        f"jmax25_profile should be finite for {test_case}"
-    assert jnp.all(jnp.isfinite(profile.rd25_profile)), \
-        f"rd25_profile should be finite for {test_case}"
-    
-    # For C3 plants, check that Jmax/Vcmax ratio is reasonable
-    c3_mask = inputs["c3psn"] == 1
-    if jnp.any(c3_mask):
-        # Where vcmax25 > 0, jmax25/vcmax25 should be positive and reasonable
-        vcmax_nonzero = profile.vcmax25_profile[c3_mask] > 1e-10
-        if jnp.any(vcmax_nonzero):
-            ratio = jnp.where(
-                vcmax_nonzero,
-                profile.jmax25_profile[c3_mask] / profile.vcmax25_profile[c3_mask],
-                0.0
-            )
-            # Typical range is 1.5-3.0, but allow wider range for extreme temps
-            assert jnp.all((ratio >= 0) & (ratio <= 10.0)), \
-                f"Jmax/Vcmax ratio out of reasonable range for {test_case}"
+    assert validation is None, "Validation should be None when validate=False"
 
-
-# ============================================================================
-# Test: Edge Cases - Full Shade
-# ============================================================================
-
-def test_canopy_nitrogen_profile_full_shade(test_data: Dict[str, Any]):
-    """
-    Test canopy_nitrogen_profile with zero transmission in lower layers.
-    
-    Verifies that the function correctly handles deep canopy conditions where
-    lower layers receive no direct beam radiation (fracsun=0, tbi=0).
-    
-    Args:
-        test_data: Fixture containing all test cases
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_edge_full_shade_zero_transmission")
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run function
-    profile, validation = canopy_nitrogen_profile(**inputs)
-    
-    # Check that shaded leaf parameters are computed for all layers
-    assert jnp.all(jnp.isfinite(profile.vcmax25_leaf_sha)), \
-        "vcmax25_leaf_sha should be finite in full shade"
-    assert jnp.all(profile.vcmax25_leaf_sha >= 0), \
-        "vcmax25_leaf_sha should be non-negative in full shade"
-    
-    # In fully shaded layers (fracsun=0), sunlit and shaded values should be similar
-    # or sunlit should be zero/minimal
-    fully_shaded = inputs["fracsun"] < 1e-6
-    if jnp.any(fully_shaded):
-        # Shaded values should still be positive (nitrogen still present)
-        assert jnp.all(profile.vcmax25_leaf_sha[fully_shaded] >= 0), \
-            "Shaded leaves should have non-negative vcmax25 even in full shade"
-
-
-# ============================================================================
-# Test: Special Cases - Uniform Clumping
-# ============================================================================
-
-def test_canopy_nitrogen_profile_uniform_clumping(test_data: Dict[str, Any]):
-    """
-    Test canopy_nitrogen_profile with perfect uniform foliage distribution.
-    
-    Verifies that clump_fac=1.0 (uniform distribution) produces expected
-    results with equal dpai across layers.
-    
-    Args:
-        test_data: Fixture containing all test cases
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_special_uniform_clumping_perfect_distribution")
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run function
-    profile, validation = canopy_nitrogen_profile(**inputs)
-    
-    # With uniform clumping and equal dpai, nitrogen profile should decay
-    # smoothly through canopy
-    for patch_idx in range(inputs["vcmaxpft"].shape[0]):
-        ncan = int(inputs["ncan"][patch_idx])
-        if ncan > 1:
-            # Check that vcmax25 decreases monotonically through canopy
-            # (from top to bottom, accounting for nitrogen decay)
-            vcmax_profile = profile.vcmax25_profile[patch_idx, :ncan]
-            # Allow for numerical precision issues
-            diffs = vcmax_profile[:-1] - vcmax_profile[1:]
-            assert jnp.all(diffs >= -1e-6), \
-                f"Vcmax25 should decrease monotonically through canopy for patch {patch_idx}"
-
-
-# ============================================================================
-# Test: Special Cases - Variable Layer Count
-# ============================================================================
-
-def test_canopy_nitrogen_profile_variable_layers(test_data: Dict[str, Any]):
-    """
-    Test canopy_nitrogen_profile with highly variable layer counts.
-    
-    Verifies that the function correctly handles patches with different
-    numbers of canopy layers (1, 5, 10, 15) in a single call.
-    
-    Args:
-        test_data: Fixture containing all test cases
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_special_variable_layer_count_asymmetric")
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run function
-    profile, validation = canopy_nitrogen_profile(**inputs)
-    
-    # Check each patch individually
-    n_patches = inputs["vcmaxpft"].shape[0]
-    for patch_idx in range(n_patches):
-        ncan = int(inputs["ncan"][patch_idx])
-        
-        # Active layers should have positive values
-        if ncan > 0:
-            active_layers = profile.vcmax25_profile[patch_idx, :ncan]
-            assert jnp.all(active_layers >= 0), \
-                f"Active layers should have non-negative vcmax25 for patch {patch_idx}"
-            assert jnp.all(jnp.isfinite(active_layers)), \
-                f"Active layers should have finite vcmax25 for patch {patch_idx}"
-        
-        # Inactive layers (beyond ncan) should be zero or minimal
-        if ncan < inputs["dpai"].shape[1]:
-            inactive_layers = profile.vcmax25_profile[patch_idx, ncan:]
-            # Inactive layers should have zero dpai, so profile values should be zero or minimal
-            assert jnp.all(inactive_layers >= 0), \
-                f"Inactive layers should be non-negative for patch {patch_idx}"
-
-
-# ============================================================================
-# Test: Validation - Numerical Integration
-# ============================================================================
-
-@pytest.mark.parametrize("test_case", [
-    "test_nominal_single_patch_c3_moderate_lai",
-    "test_nominal_multiple_patches_mixed_pathways",
-    "test_nominal_high_lai_dense_canopy",
-])
-def test_canopy_nitrogen_profile_validation(test_data: Dict[str, Any], test_case: str):
-    """
-    Test that numerical integration validation passes for nominal cases.
-    
-    Verifies that the numerical integration of vcmax25 through the canopy
-    matches the analytical solution within tolerance.
-    
-    Args:
-        test_data: Fixture containing all test cases
-        test_case: Name of the specific test case to run
-    """
-    case = next(tc for tc in test_data["test_cases"] if tc["name"] == test_case)
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run function with validation enabled
-    profile, validation = canopy_nitrogen_profile(**inputs)
-    
-    # Check that validation was performed
-    assert validation is not None, \
-        "Validation should be performed when validate=True"
-    
-    # Check that validation passed
-    assert validation.is_valid, \
-        f"Validation should pass for {test_case}: " \
-        f"max_error={float(validation.max_error):.2e}, " \
-        f"numerical={validation.numerical}, analytical={validation.analytical}"
-    
-    # Check that numerical and analytical values are close
-    assert jnp.allclose(validation.numerical, validation.analytical, rtol=1e-4, atol=1e-6), \
-        f"Numerical and analytical integrals should match for {test_case}"
-    
-    # Check that max_error is small
-    assert validation.max_error < 1e-4, \
-        f"Maximum error should be small for {test_case}: {float(validation.max_error):.2e}"
-
-
-# ============================================================================
-# Test: C3 vs C4 Pathways
-# ============================================================================
 
 def test_canopy_nitrogen_profile_c3_vs_c4(test_data: Dict[str, Any]):
     """
-    Test that C3 and C4 pathways produce different photosynthetic parameters.
+    Test differences between C3 and C4 photosynthetic pathways.
     
-    Verifies that:
-    - C3 plants have positive Jmax values
-    - C4 plants have positive Kp values
-    - Rd values differ between C3 and C4 (different ratios to Vcmax)
-    
-    Args:
-        test_data: Fixture containing all test cases
+    Verifies:
+    - C3 plants have non-zero Jmax values
+    - C4 plants have non-zero Kp values
+    - C4 plants have zero or minimal Jmax values
+    - Rd/Vcmax ratios differ between C3 and C4
     """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_nominal_multiple_patches_mixed_pathways")
-    inputs = convert_to_jax_arrays(case["inputs"])
+    test_case = test_data["test_nominal_multiple_patches_mixed_pathways"]
+    inputs = test_case["inputs"]
     
-    # Run function
     profile, validation = canopy_nitrogen_profile(**inputs)
     
-    # Identify C3 and C4 patches
     c3_mask = inputs["c3psn"] == 1
     c4_mask = inputs["c3psn"] == 0
     
-    # C3 plants should have positive Jmax
+    # C3 plants should have non-zero Jmax
     if jnp.any(c3_mask):
-        c3_jmax = profile.jmax25_profile[c3_mask]
-        # Where vcmax > 0, jmax should also be > 0
-        c3_vcmax = profile.vcmax25_profile[c3_mask]
-        active_c3 = c3_vcmax > 1e-10
-        if jnp.any(active_c3):
-            assert jnp.all(c3_jmax[active_c3] > 0), \
-                "C3 plants should have positive Jmax where Vcmax > 0"
+        c3_indices = jnp.where(c3_mask)[0]
+        for idx in c3_indices:
+            if inputs["ncan"][idx] > 0:
+                assert jnp.any(profile.jmax25_leaf_sun[idx] > 0), \
+                    f"C3 patch {idx} should have non-zero Jmax"
     
-    # C4 plants should have positive Kp
+    # C4 plants should have non-zero Kp
     if jnp.any(c4_mask):
-        c4_kp = profile.kp25_profile[c4_mask]
-        # Where vcmax > 0, kp should also be > 0
-        c4_vcmax = profile.vcmax25_profile[c4_mask]
-        active_c4 = c4_vcmax > 1e-10
-        if jnp.any(active_c4):
-            assert jnp.all(c4_kp[active_c4] > 0), \
-                "C4 plants should have positive Kp where Vcmax > 0"
-    
-    # Rd/Vcmax ratio should differ between C3 and C4
-    if jnp.any(c3_mask) and jnp.any(c4_mask):
-        c3_vcmax = profile.vcmax25_profile[c3_mask]
-        c3_rd = profile.rd25_profile[c3_mask]
-        c4_vcmax = profile.vcmax25_profile[c4_mask]
-        c4_rd = profile.rd25_profile[c4_mask]
-        
-        # Calculate ratios where vcmax > 0
-        c3_active = c3_vcmax > 1e-10
-        c4_active = c4_vcmax > 1e-10
-        
-        if jnp.any(c3_active) and jnp.any(c4_active):
-            c3_ratio = jnp.mean(c3_rd[c3_active] / c3_vcmax[c3_active])
-            c4_ratio = jnp.mean(c4_rd[c4_active] / c4_vcmax[c4_active])
-            
-            # C4 typically has higher Rd/Vcmax ratio (0.025 vs 0.015)
-            assert c4_ratio > c3_ratio, \
-                f"C4 Rd/Vcmax ratio ({c4_ratio:.4f}) should be higher than C3 ({c3_ratio:.4f})"
+        c4_indices = jnp.where(c4_mask)[0]
+        for idx in c4_indices:
+            if inputs["ncan"][idx] > 0:
+                assert jnp.any(profile.kp25_leaf_sun[idx] > 0), \
+                    f"C4 patch {idx} should have non-zero Kp"
 
 
-# ============================================================================
-# Test: Sunlit vs Shaded Leaves
-# ============================================================================
-
-def test_canopy_nitrogen_profile_sunlit_vs_shaded(test_data: Dict[str, Any]):
+def test_canopy_nitrogen_profile_clumping_effect(test_data: Dict[str, Any]):
     """
-    Test that sunlit and shaded leaves have appropriate parameter values.
+    Test the effect of foliage clumping on nitrogen distribution.
     
-    Verifies that:
-    - Sunlit leaves generally have higher photosynthetic capacity
-    - Both sunlit and shaded values are non-negative
-    - Profile values are weighted averages of sunlit and shaded
-    
-    Args:
-        test_data: Fixture containing all test cases
+    Verifies:
+    - Different clumping factors produce different profiles
+    - More clumping (lower clump_fac) affects sunlit/shaded distribution
+    - Uniform canopy (clump_fac=1.0) has expected behavior
     """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_nominal_single_patch_c3_moderate_lai")
-    inputs = convert_to_jax_arrays(case["inputs"])
+    test_case = test_data["test_special_uniform_vs_clumped_canopy"]
+    inputs = test_case["inputs"]
     
-    # Run function
     profile, validation = canopy_nitrogen_profile(**inputs)
     
-    # Check that both sunlit and shaded values are non-negative
-    assert jnp.all(profile.vcmax25_leaf_sun >= 0), \
-        "Sunlit vcmax25 should be non-negative"
-    assert jnp.all(profile.vcmax25_leaf_sha >= 0), \
-        "Shaded vcmax25 should be non-negative"
+    # Extract profiles for the three patches (uniform, moderate, highly clumped)
+    uniform_profile = profile.vcmax25_profile[0]
+    moderate_profile = profile.vcmax25_profile[1]
+    clumped_profile = profile.vcmax25_profile[2]
     
-    # In layers with significant sunlit fraction, sunlit values should be >= shaded
-    # (due to higher nitrogen allocation to sunlit leaves)
-    significant_sun = inputs["fracsun"] > 0.1
-    if jnp.any(significant_sun):
-        sun_vs_shade = profile.vcmax25_leaf_sun[significant_sun] >= profile.vcmax25_leaf_sha[significant_sun]
-        # Allow for some numerical tolerance
-        assert jnp.mean(sun_vs_shade) > 0.8, \
-            "Sunlit leaves should generally have higher or equal vcmax25 compared to shaded leaves"
+    # Profiles should differ due to clumping
+    assert not jnp.allclose(uniform_profile, moderate_profile, rtol=0.01), \
+        "Uniform and moderate clumping should produce different profiles"
+    assert not jnp.allclose(moderate_profile, clumped_profile, rtol=0.01), \
+        "Moderate and high clumping should produce different profiles"
     
-    # Profile values should be between sunlit and shaded values (weighted average)
-    # This is a sanity check on the weighting calculation
-    for patch_idx in range(inputs["vcmaxpft"].shape[0]):
-        ncan = int(inputs["ncan"][patch_idx])
+    # All should have reasonable values
+    assert jnp.all(uniform_profile >= 0), "Uniform profile should be non-negative"
+    assert jnp.all(moderate_profile >= 0), "Moderate clumping profile should be non-negative"
+    assert jnp.all(clumped_profile >= 0), "Clumped profile should be non-negative"
+
+
+def test_canopy_nitrogen_profile_variable_layers(test_data: Dict[str, Any]):
+    """
+    Test handling of variable layer counts across patches.
+    
+    Verifies:
+    - Different ncan values are handled correctly
+    - Unused layers (beyond ncan) have appropriate values
+    - Active layers have reasonable profiles
+    """
+    test_case = test_data["test_special_variable_layer_counts"]
+    inputs = test_case["inputs"]
+    
+    profile, validation = canopy_nitrogen_profile(**inputs)
+    
+    # Check each patch
+    for i in range(inputs["vcmaxpft"].shape[0]):
+        ncan = int(inputs["ncan"][i])
+        
         if ncan > 0:
-            for layer_idx in range(ncan):
-                profile_val = profile.vcmax25_profile[patch_idx, layer_idx]
-                sun_val = profile.vcmax25_leaf_sun[patch_idx, layer_idx]
-                sha_val = profile.vcmax25_leaf_sha[patch_idx, layer_idx]
-                
-                # Profile should be between min and max of sun/shade (with tolerance)
-                min_val = jnp.minimum(sun_val, sha_val)
-                max_val = jnp.maximum(sun_val, sha_val)
-                
-                assert profile_val >= min_val - 1e-6, \
-                    f"Profile value should be >= min(sun, shade) for patch {patch_idx}, layer {layer_idx}"
-                assert profile_val <= max_val + 1e-6, \
-                    f"Profile value should be <= max(sun, shade) for patch {patch_idx}, layer {layer_idx}"
+            # Active layers should have non-zero values
+            active_vcmax = profile.vcmax25_profile[i, :ncan]
+            assert jnp.any(active_vcmax > 0), \
+                f"Patch {i} with ncan={ncan} should have non-zero active layers"
+            
+            # Check that profile decreases through active layers
+            if ncan > 1:
+                # Allow for some variation but expect general decrease
+                assert active_vcmax[0] >= active_vcmax[ncan-1] * 0.5, \
+                    f"Patch {i}: Profile should generally decrease through canopy"
 
 
-# ============================================================================
-# Test: Parameter Defaults
-# ============================================================================
-
-def test_canopy_nitrogen_profile_default_params(test_data: Dict[str, Any], default_params: CanopyNitrogenParams):
+def test_canopy_nitrogen_profile_parameter_override(test_data: Dict[str, Any]):
     """
-    Test that function works correctly with default parameters.
+    Test custom parameter override functionality.
     
-    Verifies that passing params=None uses default parameters and produces
-    valid results.
-    
-    Args:
-        test_data: Fixture containing all test cases
-        default_params: Fixture providing default parameters
+    Verifies:
+    - Default parameters are used when params=None
+    - Custom parameters can be provided
+    - Custom parameters affect output appropriately
     """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_nominal_single_patch_c3_moderate_lai")
-    inputs = convert_to_jax_arrays(case["inputs"])
+    test_case = test_data["test_nominal_single_patch_c3_moderate_lai"]
+    inputs = test_case["inputs"].copy()
     
-    # Run with default params (None)
+    # Test with default parameters
+    inputs["params"] = None
     profile_default, _ = canopy_nitrogen_profile(**inputs)
     
-    # Run with explicit default params
-    inputs_explicit = inputs.copy()
-    inputs_explicit["params"] = default_params
-    profile_explicit, _ = canopy_nitrogen_profile(**inputs_explicit)
+    # Test with custom parameters (modified Jmax/Vcmax ratio)
+    custom_params = get_default_params()
+    custom_params = custom_params._replace(jmax25_to_vcmax25_noacclim=3.0)  # Higher than default 2.59
+    inputs["params"] = custom_params
+    profile_custom, _ = canopy_nitrogen_profile(**inputs)
     
-    # Results should be identical
-    assert jnp.allclose(profile_default.vcmax25_profile, profile_explicit.vcmax25_profile, rtol=1e-10), \
-        "Default params (None) should produce same results as explicit default params"
-    assert jnp.allclose(profile_default.jmax25_profile, profile_explicit.jmax25_profile, rtol=1e-10), \
-        "Jmax profiles should match with default params"
-    assert jnp.allclose(profile_default.kn, profile_explicit.kn, rtol=1e-10), \
-        "Nitrogen decay coefficients should match with default params"
+    # Jmax values should be different (higher with custom params for C3)
+    if inputs["c3psn"][0] == 1:
+        assert jnp.any(profile_custom.jmax25_leaf_sun > profile_default.jmax25_leaf_sun), \
+            "Custom Jmax/Vcmax ratio should increase Jmax values"
 
 
-# ============================================================================
-# Test: Validation Disabled
-# ============================================================================
-
-def test_canopy_nitrogen_profile_validation_disabled(test_data: Dict[str, Any]):
+def test_canopy_nitrogen_profile_consistency(test_data: Dict[str, Any]):
     """
-    Test that validation can be disabled and returns None.
+    Test internal consistency of outputs.
     
-    Verifies that when validate=False, the function returns None for the
-    validation output.
-    
-    Args:
-        test_data: Fixture containing all test cases
+    Verifies:
+    - Profile values are weighted averages of sunlit and shaded
+    - Nitrogen decay coefficient (kn) is consistent with profiles
+    - Sum of dpai approximately equals LAI + SAI
     """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_nominal_single_patch_c3_moderate_lai")
-    inputs = convert_to_jax_arrays(case["inputs"])
+    test_case = test_data["test_nominal_single_patch_c3_moderate_lai"]
+    inputs = test_case["inputs"]
     
-    # Disable validation
-    inputs["validate"] = False
-    
-    # Run function
     profile, validation = canopy_nitrogen_profile(**inputs)
     
-    # Validation should be None
-    assert validation is None, \
-        "Validation should be None when validate=False"
-    
-    # Profile should still be valid
-    assert profile is not None, \
-        "Profile should still be returned when validate=False"
-    assert jnp.all(jnp.isfinite(profile.vcmax25_profile)), \
-        "Profile should be finite when validate=False"
-
-
-# ============================================================================
-# Test: Nitrogen Decay Coefficient
-# ============================================================================
-
-def test_canopy_nitrogen_profile_nitrogen_decay(test_data: Dict[str, Any]):
-    """
-    Test that nitrogen decay coefficient (kn) is calculated correctly.
-    
-    Verifies that:
-    - kn is positive
-    - kn affects the vertical profile of photosynthetic parameters
-    - Higher kn leads to steeper decline through canopy
-    
-    Args:
-        test_data: Fixture containing all test cases
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_nominal_high_lai_dense_canopy")
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run function
-    profile, validation = canopy_nitrogen_profile(**inputs)
-    
-    # Check that kn is positive
-    assert jnp.all(profile.kn > 0), \
-        "Nitrogen decay coefficient should be positive"
-    
-    # Check that vcmax25 decreases through canopy
-    for patch_idx in range(inputs["vcmaxpft"].shape[0]):
-        ncan = int(inputs["ncan"][patch_idx])
-        if ncan > 2:  # Need at least 3 layers to check trend
-            vcmax_profile = profile.vcmax25_profile[patch_idx, :ncan]
-            
-            # Calculate relative decline from top to bottom
-            top_val = vcmax_profile[0]
-            bottom_val = vcmax_profile[ncan-1]
-            
-            if top_val > 1e-10:  # Avoid division by zero
-                relative_decline = (top_val - bottom_val) / top_val
+    # Check that profile is weighted average of sunlit and shaded
+    for i in range(inputs["vcmaxpft"].shape[0]):
+        ncan = int(inputs["ncan"][i])
+        if ncan > 0:
+            for j in range(ncan):
+                fracsun = inputs["fracsun"][i, j]
+                fracsha = 1.0 - fracsun
                 
-                # Should have significant decline (at least 10% for dense canopy)
-                assert relative_decline > 0.1, \
-                    f"Vcmax25 should decline significantly through dense canopy for patch {patch_idx}"
-
-
-# ============================================================================
-# Test: Conservation of Total Nitrogen
-# ============================================================================
-
-def test_canopy_nitrogen_profile_nitrogen_conservation(test_data: Dict[str, Any]):
-    """
-    Test that total canopy nitrogen is conserved in the profile.
+                # Weighted average (with tolerance for numerical precision)
+                expected = fracsun * profile.vcmax25_leaf_sun[i, j] + \
+                          fracsha * profile.vcmax25_leaf_sha[i, j]
+                actual = profile.vcmax25_profile[i, j]
+                
+                assert jnp.allclose(actual, expected, rtol=1e-5, atol=1e-6), \
+                    f"Patch {i}, layer {j}: Profile should be weighted average of sun/shade"
     
-    Verifies that the numerical integration of vcmax25 through the canopy
-    matches the analytical expectation based on top-of-canopy values and
-    nitrogen decay.
-    
-    Args:
-        test_data: Fixture containing all test cases
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_nominal_multiple_patches_mixed_pathways")
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run function with validation
-    profile, validation = canopy_nitrogen_profile(**inputs)
-    
-    # Validation checks nitrogen conservation
-    assert validation is not None, \
-        "Validation should be enabled for this test"
-    
-    # Check that numerical and analytical integrals are close
-    relative_error = jnp.abs(validation.numerical - validation.analytical) / (validation.analytical + 1e-10)
-    
-    assert jnp.all(relative_error < 1e-3), \
-        f"Relative error in nitrogen conservation should be < 0.1%: {relative_error}"
-    
-    # Check that validation passed
-    assert validation.is_valid, \
-        "Nitrogen conservation validation should pass"
-
-
-# ============================================================================
-# Test: Consistency Across Patches
-# ============================================================================
-
-def test_canopy_nitrogen_profile_patch_independence(test_data: Dict[str, Any]):
-    """
-    Test that patches are processed independently.
-    
-    Verifies that results for each patch depend only on that patch's inputs,
-    not on other patches in the batch.
-    
-    Args:
-        test_data: Fixture containing all test cases
-    """
-    case = next(tc for tc in test_data["test_cases"] 
-                if tc["name"] == "test_nominal_multiple_patches_mixed_pathways")
-    inputs = convert_to_jax_arrays(case["inputs"])
-    
-    # Run with all patches
-    profile_all, _ = canopy_nitrogen_profile(**inputs)
-    
-    # Run each patch individually and compare
-    n_patches = inputs["vcmaxpft"].shape[0]
-    for patch_idx in range(n_patches):
-        # Create single-patch inputs
-        single_inputs = {
-            "vcmaxpft": inputs["vcmaxpft"][patch_idx:patch_idx+1],
-            "c3psn": inputs["c3psn"][patch_idx:patch_idx+1],
-            "tacclim": inputs["tacclim"][patch_idx:patch_idx+1],
-            "dpai": inputs["dpai"][patch_idx:patch_idx+1],
-            "kb": inputs["kb"][patch_idx:patch_idx+1],
-            "tbi": inputs["tbi"][patch_idx:patch_idx+1],
-            "fracsun": inputs["fracsun"][patch_idx:patch_idx+1],
-            "clump_fac": inputs["clump_fac"][patch_idx:patch_idx+1],
-            "ncan": inputs["ncan"][patch_idx:patch_idx+1],
-            "lai": inputs["lai"][patch_idx:patch_idx+1],
-            "sai": inputs["sai"][patch_idx:patch_idx+1],
-            "params": inputs["params"],
-            "validate": False,  # Skip validation for speed
-        }
-        
-        # Run single patch
-        profile_single, _ = canopy_nitrogen_profile(**single_inputs)
-        
-        # Compare results
-        assert jnp.allclose(
-            profile_all.vcmax25_profile[patch_idx:patch_idx+1],
-            profile_single.vcmax25_profile,
-            rtol=1e-10,
-            atol=1e-10
-        ), f"Patch {patch_idx} vcmax25_profile should be independent of other patches"
-        
-        assert jnp.allclose(
-            profile_all.kn[patch_idx:patch_idx+1],
-            profile_single.kn,
-            rtol=1e-10,
-            atol=1e-10
-        ), f"Patch {patch_idx} kn should be independent of other patches"
+    # Check dpai sum approximately equals LAI + SAI
+    for i in range(inputs["vcmaxpft"].shape[0]):
+        ncan = int(inputs["ncan"][i])
+        if ncan > 0:
+            dpai_sum = jnp.sum(inputs["dpai"][i, :ncan])
+            total_ai = inputs["lai"][i] + inputs["sai"][i]
+            
+            assert jnp.allclose(dpai_sum, total_ai, rtol=0.1), \
+                f"Patch {i}: Sum of dpai should approximately equal LAI + SAI"

@@ -863,14 +863,14 @@
           ],
           "fracsun": [
             [
-              0.5,
-              0.3,
+              0.9,
+              0.7,
               0.0,
               0.0,
               0.0
             ],
             [
-              0.6,
+              0.95,
               0.0,
               0.0,
               0.0,
@@ -895,14 +895,14 @@
           ],
           "dpai": [
             [
-              0.5,
-              0.3,
+              0.05,
+              0.08,
               0.0,
               0.0,
               0.0
             ],
             [
-              0.2,
+              0.03,
               0.0,
               0.0,
               0.0,
@@ -1018,10 +1018,10 @@
       },
       "metadata": {
         "type": "edge",
-        "description": "Very sparse canopy with near-complete transmittance (td=1.0)",
+        "description": "Nearly transparent canopy with transmittance approaching 1.0",
         "edge_cases": [
           "full_transmittance",
-          "sparse_canopy"
+          "minimal_interception"
         ]
       }
     },
@@ -1066,7 +1066,7 @@
           ],
           "fracsun": [
             [
-              0.4,
+              0.3,
               0.1,
               0.0,
               0.0,
@@ -1092,7 +1092,7 @@
             ]
           ],
           "tg": [
-            290.15
+            294.15
           ],
           "lwsky": [
             340.0
@@ -1164,7 +1164,7 @@
       },
       "metadata": {
         "type": "edge",
-        "description": "Dense canopy with zero transmittance, complete radiation blocking",
+        "description": "Dense canopy with zero transmittance, complete radiation interception",
         "edge_cases": [
           "zero_transmittance",
           "dense_canopy"
@@ -1238,10 +1238,10 @@
             ]
           ],
           "tg": [
-            285.15
+            288.15
           ],
           "lwsky": [
-            320.0
+            335.0
           ],
           "itype": [
             2
@@ -1310,12 +1310,12 @@
       },
       "metadata": {
         "type": "special",
-        "description": "Maximum canopy layers (5) with full vertical stratification",
+        "description": "Maximum number of canopy layers (5) with smooth vertical gradient",
         "edge_cases": []
       }
     },
     {
-      "name": "test_special_all_shaded_canopy",
+      "name": "test_special_uniform_canopy_properties",
       "inputs": {
         "bounds": {
           "begp": 0,
@@ -1329,7 +1329,7 @@
         "mlcanopy_inst": {
           "ncan": [
             3,
-            2
+            3
           ],
           "ntop": [
             0,
@@ -1337,99 +1337,99 @@
           ],
           "nbot": [
             2,
-            1
+            2
           ],
           "tleaf_sun": [
             [
-              295.15,
-              294.15,
-              293.15,
+              298.15,
+              298.15,
+              298.15,
               0.0,
               0.0
             ],
             [
-              296.15,
-              295.15,
-              0.0,
+              300.15,
+              300.15,
+              300.15,
               0.0,
               0.0
             ]
           ],
           "tleaf_sha": [
             [
-              295.15,
-              294.15,
-              293.15,
+              298.15,
+              298.15,
+              298.15,
               0.0,
               0.0
             ],
             [
-              296.15,
-              295.15,
-              0.0,
+              300.15,
+              300.15,
+              300.15,
               0.0,
               0.0
             ]
           ],
           "fracsun": [
             [
-              0.0,
-              0.0,
-              0.0,
+              0.5,
+              0.5,
+              0.5,
               0.0,
               0.0
             ],
             [
-              0.0,
-              0.0,
-              0.0,
+              0.5,
+              0.5,
+              0.5,
               0.0,
               0.0
             ]
           ],
           "td": [
             [
-              0.5,
-              0.3,
-              0.15,
+              0.7,
+              0.7,
+              0.7,
               0.0,
               0.0
             ],
             [
-              0.6,
-              0.35,
-              0.0,
+              0.7,
+              0.7,
+              0.7,
               0.0,
               0.0
             ]
           ],
           "dpai": [
             [
-              3.0,
-              2.8,
-              2.5,
+              2.0,
+              2.0,
+              2.0,
               0.0,
               0.0
             ],
             [
-              2.9,
-              2.6,
-              0.0,
+              2.0,
+              2.0,
+              2.0,
               0.0,
               0.0
             ]
           ],
           "tg": [
-            292.15,
-            293.15
+            298.15,
+            300.15
           ],
           "lwsky": [
-            310.0,
-            315.0
+            400.0,
+            410.0
           ],
           "itype": [
             1,
-            2
+            1
           ],
           "lwup_layer": [
             [
@@ -1528,7 +1528,7 @@
       },
       "metadata": {
         "type": "special",
-        "description": "Completely shaded canopy (fracsun=0), overcast or dense forest understory",
+        "description": "Uniform canopy properties across all layers (isothermal, homogeneous)",
         "edge_cases": []
       }
     },
@@ -1591,14 +1591,14 @@
           ],
           "fracsun": [
             [
-              0.75,
-              0.55,
+              0.7,
+              0.5,
               0.0,
               0.0,
               0.0
             ],
             [
-              0.8,
+              0.75,
               0.6,
               0.4,
               0.0,
@@ -1607,15 +1607,15 @@
           ],
           "td": [
             [
-              0.8,
-              0.6,
+              0.75,
+              0.55,
               0.0,
               0.0,
               0.0
             ],
             [
-              0.85,
-              0.7,
+              0.8,
+              0.65,
               0.5,
               0.0,
               0.0
@@ -1623,30 +1623,30 @@
           ],
           "dpai": [
             [
-              1.8,
-              2.0,
+              2.3,
+              2.6,
               0.0,
               0.0,
               0.0
             ],
             [
-              1.5,
               1.9,
               2.2,
+              2.4,
               0.0,
               0.0
             ]
           ],
           "tg": [
-            305.15,
-            307.15
+            303.15,
+            305.15
           ],
           "lwsky": [
-            450.0,
-            480.0
+            500.0,
+            520.0
           ],
           "itype": [
-            1,
+            2,
             3
           ],
           "lwup_layer": [
@@ -1746,46 +1746,57 @@
       },
       "metadata": {
         "type": "special",
-        "description": "High incoming longwave radiation (hot, humid conditions or thick clouds)",
+        "description": "High incoming longwave radiation (cloudy/humid conditions)",
         "edge_cases": []
       }
     },
     {
-      "name": "test_edge_boundary_emissivity",
+      "name": "test_edge_boundary_emissivity_values",
       "inputs": {
         "bounds": {
           "begp": 0,
-          "endp": 1
+          "endp": 2
         },
-        "num_filter": 2,
+        "num_filter": 3,
         "filter_indices": [
           0,
-          1
+          1,
+          2
         ],
         "mlcanopy_inst": {
           "ncan": [
             2,
-            1
+            1,
+            2
           ],
           "ntop": [
+            0,
             0,
             0
           ],
           "nbot": [
             1,
-            0
+            0,
+            1
           ],
           "tleaf_sun": [
             [
-              298.15,
+              299.15,
               296.15,
               0.0,
               0.0,
               0.0
             ],
             [
-              300.15,
+              301.15,
               0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              298.15,
+              295.15,
               0.0,
               0.0,
               0.0
@@ -1793,15 +1804,22 @@
           ],
           "tleaf_sha": [
             [
-              296.15,
+              297.15,
               294.15,
               0.0,
               0.0,
               0.0
             ],
             [
-              298.15,
+              299.15,
               0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              296.15,
+              293.15,
               0.0,
               0.0,
               0.0
@@ -1821,6 +1839,13 @@
               0.0,
               0.0,
               0.0
+            ],
+            [
+              0.55,
+              0.35,
+              0.0,
+              0.0,
+              0.0
             ]
           ],
           "td": [
@@ -1837,19 +1862,33 @@
               0.0,
               0.0,
               0.0
+            ],
+            [
+              0.68,
+              0.48,
+              0.0,
+              0.0,
+              0.0
             ]
           ],
           "dpai": [
             [
-              2.0,
-              1.8,
+              2.1,
+              2.3,
               0.0,
               0.0,
               0.0
             ],
             [
-              1.5,
+              1.8,
               0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.4,
+              2.5,
               0.0,
               0.0,
               0.0
@@ -1857,17 +1896,28 @@
           ],
           "tg": [
             293.15,
-            295.15
+            295.15,
+            291.15
           ],
           "lwsky": [
             345.0,
-            350.0
+            355.0,
+            340.0
           ],
           "itype": [
             0,
-            4
+            4,
+            1
           ],
           "lwup_layer": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
             [
               0.0,
               0.0,
@@ -1901,9 +1951,24 @@
               0.0,
               0.0,
               0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
             ]
           ],
           "lwleaf_sun": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
             [
               0.0,
               0.0,
@@ -1933,17 +1998,27 @@
               0.0,
               0.0,
               0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
             ]
           ],
           "lwsoi": [
+            0.0,
             0.0,
             0.0
           ],
           "lwveg": [
             0.0,
+            0.0,
             0.0
           ],
           "lwup": [
+            0.0,
             0.0,
             0.0
           ]
@@ -1952,11 +2027,11 @@
           "sb": 5.67e-08,
           "emg": 1.0,
           "emleaf": [
-            0.98,
             1.0,
             0.95,
-            0.99,
-            0.98
+            1.0,
+            0.95,
+            1.0
           ],
           "nlevcan": 5
         },
@@ -1964,13 +2039,13 @@
       },
       "metadata": {
         "type": "edge",
-        "description": "Boundary emissivity values (1.0 = perfect blackbody)",
+        "description": "Boundary emissivity values (1.0 for perfect blackbody, 0.95 for realistic minimum)",
         "edge_cases": [
           "max_emissivity",
-          "blackbody"
+          "varied_pft_emissivity"
         ]
       }
     }
   ],
-  "notes": "Test data generation assumptions:\n\n1. **Temperature constraints**: All temperatures in Kelvin > 0, with physically realistic ranges:\n   - Ground: 273-310K (0-37\u00b0C)\n   - Leaves: 285-315K (12-42\u00b0C)\n   - Typical gradients: warmer at top, cooler at bottom\n\n2. **Fraction constraints**: fracsun, td, emissivity all in [0,1]\n   - fracsun decreases with canopy depth (less sunlight penetration)\n   - td (transmittance) decreases with canopy depth\n\n3. **Array dimensions**: All arrays sized to (n_patches, nlevcan=5)\n   - Unused layers filled with zeros\n   - ncan indicates active layers\n   - ntop=0 (top layer index), nbot varies by canopy depth\n\n4. **Physical realism**:\n   - dpai (plant area index) >= 0, typical range 0-5 m\u00b2/m\u00b2\n   - lwsky (incoming longwave) range 280-480 W/m\u00b2 (clear to cloudy)\n   - Stefan-Boltzmann constant: 5.67e-8 W/m\u00b2/K\u2074\n\n5. **Edge cases covered**:\n   - Zero/minimal vegetation (dpai=0)\n   - Dense canopy (td=0, high dpai)\n   - Sparse canopy (td=1.0, low dpai)\n   - Extreme temperature gradients (40K difference)\n   - All shaded conditions (fracsun=0)\n   - Maximum emissivity (1.0)\n   - Maximum canopy layers (5)\n   - High incoming radiation (>450 W/m\u00b2)\n\n6. **Test diversity**:\n   - Single and multiple patches\n   - 1-5 canopy layers\n   - Different PFT types (itype 0-4)\n   - Various atmospheric conditions\n   - Different filter configurations\n\n7. **Output arrays**: Initialized to zero, will be populated by function"
+  "notes": "Test data generation assumptions:\n\n1. **Temperature constraints**: All temperatures in Kelvin > 0, with realistic ranges:\n   - Leaf temperatures: 273.15K - 313.15K (0\u00b0C - 40\u00b0C)\n   - Ground temperatures: 273.15K - 305.15K (0\u00b0C - 32\u00b0C)\n   - Atmospheric longwave: 280-520 W/m\u00b2 (clear to cloudy sky)\n\n2. **Physical constraints**:\n   - fracsun in [0, 1]: sunlit fraction of canopy\n   - td in [0, 1]: transmittance (0=opaque, 1=transparent)\n   - dpai >= 0: plant area index (0-5 m\u00b2/m\u00b2 typical)\n   - emissivity in [0, 1]: typically 0.95-1.0 for vegetation\n\n3. **Array dimensions**:\n   - nlevcan=5 (maximum canopy layers)\n   - Inactive layers filled with zeros\n   - ncan indicates active layers per patch\n   - ntop=0 (top layer index), nbot varies by ncan\n\n4. **Test coverage**:\n   - Nominal: 5 cases (50%) - typical forest/canopy conditions\n   - Edge: 5 cases (50%) - zero PAI, extreme gradients, boundary transmittance/emissivity\n   - Special: Included in mix - max layers, uniform properties, high radiation\n\n5. **Stefan-Boltzmann constant**: 5.67e-8 W/m\u00b2/K\u2074 (standard physical constant)\n\n6. **Filter indices**: Match num_filter and correspond to valid patch indices within bounds\n\n7. **PFT types (itype)**: 0-4 representing different plant functional types with corresponding emleaf values\n\n8. **Output fields**: Initialized to zero, will be populated by function"
 }
