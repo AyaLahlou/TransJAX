@@ -147,8 +147,9 @@ def add_patch(pi: int, ptype: int) -> int:
     index of last patch added, and the output value is the index of the
     newly-added patch.
     
-    NOTE: The code (as used here) processes one patch (one grid cell with one
-    column and one patch) and the subgrid patch structure is set accordingly.
+    This implementation processes a single-patch configuration (one grid cell with
+    one column and one patch), and the subgrid patch structure is set accordingly.
+    This is the standard configuration for tower site simulations.
     
     Args:
         pi: patch index (input: index of last patch added, output: index of newly-added patch)

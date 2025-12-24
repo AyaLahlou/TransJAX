@@ -340,3 +340,8 @@ TRANSLATION NOTES:
     - Can verify single-point configuration matches Fortran
 
 USAGE EXAMPLE:
+
+    >>> import CLMml
+    >>> # Initialize and run model
+    >>> # See CLMml_driver for detailed usage
+"""

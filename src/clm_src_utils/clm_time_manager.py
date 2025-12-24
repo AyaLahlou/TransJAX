@@ -510,11 +510,11 @@ def get_prev_calday(
     # Calendar day = cumulative days + current day + fraction of day
     calday = float(mdaycum_value) + float(day) + float(tod) / 86400.0
     
-    # WARNING HACK TO ENABLE Gregorian CALENDAR WITH SHR_ORB
-    # Lines 439-447 from original
-    # The following hack fakes day 366 by reusing day 365. This is just because
-    # the current shr_orb_decl calculation can't handle days > 366.
-    # Dani Bundy-Coleman and Erik Kluzek Aug/2008
+    # INTENTIONAL WORKAROUND: Gregorian calendar compatibility with shr_orb_decl
+    # Lines 439-447 from original Fortran implementation
+    # The shr_orb_decl calculation cannot handle calendar days > 366, so day 366
+    # is handled by reusing day 365. This is a documented limitation carried over
+    # from the original Fortran implementation (Bundy-Coleman & Kluzek, Aug 2008).
     is_gregorian = state.calkindflag == "GREGORIAN"
     in_hack_range = (calday > 366.0) and (calday <= 367.0)
     if is_gregorian and in_hack_range:
