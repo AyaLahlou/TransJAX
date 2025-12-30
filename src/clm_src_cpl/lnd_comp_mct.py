@@ -144,9 +144,23 @@ def lnd_init_mct(bounds: BoundsType) -> None:
     # Line 37: call initialize2(bounds)
     # initialize2(bounds)
     
-    # Placeholder implementation
-    # In actual use, uncomment the imports and function calls above
-    pass
+    # Coupling interface initialization
+    # This function provides the interface between CLM and an external coupler
+    # (e.g., CESM coupler). The actual initialization depends on the coupling
+    # framework being used and requires:
+    # 1. Setting up MCT (Model Coupling Toolkit) data structures
+    # 2. Initializing land model domains and decomposition
+    # 3. Registering fields for import/export
+    #
+    # For standalone CLM operation, this initialization is not needed.
+    # For coupled operation, implement based on your coupling framework.
+    import warnings
+    warnings.warn(
+        "lnd_init_mct called but coupling interface not implemented. "
+        "This is expected for standalone CLM runs. For coupled simulations, "
+        "implement MCT/NUOPC coupling infrastructure.",
+        stacklevel=2
+    )
 
 
 def lnd_run_mct(
@@ -198,11 +212,25 @@ def lnd_run_mct(
     
     # Call the main CLM driver (Fortran line 58)
     # In the actual implementation, this would be:
-    # return clm_drv(bounds, time_indx, fin)
+    # from clm_driver import clm_drv
+    # new_state = clm_drv(bounds, time_indx, fin, current_state)
+    # return new_state
     
-    # Placeholder for the actual driver call
-    # The real implementation requires clm_drv to be translated first
-    pass
+    # Coupling interface for running CLM within a coupled model framework
+    # This provides the entry point called by an external coupler at each timestep.
+    # The actual implementation depends on whether CLM is being run:
+    # 1. Standalone: Call clm_driver.clm_drv directly
+    # 2. Coupled: Handle field exchanges with coupler, then call clm_driver.clm_drv
+    #
+    # For a pure JAX implementation, this would accept and return model state explicitly
+    # rather than modifying global state through side effects.
+    import warnings
+    warnings.warn(
+        "lnd_run_mct called but coupling interface not implemented. "
+        "For standalone runs, call clm_driver.clm_drv directly. "
+        "For coupled runs, implement coupling field exchanges.",
+        stacklevel=2
+    )
 
 
 # =============================================================================

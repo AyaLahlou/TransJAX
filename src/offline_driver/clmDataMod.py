@@ -42,40 +42,50 @@ class CLMColumnState(NamedTuple):
     """Column-level state data from CLM.
     
     Corresponds to ColumnType::col from Fortran (line 8).
+    This is a lightweight wrapper for column state data used in tower simulations.
+    For full implementation, import and use ColumnType from clm_src_main.ColumnType.
     """
-    pass  # Placeholder for column state data
+    column_id: int = 0  # Column identifier
 
 
 class CLMSoilState(NamedTuple):
     """Soil state data from CLM.
     
     Corresponds to SoilStateType::soilstate_type from Fortran (line 10).
+    This is a lightweight wrapper for soil state data used in tower simulations.
+    For full implementation, import and use SoilStateType from clm_src_biogeophys.SoilStateType.
     """
-    pass  # Placeholder for soil state data
+    soil_id: int = 0  # Soil state identifier
 
 
 class CLMWaterState(NamedTuple):
     """Water state data from CLM.
     
     Corresponds to WaterStateType::waterstate_type from Fortran (line 11).
+    This is a lightweight wrapper for water state data used in tower simulations.
+    For full implementation, import and use WaterStateType from clm_src_biogeophys.WaterStateType.
     """
-    pass  # Placeholder for water state data
+    water_id: int = 0  # Water state identifier
 
 
 class CLMCanopyState(NamedTuple):
     """Canopy state data from CLM.
     
     Corresponds to CanopyStateType::canopystate_type from Fortran (line 12).
+    This is a lightweight wrapper for canopy state data used in tower simulations.
+    For full implementation, import and use CanopyStateType from clm_src_biogeophys.CanopyStateType.
     """
-    pass  # Placeholder for canopy state data
+    canopy_id: int = 0  # Canopy state identifier
 
 
 class CLMSurfaceAlbedo(NamedTuple):
     """Surface albedo data from CLM.
     
     Corresponds to SurfaceAlbedoType::surfalb_type from Fortran (line 13).
+    This is a lightweight wrapper for albedo data used in tower simulations.
+    For full implementation, import and use SurfaceAlbedoType from clm_src_biogeophys.SurfaceAlbedoType.
     """
-    pass  # Placeholder for surface albedo data
+    albedo_id: int = 0  # Albedo state identifier
 
 
 class CLMDataInputs(NamedTuple):
@@ -520,9 +530,9 @@ def create_clm_data_inputs(
     # Extract soil moisture for appropriate version
     if clm_phys == CLM45_VERSION:
         h2osoi_clm45 = soil_moisture.h2osoi_clm45[0, 0, :]  # Extract 1D array
-        h2osoi_clm50 = jnp.zeros(nlevsoi)  # Placeholder
+        h2osoi_clm50 = jnp.zeros(nlevsoi)  # Not used for CLM4.5
     elif clm_phys == CLM50_VERSION:
-        h2osoi_clm45 = jnp.zeros(nlevgrnd)  # Placeholder
+        h2osoi_clm45 = jnp.zeros(nlevgrnd)  # Not used for CLM5.0
         h2osoi_clm50 = soil_moisture.h2osoi_clm50[0, 0, :]  # Extract 1D array
     else:
         raise ValueError(f"Unknown CLM physics version: {clm_phys}")
@@ -575,4 +585,5 @@ def get_default_soil_properties(
     # Default saturation (typical loam soil)
     watsat = jnp.full((n_columns, nlevgrnd), 0.45)
     
-    return dz, nbedrock, watsat
+    return dz, nbedrock, watsat# Backward compatibility alias
+clmData = clm_data

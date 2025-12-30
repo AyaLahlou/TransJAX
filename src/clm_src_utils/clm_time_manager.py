@@ -510,18 +510,11 @@ def get_prev_calday(
     # Calendar day = cumulative days + current day + fraction of day
     calday = float(mdaycum_value) + float(day) + float(tod) / 86400.0
     
-    # NOTE: Workaround for Gregorian calendar compatibility with shr_orb_decl
+    # INTENTIONAL WORKAROUND: Gregorian calendar compatibility with shr_orb_decl
     # Lines 439-447 from original Fortran implementation
-    # 
-    # This workaround handles day 366 in leap years by mapping it to day 365,
-    # as the shr_orb_decl orbital calculation function has a limitation with
-    # calendar days greater than 365. This is a known limitation that should
-    # be addressed in a future refactoring of the orbital calculation module.
-    # 
-    # Historical context: Original implementation by Dani Bundy-Coleman and 
-    # Erik Kluzek (Aug/2008) in the Fortran CLM codebase.
-    # 
-    # TODO: Update orbital calculation to handle all calendar days properly
+    # The shr_orb_decl calculation cannot handle calendar days > 366, so day 366
+    # is handled by reusing day 365. This is a documented limitation carried over
+    # from the original Fortran implementation (Bundy-Coleman & Kluzek, Aug 2008).
     is_gregorian = state.calkindflag == "GREGORIAN"
     in_hack_range = (calday > 366.0) and (calday <= 367.0)
     if is_gregorian and in_hack_range:

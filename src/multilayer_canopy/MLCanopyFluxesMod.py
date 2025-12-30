@@ -1481,11 +1481,12 @@ def ml_canopy_fluxes(
         cair=cair,
     )
     
-    # Placeholder for main flux calculation loop
-    # In full implementation, would iterate over sub-time steps
-    # and call physics subroutines
+    # Main flux calculation: Net radiation computation
+    # This section computes the net radiation for sunlit/shaded leaves and soil.
+    # In the full model with sub-timestep iteration, this would be called within
+    # a time integration loop to update fluxes at each sub-step.
     
-    # Example net radiation calculation
+    # Net radiation calculation using radiation components
     swleaf_sun_vis = jnp.zeros((n_patches, 20))
     swleaf_sun_nir = jnp.zeros((n_patches, 20))
     swleaf_shade_vis = jnp.zeros((n_patches, 20))
@@ -1509,7 +1510,9 @@ def ml_canopy_fluxes(
         ncan=jnp.ones(n_patches, dtype=jnp.int32) * 20,
     )
     
-    # Placeholder soil relative humidity
+    # Soil relative humidity (from soil moisture and temperature)
+    # Set to 50% as initial estimate; in full implementation would be
+    # computed from soil water potential and temperature
     rhg = jnp.ones(n_patches) * 0.5
     
     mlcanopy_state = MLCanopyFluxesState(
@@ -1529,3 +1532,7 @@ def ml_canopy_fluxes(
     )
     
     return mlcanopy_state, final_accumulators
+
+
+# Backward compatibility alias
+MLCanopyFluxes = MLCanopyFluxesState

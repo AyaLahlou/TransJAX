@@ -122,9 +122,9 @@ class TranslationResult:
             saved_files["test"] = test_file
             console.print(f"[green]✓ Saved tests to {test_file}[/green]")
         
-        # Save translation notes to CLM-ml_v1/docs/
+        # Save translation notes to docs/
         if self.translation_notes:
-            docs_target_dir = project_root / "CLM-ml_v1" / "docs" / "translation_notes"
+            docs_target_dir = project_root / "docs" / "translation_notes"
             docs_target_dir.mkdir(parents=True, exist_ok=True)
             notes_file = docs_target_dir / f"{self.module_name}_translation_notes.md"
             with open(notes_file, 'w') as f:
@@ -642,9 +642,13 @@ class TranslatorAgent(BaseAgent):
         """
         path_obj = Path(original_path)
         
-        # If the path already exists, use it directly
-        if path_obj.exists():
-            return path_obj
+        # Try to check if path exists, but handle permission errors
+        try:
+            if path_obj.exists():
+                return path_obj
+        except (PermissionError, OSError):
+            # Path exists but we don't have permission - need to remap
+            pass
             
         # If we have a fortran_root override, try to remap relative to it
         if self.fortran_root:
@@ -654,8 +658,11 @@ class TranslatorAgent(BaseAgent):
                 if 'CLM' in part or 'clm' in part:
                     relative_parts = parts[i+1:]  # Skip the CLM-ml_v1 part  
                     remapped = self.fortran_root / Path(*relative_parts)
-                    if remapped.exists():
-                        return remapped
+                    try:
+                        if remapped.exists():
+                            return remapped
+                    except (PermissionError, OSError):
+                        pass
             
             # Try just the filename
             filename_path = self.fortran_root / path_obj.name

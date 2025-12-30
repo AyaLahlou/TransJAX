@@ -232,12 +232,14 @@ class patch_type:
                 self.itype = self.itype.at[:].set(ispval)
             
             # Update metadata
+            # Record initialization metadata
+            import time
             self.metadata.update({
                 'initialized': True,
                 'begp': begp,
                 'endp': endp,
                 'num_patches': num_patches,
-                'initialization_time': jnp.array([0.0])  # Placeholder timestamp
+                'initialization_time': time.time()  # Unix timestamp of initialization
             })
             
             logger.debug(f"Patch structure initialized successfully for {num_patches} patches")
