@@ -6,6 +6,7 @@ All specialized agents inherit from this base class.
 
 import os
 import logging
+import json
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from datetime import datetime
@@ -50,16 +51,7 @@ class BaseAgent:
         temperature: float = 0.0,
         max_tokens: int = 48000,
     ):
-        """
-        Initialize base agent.
-        
-        Args:
-            name: Agent name (e.g., "Orchestrator", "Static Analysis")
-            role: Agent role description
-            model: Claude model to use
-            temperature: Sampling temperature (0.0 = deterministic)
-            max_tokens: Maximum tokens in response
-        """
+        """Initialize base agent with API client and tracking."""
         self.name = name
         self.role = role
         self.model = model
@@ -76,19 +68,22 @@ class BaseAgent:
         
         self.client = anthropic.Anthropic(api_key=api_key)
         
-        # Conversation history
+        # Tracking states
         self.conversation_history: List[Dict[str, str]] = []
-        
-        # Cost tracking
         self.total_input_tokens = 0
         self.total_output_tokens = 0
         
-        # Logging
+        # Logging setup
         self.log_dir = Path("logs")
         self.log_dir.mkdir(exist_ok=True)
         
         logger.info(f"[bold green]Initialized {self.name} Agent[/bold green]", extra={"markup": True})
-    
+
+    def _update_usage(self, usage: Any) -> None:
+        """Helper to update token totals from API response usage objects."""
+        self.total_input_tokens += usage.input_tokens
+        self.total_output_tokens += usage.output_tokens
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=10, max=60)
@@ -100,133 +95,73 @@ class BaseAgent:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> str:
-        """
-        Query Claude with retry logic.
-        
-        Args:
-            prompt: User prompt
-            system_prompt: System prompt (optional, uses agent role if not provided)
-            temperature: Override default temperature
-            max_tokens: Override default max_tokens
-            
-        Returns:
-            Claude's response text
-            
-        Raises:
-            anthropic.APIError: If API call fails after retries
-        """
-        # Use defaults if not overridden
+        """Query Claude with retry logic and optional streaming for large outputs."""
         temp = temperature if temperature is not None else self.temperature
         max_tok = max_tokens if max_tokens is not None else self.max_tokens
         sys_prompt = system_prompt if system_prompt is not None else self._get_default_system_prompt()
         
-        # Log the query
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self._log_interaction(f"PROMPT_{timestamp}", prompt, sys_prompt)
         
         try:
-            # Make API call
             console.print(f"[cyan]🤖 {self.name} is thinking...[/cyan]")
             
-            # Use streaming for large max_tokens to avoid timeout issues
-            # Anthropic requires streaming for requests that may take >10 minutes
+            # Streaming path for high-token/long-running requests
             if max_tok >= 10000:
                 console.print(f"[dim]Using streaming mode for {max_tok} max_tokens[/dim]")
-                
                 response_text = ""
-                input_tokens = 0
-                output_tokens = 0
                 
                 with self.client.messages.stream(
                     model=self.model,
                     max_tokens=max_tok,
                     temperature=temp,
                     system=sys_prompt,
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ]
+                    messages=[{"role": "user", "content": prompt}]
                 ) as stream:
                     for text in stream.text_stream:
                         response_text += text
                     
-                    # Get final usage from stream
-                    final_message = stream.get_final_message()
-                    input_tokens = final_message.usage.input_tokens
-                    output_tokens = final_message.usage.output_tokens
-                
-                # Update token counts
-                self.total_input_tokens += input_tokens
-                self.total_output_tokens += output_tokens
-                
-                # Log the response
-                self._log_interaction(f"RESPONSE_{timestamp}", response_text)
-                
-                # Log token usage
-                logger.info(
-                    f"{self.name}: Used {input_tokens} input + "
-                    f"{output_tokens} output tokens"
-                )
-                
-                return response_text
+                    final_msg = stream.get_final_message()
+                    self._update_usage(final_msg.usage)
             else:
-                # Non-streaming for smaller requests
+                # Standard path
                 response = self.client.messages.create(
                     model=self.model,
                     max_tokens=max_tok,
                     temperature=temp,
                     system=sys_prompt,
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ]
+                    messages=[{"role": "user", "content": prompt}]
                 )
-                
-                # Extract response text
                 response_text = response.content[0].text
-                
-                # Update token counts
-                self.total_input_tokens += response.usage.input_tokens
-                self.total_output_tokens += response.usage.output_tokens
-                
-                # Log the response
-                self._log_interaction(f"RESPONSE_{timestamp}", response_text)
-                
-                # Log token usage
-                logger.info(
-                    f"{self.name}: Used {response.usage.input_tokens} input + "
-                    f"{response.usage.output_tokens} output tokens"
-                )
-                
-                return response_text
+                self._update_usage(response.usage)
+            
+            self._log_interaction(f"RESPONSE_{timestamp}", response_text)
+            logger.info(f"{self.name}: Interaction complete.")
+            return response_text
             
         except anthropic.APIError as e:
             logger.error(f"Claude API error: {e}")
             raise
-    
+
     def multi_turn_conversation(
         self,
         initial_prompt: str,
         system_prompt: Optional[str] = None,
     ) -> str:
-        """
-        Start a multi-turn conversation with Claude.
+        """Start a new multi-turn conversation history."""
+        self.conversation_history = [{"role": "user", "content": initial_prompt}]
+        return self._send_conversation_request(system_prompt)
+
+    def continue_conversation(self, prompt: str) -> str:
+        """Append to existing conversation history and get response."""
+        if not self.conversation_history:
+            raise ValueError("No conversation started. Use multi_turn_conversation() first.")
         
-        Args:
-            initial_prompt: Initial user prompt
-            system_prompt: System prompt for the conversation
-            
-        Returns:
-            Claude's response to initial prompt
-        """
-        # Clear conversation history
-        self.conversation_history = []
-        
-        # Add initial message
-        self.conversation_history.append({
-            "role": "user",
-            "content": initial_prompt
-        })
-        
-        # Get response
+        self.conversation_history.append({"role": "user", "content": prompt})
+        return self._send_conversation_request()
+
+    def _send_conversation_request(self, system_prompt: Optional[str] = None) -> str:
+        """Internal helper to handle conversation API calls."""
         sys_prompt = system_prompt if system_prompt is not None else self._get_default_system_prompt()
         
         response = self.client.messages.create(
@@ -237,85 +172,26 @@ class BaseAgent:
             messages=self.conversation_history
         )
         
-        # Add response to history
         response_text = response.content[0].text
-        self.conversation_history.append({
-            "role": "assistant",
-            "content": response_text
-        })
-        
-        # Update token counts
-        self.total_input_tokens += response.usage.input_tokens
-        self.total_output_tokens += response.usage.output_tokens
-        
+        self.conversation_history.append({"role": "assistant", "content": response_text})
+        self._update_usage(response.usage)
         return response_text
-    
-    def continue_conversation(self, prompt: str) -> str:
-        """
-        Continue an existing conversation.
-        
-        Args:
-            prompt: User's next message
-            
-        Returns:
-            Claude's response
-        """
-        if not self.conversation_history:
-            raise ValueError("No conversation started. Use multi_turn_conversation() first.")
-        
-        # Add user message
-        self.conversation_history.append({
-            "role": "user",
-            "content": prompt
-        })
-        
-        # Get response
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
-            system=self._get_default_system_prompt(),
-            messages=self.conversation_history
-        )
-        
-        # Add response to history
-        response_text = response.content[0].text
-        self.conversation_history.append({
-            "role": "assistant",
-            "content": response_text
-        })
-        
-        # Update token counts
-        self.total_input_tokens += response.usage.input_tokens
-        self.total_output_tokens += response.usage.output_tokens
-        
-        return response_text
-    
+
     def get_cost_estimate(self) -> Dict[str, float]:
-        """
-        Estimate cost based on token usage.
-        
-        Claude Sonnet 4.5 pricing (as of 2025):
-        - Input: $3.00 per million tokens
-        - Output: $15.00 per million tokens
-        
-        Returns:
-            Dictionary with cost breakdown
-        """
+        """Estimate cost based on current token usage for Claude Sonnet 4.5."""
         input_cost = (self.total_input_tokens / 1_000_000) * 3.00
         output_cost = (self.total_output_tokens / 1_000_000) * 15.00
-        total_cost = input_cost + output_cost
         
         return {
             "input_tokens": self.total_input_tokens,
             "output_tokens": self.total_output_tokens,
             "input_cost_usd": input_cost,
             "output_cost_usd": output_cost,
-            "total_cost_usd": total_cost,
+            "total_cost_usd": input_cost + output_cost,
         }
-    
+
     def _get_default_system_prompt(self) -> str:
-        """Get the default system prompt for this agent."""
+        """Returns the specialized system prompt for JAX translation."""
         return f"""You are an expert {self.name} agent specializing in converting Fortran CTSM code to JAX.
 
 Your role: {self.role}
@@ -332,39 +208,21 @@ You follow these principles:
 2. Use JAX best practices (pure functions, immutable state, JIT-compatible code)
 3. Add comprehensive documentation and type hints
 4. Follow the patterns established in the existing jax-ctsm codebase
-5. Be precise and thorough in your analysis and code generation
+5. Be precise and thorough in your analysis and code generation"""
 
-You communicate clearly and provide detailed, actionable responses."""
-    
     def _log_interaction(self, label: str, content: str, system_prompt: Optional[str] = None) -> None:
-        """
-        Log agent interactions to file.
-        
-        Args:
-            label: Label for the log entry
-            content: Content to log
-            system_prompt: Optional system prompt to log
-        """
+        """Log interactions to a timestamped file."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_file = self.log_dir / f"{self.name.lower().replace(' ', '_')}_{timestamp}.log"
         
-        with open(log_file, "a") as f:
-            f.write(f"\n{'='*80}\n")
-            f.write(f"{label}\n")
-            f.write(f"{'='*80}\n")
+        with log_file.open("a") as f:
+            f.write(f"\n{'='*80}\n{label}\n{'='*80}\n")
             if system_prompt:
                 f.write(f"\nSYSTEM PROMPT:\n{system_prompt}\n\n")
             f.write(f"{content}\n")
-    
+
     def save_state(self, output_path: Path) -> None:
-        """
-        Save agent state to file.
-        
-        Args:
-            output_path: Path to save state
-        """
-        import json
-        
+        """Save current agent metadata and cost state to JSON."""
         state = {
             "name": self.name,
             "role": self.role,
@@ -373,15 +231,14 @@ You communicate clearly and provide detailed, actionable responses."""
             "timestamp": datetime.now().isoformat(),
         }
         
-        with open(output_path, "w") as f:
+        with output_path.open("w") as f:
             json.dump(state, f, indent=2)
         
         logger.info(f"Saved {self.name} state to {output_path}")
-    
+
     def reset(self) -> None:
-        """Reset agent state (conversation history, token counts)."""
+        """Reset conversation and token totals."""
         self.conversation_history = []
         self.total_input_tokens = 0
         self.total_output_tokens = 0
         logger.info(f"Reset {self.name} agent state")
-
