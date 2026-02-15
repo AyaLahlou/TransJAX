@@ -4,9 +4,18 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-# Default config path (go up from utils -> jax_agents -> src -> project root)
-DEFAULT_CONFIG_PATH = Path(__file__).parent.parent.parent.parent / "config.yaml"
+# More robust root detection: find the directory containing 'jax-agents' or 'src'
+def _find_default_config() -> Path:
+    current = Path(__file__).resolve()
+    # Iterate upwards to find the project root containing config.yaml
+    for parent in current.parents:
+        candidate = parent / "config.yaml"
+        if candidate.exists():
+            return candidate
+    # Fallback to the original logic if not found during traversal
+    return current.parent.parent.parent.parent / "config.yaml"
 
+DEFAULT_CONFIG_PATH = _find_default_config()
 
 def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
     """
@@ -18,30 +27,27 @@ def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
     Returns:
         Configuration dictionary
     """
-    if config_path is None:
-        config_path = DEFAULT_CONFIG_PATH
+    path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
     
-    if not config_path.exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found at: {path.absolute()}")
     
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-    
-    return config
-
+    # Use Path.read_text for cleaner I/O
+    try:
+        data = yaml.safe_load(path.read_text())
+        return data if data is not None else {}
+    except yaml.YAMLError as e:
+        raise ValueError(f"Error parsing YAML config: {e}")
 
 def get_llm_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Get LLM configuration.
-    
-    Args:
-        config: Full config dict. If None, loads from default path.
-        
-    Returns:
-        LLM configuration dictionary
+    Get LLM configuration with sensible defaults.
     """
     if config is None:
-        config = load_config()
+        try:
+            config = load_config()
+        except FileNotFoundError:
+            config = {}
     
     return config.get("llm", {
         "model": "claude-sonnet-4-5",
@@ -50,21 +56,15 @@ def get_llm_config(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         "timeout": 600,
     })
 
-
 def get_agent_config(agent_name: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Get configuration for a specific agent.
-    
-    Args:
-        agent_name: Name of the agent (e.g., "static_analysis", "translator")
-        config: Full config dict. If None, loads from default path.
-        
-    Returns:
-        Agent configuration dictionary
     """
     if config is None:
-        config = load_config()
-    
+        try:
+            config = load_config()
+        except FileNotFoundError:
+            config = {}
+            
     agents_config = config.get("agents", {})
     return agents_config.get(agent_name, {})
-
