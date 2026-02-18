@@ -269,19 +269,19 @@ def load_preset(preset_name: str) -> None:
 
 
 # JIT-compiled utility functions
-@jax.jit(static_argnums=(0,))
+@jax.jit
 def snow_layer_indices(nlevsno_val: int) -> jnp.ndarray:
     """Get snow layer indices as JAX array"""
     return jnp.arange(-nlevsno_val + 1, 1, dtype=jnp.int32)
 
 
-@jax.jit(static_argnums=(0,))
+@jax.jit  
 def soil_layer_indices(nlevsoi_val: int) -> jnp.ndarray:
     """Get soil layer indices as JAX array"""
     return jnp.arange(1, nlevsoi_val + 1, dtype=jnp.int32)
 
 
-@jax.jit(static_argnums=(0,))
+@jax.jit
 def ground_layer_indices(nlevgrnd_val: int) -> jnp.ndarray:
     """Get ground layer indices as JAX array"""
     return jnp.arange(1, nlevgrnd_val + 1, dtype=jnp.int32)

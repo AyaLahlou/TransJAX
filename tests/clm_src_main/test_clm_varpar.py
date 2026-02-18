@@ -418,7 +418,7 @@ def test_create_layer_arrays_values_clm5(default_clm5_params):
 
 def test_create_layer_arrays_uninitialized(uninitialized_params):
     """Test that create_layer_arrays raises RuntimeError when uninitialized."""
-    with pytest.raises(RuntimeError, match=".*must be initialized.*"):
+    with pytest.raises(RuntimeError, match=".*not initialized.*"):
         create_layer_arrays()
 
 
@@ -473,7 +473,7 @@ def test_ground_layer_indices_values():
 
 def test_snow_layer_indices_jit_compatible():
     """Test that snow_layer_indices works with JAX JIT compilation."""
-    jitted_fn = jax.jit(snow_layer_indices, static_argnums=(0,))
+    jitted_fn = jax.jit(snow_layer_indices)
     
     result_jit = jitted_fn(5)
     result_no_jit = snow_layer_indices(5)
@@ -483,7 +483,7 @@ def test_snow_layer_indices_jit_compatible():
 
 def test_soil_layer_indices_jit_compatible():
     """Test that soil_layer_indices works with JAX JIT compilation."""
-    jitted_fn = jax.jit(soil_layer_indices, static_argnums=(0,))
+    jitted_fn = jax.jit(soil_layer_indices)
     
     result_jit = jitted_fn(10)
     result_no_jit = soil_layer_indices(10)
@@ -493,7 +493,7 @@ def test_soil_layer_indices_jit_compatible():
 
 def test_ground_layer_indices_jit_compatible():
     """Test that ground_layer_indices works with JAX JIT compilation."""
-    jitted_fn = jax.jit(ground_layer_indices, static_argnums=(0,))
+    jitted_fn = jax.jit(ground_layer_indices)
     
     result_jit = jitted_fn(15)
     result_no_jit = ground_layer_indices(15)
