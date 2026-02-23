@@ -42,7 +42,7 @@ dev = [
 ]
 
 [project.scripts]
-jax-convert = "jax_agents.cli:main"
+fortran-to-jax = "jax_agents.cli:main"
 
 [tool.setuptools]
 packages = ["jax_agents", "jax_agents.prompts", "jax_agents.utils"]

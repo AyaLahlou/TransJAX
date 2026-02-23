@@ -605,30 +605,12 @@ class TranslatorAgent(BaseAgent):
         return deps
     
     def _extract_source_directory(self, file_path: str) -> str:
-        """
-        Extract the source directory from a Fortran file path.
-        
-        Args:
-            file_path: Path to the Fortran file
-            
-        Returns:
-            Source directory name (e.g., 'clm_src_main', 'multilayer_canopy')
-        """
-        path_obj = Path(file_path)
-        parts = path_obj.parts
-        
-        # Look for known source directories
-        known_dirs = [
-            'clm_src_main', 'clm_src_biogeophys', 'clm_src_utils', 
-            'multilayer_canopy', 'offline_driver', 'cime_src_share_util', 'clm_src_cpl'
-        ]
-        
+        """Extract source directory from file path (e.g. clm_src_main, clm_src_biogeophys)."""
+        parts = Path(file_path).parts
         for part in parts:
-            if part in known_dirs:
+            if part.startswith('clm_src_'):
                 return part
-        
-        # Default fallback
-        return 'clm_src_main'
+        return 'clm_src_main'  # default
 
     def _remap_fortran_path(self, original_path: str) -> Path:
         """

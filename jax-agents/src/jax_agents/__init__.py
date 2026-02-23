@@ -18,6 +18,7 @@ __all__ = [
     "TestAgent",
     "TestGenerationResult",
     "RepairAgent",
+    "OrchestratorAgent",
     "RepairResult",
 ]
 
