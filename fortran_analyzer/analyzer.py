@@ -217,8 +217,12 @@ class FortranAnalyzer:
                     "analysis_timestamp": time.time(),
                     "analysis_duration": time.time() - start_time,
                 },
-                "parsing": parsing_results,
-                "dependencies": {
+                # Promote modules to the top level for the Orchestrator
+                "modules": parsing_results.get("modules", {}), 
+                "statistics": parsing_results.get("statistics", {}),
+                
+                # Keep the rest for reporting, but move them into a metadata block
+                "metadata": {
                     "module_graph_summary": {
                         "nodes": module_graph.number_of_nodes() if module_graph else 0,
                         "edges": module_graph.number_of_edges() if module_graph else 0,

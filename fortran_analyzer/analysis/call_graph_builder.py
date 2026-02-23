@@ -401,45 +401,69 @@ class CallGraphBuilder:
     def export_graphs(
         self, output_dir: Path, formats: List[str] = ["graphml", "gexf"]
     ) -> Dict[str, str]:
-        """Export graphs to various formats."""
+        """Export graphs with environment-safe imports."""
+        try:
+            import networkx as nx
+        except ImportError:
+            logger.error("NetworkX not found. Skipping graph export.")
+            return {}
+        """Export graphs to various formats with reinforced None-type safety."""
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         exported_files = {}
 
-        for graph_name, graph in [
-            ("module_graph", self.module_graph),
-            ("entity_graph", self.entity_graph),
-        ]:
-            if not graph.nodes():
-                continue
+        def sanitize_graph(G):
+            """Convert None to strings and Lists to strings for GraphML compatibility."""
+            Safe_G = G.copy()
+            for n in Safe_G.nodes():
+                attrs = Safe_G.nodes[n]
+                for k, v in list(attrs.items()):
+                    if v is None: attrs[k] = ""
+                    elif isinstance(v, list): attrs[k] = ", ".join(map(str, v))
+            
+            for u, v, attrs in Safe_G.edges(data=True):
+                for key, val in list(attrs.items()):
+                    if val is None: attrs[key] = ""
+                    elif isinstance(val, list): attrs[key] = ", ".join(map(str, val))
+            return Safe_G
 
-            for format_name in formats:
-                filename = f"{graph_name}.{format_name}"
-                filepath = output_dir / filename
+        # Global try block to ensure one bad graph doesn't kill the Orchestrator
+        try:
+            for graph_name, graph in [
+                ("module_graph", self.module_graph),
+                ("entity_graph", self.entity_graph),
+            ]:
+                if graph is None or not graph.nodes():
+                    logger.warning(f"Skipping {graph_name}: Graph is empty or None")
+                    continue
 
-                try:
-                    if format_name == "graphml":
-                        nx.write_graphml(graph, filepath)
-                    elif format_name == "gexf":
-                        nx.write_gexf(graph, filepath)
-                    elif format_name == "gml":
-                        nx.write_gml(graph, filepath)
-                    elif format_name == "json":
-                        import json
+                # Create a sanitized copy for export
+                export_graph = sanitize_graph(graph)
 
-                        data = nx.node_link_data(graph)
-                        with open(filepath, "w") as f:
-                            json.dump(data, f, indent=2)
-                    else:
-                        logger.warning(f"Unsupported format: {format_name}")
-                        continue
+                for format_name in formats:
+                    filename = f"{graph_name}.{format_name}"
+                    filepath = output_dir / filename
 
-                    exported_files[f"{graph_name}_{format_name}"] = str(filepath)
-                    logger.info(f"Exported {graph_name} to {filepath}")
-
-                except Exception as e:
-                    logger.error(f"Failed to export {graph_name} to {format_name}: {e}")
+                    try:
+                        if format_name == "graphml":
+                            nx.write_graphml(export_graph, str(filepath))
+                        elif format_name == "gexf":
+                            nx.write_gexf(export_graph, str(filepath))
+                        elif format_name == "json":
+                            import json
+                            data = nx.node_link_data(export_graph)
+                            with open(filepath, "w") as f:
+                                json.dump(data, f, indent=2)
+                        
+                        exported_files[f"{graph_name}_{format_name}"] = str(filepath)
+                        logger.info(f"Exported {graph_name} to {filepath}")
+                    except Exception as e:
+                        # Log the error but keep going so other files/graphs are saved
+                        logger.error(f"Failed to export {graph_name} to {format_name}: {e}")
+        
+        except Exception as e:
+            logger.critical(f"Critical failure in export_graphs logic: {e}")
 
         return exported_files
 

@@ -99,8 +99,14 @@ class FortranParser:
             self.parser = None
 
     def find_fortran_files(self) -> List[Path]:
-        """Find all Fortran files in the configured source directories."""
+        """Find all Fortran files in the configured source directories (case-insensitive)."""
         fortran_files = []
+        
+        # 1. Standardize extensions to lowercase for comparison
+        supported = [ext.lower() for ext in self.config.fortran_extensions]
+        # Add F90 explicitly if it's missing from your config
+        if '.f90' in supported and '.f90' not in supported:
+            supported.append('.f90')
 
         for source_dir in self.config.source_dirs:
             source_path = Path(source_dir)
@@ -108,41 +114,22 @@ class FortranParser:
                 logger.warning(f"Source directory does not exist: {source_dir}")
                 continue
 
-            # Use include patterns
-            for pattern in self.config.include_patterns:
-                files = source_path.glob(pattern)
-                fortran_files.extend([f for f in files if f.is_file()])
+            # 2. Get all files and filter by suffix (case-insensitive)
+            # We use rglob('*') to find all files recursively if needed, 
+            # or just glob('*') for the top level.
+            for f in source_path.rglob('*'):
+                if '.venv' in f.parts:
+                    continue
+                if f.is_file() and f.suffix.lower() in supported:
+                    fortran_files.append(f)
 
-        # Filter by extensions
-        fortran_files = [
-            f for f in fortran_files if f.suffix in self.config.fortran_extensions
-        ]
-
-        # Apply exclude patterns
+        # 3. Apply exclude patterns
         if self.config.exclude_patterns:
-            filtered_files = []
-            for file_path in fortran_files:
-                exclude = False
-                for exclude_pattern in self.config.exclude_patterns:
-                    if file_path.match(exclude_pattern):
-                        exclude = True
-                        break
-                if not exclude:
-                    filtered_files.append(file_path)
-            fortran_files = filtered_files
+            fortran_files = [f for f in fortran_files if not any(f.match(p) for p in self.config.exclude_patterns)]
 
-        # Apply exclude directories
+        # 4. Apply exclude directories
         if self.config.exclude_dirs:
-            filtered_files = []
-            for file_path in fortran_files:
-                exclude = False
-                for exclude_dir in self.config.exclude_dirs:
-                    if Path(exclude_dir) in file_path.parents:
-                        exclude = True
-                        break
-                if not exclude:
-                    filtered_files.append(file_path)
-            fortran_files = filtered_files
+            fortran_files = [f for f in fortran_files if not any(Path(d) in f.parents for d in self.config.exclude_dirs)]
 
         return sorted(set(fortran_files))
 
@@ -245,9 +232,9 @@ class FortranParser:
         interfaces: List[str] = []
         entities = []
 
-        # Extract module name
+        # Extract module name (Simplified and more aggressive)
         module_match = re.search(
-            r"^\s*module\s+(\w+)", content, re.MULTILINE | re.IGNORECASE
+            r"module\s+([a-zA-Z_]\w*)", content, re.IGNORECASE
         )
         if module_match:
             module_name = module_match.group(1)

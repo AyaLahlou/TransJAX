@@ -5,8 +5,8 @@
 ### Step 1: Install Package in Development Mode
 
 ```bash
-cd jax-agents
 pip install -r requirements.txt
+cd jax-agents
 pip install -e .
 ```
 
@@ -265,13 +265,3 @@ fortran-to-jax convert /path/to/fortran -o ./output
 ```
 
 All steps are automated!
-
-## Next Steps
-
-1. **Copy the two new files** (`cli.py`, `orchestrator.py`) to your codebase
-2. **Update existing files** (see "Required Changes" section above)
-3. **Test the integration** with a small Fortran module
-4. **Update your README** with the new usage instructions
-5. **Archive old scripts** (`run_translation_workflow.sh`, `examples/*.py`) — they're no longer needed for the primary workflow
-
-The package is now a true end-to-end solution where users just provide a directory and get translated JAX code!

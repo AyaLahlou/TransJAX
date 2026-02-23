@@ -206,21 +206,68 @@ class OrchestratorAgent:
         console.print("[cyan]Running Fortran static analyzer...[/cyan]")
         
         try:
-            # Import and run the analyzer
-            sys.path.insert(0, str(Path(__file__).parent.parent.parent / "fortran_analyzer"))
-            from fortran_analyzer.analyzer import FortranAnalyzer
+            # Find fortran_analyzer
+            possible_paths = [
+                Path(__file__).parent.parent.parent.parent / "fortran_analyzer",
+                Path(__file__).parent.parent.parent / "fortran_analyzer", 
+                Path.cwd().parent / "fortran_analyzer",
+            ]
             
-            analyzer = FortranAnalyzer(self.fortran_dir)
-            analysis_results = analyzer.analyze()
+            analyzer_found = False
+            for analyzer_path in possible_paths:
+                if analyzer_path.exists() and (analyzer_path / "analyzer.py").exists():
+                    console.print(f"[dim]Found analyzer at: {analyzer_path}[/dim]")
+                    sys.path.insert(0, str(analyzer_path.parent))
+                    analyzer_found = True
+                    break
             
-            # Save results
-            analysis_file.write_text(json.dumps(analysis_results, indent=2))
+            if not analyzer_found:
+                raise FileNotFoundError("Fortran analyzer not found.")
             
-            # Generate translation units
-            from fortran_analyzer.analysis.translation_decomposer import TranslationDecomposer
-            decomposer = TranslationDecomposer(analysis_results)
-            translation_units = decomposer.generate_translation_units()
-            units_file.write_text(json.dumps(translation_units, indent=2))
+            from fortran_analyzer.analyzer import create_analyzer_for_project
+            
+            # DIRECT APPROACH: 
+            # We tell the analyzer to save results directly into self.analysis_dir
+            analyzer = create_analyzer_for_project(
+                project_root=str(self.fortran_dir),
+                template='generic',
+                source_dirs=['.'],
+                file_extensions=['.F90', '.f90', '.F', '.f', '.for'],
+                max_translation_unit_lines=200,
+                output_dir=str(self.analysis_dir), # Write directly to TransJAX/jax-agents/output/static_analysis
+            )
+            
+            # Run analysis. 
+            # Note: If this still throws the GraphML NoneType error, 
+            # the analyzer.py should be patched to catch that error so it doesn't 
+            # prevent the JSON files from being finalized.
+            try:
+                analyzer.analyze()
+            except Exception as e:
+                if "GraphML" in str(e) or "NoneType" in str(e):
+                    console.print("[yellow]Warning: Graph export failed, but attempting to continue with JSON results.[/yellow]")
+                else:
+                    raise e
+            
+            # Verify the files were created in the target directory
+            if not analysis_file.exists():
+                # Check the subdirectory 'graphs' just in case the analyzer nested it
+                nested_analysis = self.analysis_dir / "graphs" / "analysis_results.json"
+                if nested_analysis.exists():
+                    import shutil
+                    shutil.copy(nested_analysis, analysis_file)
+                else:
+                    raise FileNotFoundError(f"Analyzer failed to create analysis_results.json in {self.analysis_dir}")
+
+            if not units_file.exists():
+                if (self.analysis_dir / "translation_units.json").exists():
+                    pass # Already where it should be
+                else:
+                    raise FileNotFoundError(f"Analyzer failed to create translation_units.json in {self.analysis_dir}")
+            
+            # Load the results directly from our agent's analysis folder
+            analysis_results = json.loads(analysis_file.read_text())
+            translation_units = json.loads(units_file.read_text())
             
             console.print("[green]✓ Static analysis complete[/green]")
             
@@ -234,52 +281,40 @@ class OrchestratorAgent:
             raise
     
     def _determine_translation_order(self, analysis_data: Dict[str, Any]) -> List[str]:
-        """
-        Determine module translation order based on dependencies.
+        """Determine the order to translate modules based on dependencies."""
+        results = analysis_data.get('analysis_results', {})
         
-        Strategy:
-        - If user specified modules via --modules, use that list
-        - Otherwise, translate all modules in dependency order (leaves first)
-        - Skip already-translated modules unless --force
-        """
-        analysis_results = analysis_data.get('analysis_results', {})
-        modules = analysis_results.get('modules', {})
-        
-        # If user specified modules, use that
-        if self.module_list:
-            available = set(modules.keys())
-            requested = set(self.module_list)
-            missing = requested - available
-            if missing:
-                console.print(f"[yellow]Warning: Modules not found in analysis: {', '.join(missing)}[/yellow]")
-            return [m for m in self.module_list if m in available]
-        
-        # Otherwise, sort by dependencies (topological sort)
-        # For now, simple approach: sort by dependency count (leaves first)
-        module_list = []
-        for name, info in modules.items():
-            deps = info.get('dependencies', [])
-            module_list.append((name, len(deps)))
-        
-        # Sort by dependency count (ascending)
-        module_list.sort(key=lambda x: x[1])
-        ordered = [name for name, _ in module_list]
-        
-        # Filter out already-translated modules (unless --force)
-        if not self.force_retranslate:
-            to_translate = []
-            for name in ordered:
-                # Check if module already exists in output
-                src_dir = info.get('source_directory', 'clm_src_main')
-                module_file = self.src_dir / src_dir / f"{name}.py"
-                if not module_file.exists():
-                    to_translate.append(name)
-                else:
-                    console.print(f"[dim]Skipping {name} (already translated)[/dim]")
-                    self.completed_modules.add(name)
-            return to_translate
-        
-        return ordered
+        # Check different possible keys where modules might live
+        modules = results.get('modules', {})
+        if not modules:
+            # Fallback: some versions return modules at the top level
+            modules = {k: v for k, v in results.items() if isinstance(v, dict) and 'entities' in v}
+
+        if not modules:
+            console.print("[red]Error: Analyzer found modules, but Orchestrator cannot find them in the JSON structure.[/red]")
+            return []
+
+        # Get dependency-ordered list from analyzer
+        ordered = results.get('dependencies', [])
+        if not ordered:
+            ordered = sorted(modules.keys())
+
+        # Corrected attribute name: self.modules
+        target_modules = getattr(self, 'modules', ['all'])
+        if target_modules != ['all']:
+            ordered = [m for m in ordered if m in target_modules]
+
+        # Final Filter: Check for existing files
+        to_translate = []
+        for name in ordered:
+            module_file = self.src_dir / f"{name}.py"
+            if self.force_retranslate or not module_file.exists():
+                to_translate.append(name)
+            else:
+                console.print(f"[dim]Skipping {name}: already exists.[/dim]")
+
+        console.print(f"[green]Determined translation order: {len(to_translate)} modules.[/green]")
+        return to_translate
     
     def _process_module(self, module_name: str, analysis_data: Dict[str, Any]):
         """Process a single module through the complete pipeline."""
