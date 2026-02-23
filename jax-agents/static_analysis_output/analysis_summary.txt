@@ -1,0 +1,35 @@
+Fortran Codebase Analysis Report
+========================================
+
+Project: CTSM
+Analysis Date: Mon Dec 15 14:11:18 2025
+Duration: 17.72 seconds
+
+Parsing Summary:
+  Total Files: 68
+  Total Lines: 15,596
+  Modules: 68
+  Subroutines: 136
+  Functions: 17
+  Types: 1
+
+Translation Analysis:
+  Translation Units: 311
+  Low Effort Units: 152
+  Medium Effort Units: 136
+  High Effort Units: 23
+
+Dependency Analysis:
+  Module Dependencies: 278
+  Circular Dependencies: 0
+  External Dependencies: 0
+  Hub Modules: 12
+
+Recommendations:
+  Translation Strategy:
+    - Large project detected. Consider incremental translation approach.
+
+  Optimization Opportunities:
+    - Found 3 orphaned modules. Consider removing unused code.
+    - Modules ['abortutils', 'decompMod', 'MLCanopyFluxesType'] are heavily used. Prioritize their translation.
+
