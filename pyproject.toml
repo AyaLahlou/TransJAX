@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "jax-agents"
 version = "0.1.0"
 description = "Multi-agent system for converting Fortran CTSM to JAX"
-readme = "README.md"
+readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.9"
 license = {text = "BSD-3-Clause"}
 authors = [
@@ -32,6 +32,11 @@ dependencies = [
     "tenacity>=8.0.0",  # For retry logic
 ]
 
+[project.urls]
+Homepage = "https://github.com/TransJAX"
+Repository = "https://github.com/TransJAX"
+"Bug Tracker" = "https://github.com/TransJAX/issues"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
@@ -44,9 +49,9 @@ dev = [
 [project.scripts]
 fortran-to-jax = "jax_agents.cli:main"
 
-[tool.setuptools]
-packages = ["jax_agents", "jax_agents.prompts", "jax_agents.utils"]
-package-dir = {"" = "src"}
+[tool.setuptools.packages.find]
+where = ["fortran_analyzer", "jax-agents/src"]
+include = ["fortran_analyzer*", "jax_agents*"]
 
 [tool.black]
 line-length = 100

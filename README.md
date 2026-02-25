@@ -6,7 +6,6 @@
 
 ```bash
 pip install -r requirements.txt
-cd jax-agents
 pip install -e .
 ```
 
