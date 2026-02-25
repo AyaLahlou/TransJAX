@@ -590,18 +590,25 @@ class TranslatorAgent(BaseAgent):
             Dictionary with uses and used_by lists
         """
         deps = {"uses": [], "used_by": []}
-        
-        if self.analysis_results:
-            all_deps = self.analysis_results.get("parsing", {}).get("dependencies", {})
+
+        if not self.analysis_results:
+            return deps
+
+        # Analyzer may place dependency info under parsing->dependencies
+        all_deps = self.analysis_results.get("parsing", {}).get("dependencies", {})
+        if not all_deps:
+            # Or at top-level 'dependencies' -> 'analysis' -> 'dependency_levels' / mappings
+            all_deps = self.analysis_results.get("dependencies", {}).get("analysis", {})
+
+        # If dependency mapping is a dict mapping module->list, use that
+        if isinstance(all_deps, dict):
             if module_name in all_deps:
                 deps["uses"] = all_deps[module_name]
-            
-            # Find who uses this module
+
             deps["used_by"] = [
-                mod for mod, mod_deps in all_deps.items() 
-                if module_name in mod_deps
+                mod for mod, mod_deps in all_deps.items() if module_name in mod_deps
             ]
-        
+
         return deps
     
     def _extract_source_directory(self, file_path: str) -> str:
@@ -679,13 +686,17 @@ class TranslatorAgent(BaseAgent):
         """
         if not self.analysis_results:
             return None
-        
-        # Search in parsing.modules (case-insensitive)
+
+        # Support both analyzer output shapes: either under parsing->modules
+        # or at top-level 'modules'. Normalize before searching.
         modules = self.analysis_results.get("parsing", {}).get("modules", {})
+        if not modules:
+            modules = self.analysis_results.get("modules", {})
+
         for mod_name, mod_data in modules.items():
             if mod_name.lower() == module_name.lower():
                 return mod_data
-        
+
         return None
     
     def _build_enhanced_context(self, module_name: str, module_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -707,16 +718,20 @@ class TranslatorAgent(BaseAgent):
             "recommendations": [],
         }
         
-        # Extract dependencies
+        # Extract dependencies (handle multiple possible shapes)
         if self.analysis_results:
             deps = self.analysis_results.get("parsing", {}).get("dependencies", {})
-            if module_name in deps:
+            if not deps:
+                deps = self.analysis_results.get("dependencies", {}).get("analysis", {})
+
+            if isinstance(deps, dict) and module_name in deps:
                 context["dependencies"]["uses"] = deps[module_name]
-            
+            else:
+                context["dependencies"]["uses"] = []
+
             # Find who uses this module
             context["dependencies"]["used_by"] = [
-                mod for mod, mod_deps in deps.items() 
-                if module_name in mod_deps
+                mod for mod, mod_deps in (deps or {}).items() if module_name in mod_deps
             ]
         
         # Extract translation units for this module

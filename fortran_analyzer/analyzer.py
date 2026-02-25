@@ -210,6 +210,7 @@ class FortranAnalyzer:
                 )
 
             # Compile results
+            # FINAL ALIGNMENT FOR ORCHESTRATOR
             self.results = {
                 "config": {
                     "project_name": self.config.project_name,
@@ -217,19 +218,14 @@ class FortranAnalyzer:
                     "analysis_timestamp": time.time(),
                     "analysis_duration": time.time() - start_time,
                 },
-                # Promote modules to the top level for the Orchestrator
+                # The Orchestrator MUST find this key at the top level
                 "modules": parsing_results.get("modules", {}), 
-                "statistics": parsing_results.get("statistics", {}),
                 
-                # Keep the rest for reporting, but move them into a metadata block
-                "metadata": {
+                # These are kept for reports but ignored by the translator
+                "dependencies": {
                     "module_graph_summary": {
                         "nodes": module_graph.number_of_nodes() if module_graph else 0,
                         "edges": module_graph.number_of_edges() if module_graph else 0,
-                    },
-                    "entity_graph_summary": {
-                        "nodes": entity_graph.number_of_nodes() if entity_graph else 0,
-                        "edges": entity_graph.number_of_edges() if entity_graph else 0,
                     },
                     "analysis": dependency_analysis,
                     "metrics": graph_metrics,
@@ -238,11 +234,7 @@ class FortranAnalyzer:
                     "units": len(translation_units),
                     "statistics": translation_stats,
                     "translation_order": self.call_graph_builder.get_translation_order(),
-                },
-                "visualizations": visualization_files,
-                "recommendations": self._generate_recommendations(
-                    dependency_analysis, translation_stats, modules
-                ),
+                }
             }
 
             # Save results
