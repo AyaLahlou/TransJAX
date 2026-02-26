@@ -295,10 +295,6 @@ class BaseAgent:
         """
         Estimate cost based on token usage.
         
-        Claude Sonnet 4.5 pricing (as of 2025):
-        - Input: $3.00 per million tokens
-        - Output: $15.00 per million tokens
-        
         Returns:
             Dictionary with cost breakdown
         """
@@ -316,7 +312,7 @@ class BaseAgent:
     
     def _get_default_system_prompt(self) -> str:
         """Get the default system prompt for this agent."""
-        return f"""You are an expert {self.name} agent specializing in converting Fortran CTSM code to JAX.
+        return f"""You are an expert {self.name} agent specializing in converting Fortran code to JAX.
 
 Your role: {self.role}
 

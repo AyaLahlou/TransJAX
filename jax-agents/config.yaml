@@ -1,4 +1,4 @@
-# JAX-CTSM Translation Agents Configuration
+# JAX Translation Agents Configuration
 
 # LLM Configuration
 llm:
@@ -65,7 +65,7 @@ jax_patterns:
   
 # Fortran Analysis Patterns
 fortran_patterns:
-  # Common CTSM patterns to recognize
+  # Common patterns to recognize
   spatial_hierarchy:
     - "patch"
     - "column"

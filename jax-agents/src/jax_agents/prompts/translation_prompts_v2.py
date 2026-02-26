@@ -144,7 +144,7 @@ JAX DIFFERENTIABILITY RULES (STRICT - override all other rules):
 
 
 TRANSLATION_PROMPTS = {
-    "system": f"""You are a Fortran-to-JAX translator specializing in CTSM code.
+    "system": f"""You are a Fortran-to-JAX translator.
 
 Core Principles:
 - Pure functions, immutable NamedTuples, no side effects

@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jax-agents"
 version = "0.1.0"
-description = "Multi-agent system for converting Fortran CTSM to JAX"
+description = "Multi-agent system for converting Fortran models to JAX"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.9"
 license = {text = "BSD-3-Clause"}
 authors = [
-    {name = "CTSM-JAX Team"},
+    {name = "JAX Team"},
 ]
 keywords = ["ctsm", "jax", "fortran", "translation", "llm", "agents"]
 classifiers = [

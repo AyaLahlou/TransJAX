@@ -161,8 +161,6 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Analyze CTSM project
-  fortran-analyzer analyze /path/to/ctsm --template ctsm
   
   # Create configuration file
   fortran-analyzer config /path/to/project --template scientific_computing

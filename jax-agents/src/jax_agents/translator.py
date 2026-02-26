@@ -1,7 +1,7 @@
 """
 Translator Agent for converting Fortran to JAX.
 
-This agent translates Fortran CTSM code to JAX following established patterns.
+This agent translates Fortran code to JAX following established patterns.
 Uses comprehensive static analysis results and translation unit breakdowns.
 """
 
@@ -81,7 +81,7 @@ class TranslationResult:
         Save translated code to structured directories based on content type.
         
         Args:
-            project_root: Root directory of the CLM-ml-jax project
+            project_root: Root directory of the project
             
         Returns:
             Dictionary mapping file type to path
@@ -142,7 +142,7 @@ class TranslatorAgent(BaseAgent):
     Responsibilities:
     - Convert Fortran syntax to JAX/Python
     - Apply JAX best practices (pure functions, immutable state)
-    - Follow established jax-ctsm patterns
+    - Follow established jax patterns
     - Generate type hints and documentation
     - Create parameter classes
     - Convert loops to vectorized operations
@@ -612,7 +612,7 @@ class TranslatorAgent(BaseAgent):
         return deps
     
     def _extract_source_directory(self, file_path: str) -> str:
-        """Extract source directory from file path (e.g. clm_src_main, clm_src_biogeophys)."""
+        """Extract source directory from file path"""
         parts = Path(file_path).parts
         for part in parts:
             if part.startswith('clm_src_'):
@@ -641,11 +641,11 @@ class TranslatorAgent(BaseAgent):
             
         # If we have a fortran_root override, try to remap relative to it
         if self.fortran_root:
-            # Extract relative path from CLM-ml_v1 onwards
+            # Extract relative path
             parts = path_obj.parts
             for i, part in enumerate(parts):
                 if 'CLM' in part or 'clm' in part:
-                    relative_parts = parts[i+1:]  # Skip the CLM-ml_v1 part  
+                    relative_parts = parts[i+1:]
                     remapped = self.fortran_root / Path(*relative_parts)
                     try:
                         if remapped.exists():
@@ -770,7 +770,7 @@ class TranslatorAgent(BaseAgent):
     
     def _load_reference_patterns(self) -> Dict[str, str]:
         """
-        Load reference patterns from existing jax-ctsm code.
+        Load reference patterns from existing jax code.
         
         Returns:
             Dictionary of reference patterns
