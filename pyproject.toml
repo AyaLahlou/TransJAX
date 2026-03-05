@@ -3,16 +3,16 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jax-agents"
+name = "transjax"
 version = "0.1.0"
-description = "Multi-agent system for converting Fortran models to JAX"
+description = "Translate Fortran scientific code to JAX using LLM agents"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.9"
 license = {text = "BSD-3-Clause"}
 authors = [
-    {name = "JAX Team"},
+    {name = "Aya Lahlou", email = "aya@example.com"},
 ]
-keywords = ["ctsm", "jax", "fortran", "translation", "llm", "agents"]
+keywords = ["fortran", "jax", "translation", "llm", "agents", "scientific-computing"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -21,6 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Code Generators",
 ]
 
 dependencies = [
@@ -28,30 +30,47 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0",
     "pydantic>=2.0.0",
-    "rich>=13.0.0",  # For beautiful console output
-    "tenacity>=8.0.0",  # For retry logic
+    "rich>=13.0.0",
+    "tenacity>=8.0.0",
+    "click>=8.0.0",
+    "networkx>=2.5",
+    "matplotlib>=3.3.0",
+    "numpy>=1.20.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/TransJAX"
-Repository = "https://github.com/TransJAX"
-"Bug Tracker" = "https://github.com/TransJAX/issues"
+Homepage = "https://github.com/AyaLahlou/TransJAX"
+Repository = "https://github.com/AyaLahlou/TransJAX"
+"Bug Tracker" = "https://github.com/AyaLahlou/TransJAX/issues"
 
 [project.optional-dependencies]
-dev = [
+testing = [
+    "jax>=0.4.0",
+    "jaxlib>=0.4.0",
     "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+]
+dev = [
+    "jax>=0.4.0",
+    "jaxlib>=0.4.0",
+    "pytest>=7.0.0",
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "pytest-cov>=4.0.0",
+]
+viz = [
+    "seaborn>=0.11.0",
 ]
 
 [project.scripts]
-fortran-to-jax = "jax_agents.cli:main"
+transjax = "transjax.agents.cli:main"
+transjax-analyze = "transjax.analyzer.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["fortran_analyzer", "jax-agents/src"]
-include = ["fortran_analyzer*", "jax_agents*"]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"transjax.agents.utils" = ["default_config.yaml"]
 
 [tool.black]
 line-length = 100
@@ -60,6 +79,15 @@ target-version = ["py39", "py310", "py311"]
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",   # line too long (handled by black)
+    "E722",   # bare-except — used in original code for graceful optional-dep fallbacks
+    "E701",   # multiple statements on one line — original code style
+    "F401",   # unused import — many are inside try/except optional-dependency guards
+]
 
 [tool.mypy]
 python_version = "3.9"
@@ -72,7 +100,4 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-# Commented out coverage options - uncomment if pytest-cov is installed
-# addopts = "-v --cov=src/jax_agents --cov-report=term-missing"
 addopts = "-v"
-
