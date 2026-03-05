@@ -1,6 +1,3 @@
-# GitHub specific files and directories
-.github/
-
 # Python
 __pycache__/
 *.py[cod]
@@ -96,6 +93,9 @@ venv.bak/
 
 # mkdocs documentation
 /site
+
+# ruff
+.ruff_cache/
 
 # mypy
 .mypy_cache/
