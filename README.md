@@ -43,36 +43,42 @@ pip install -e ".[dev]"
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
-# or place it in a .env file
+# or copy the template and fill it in
+transjax init && cp .env.template .env
 ```
 
-### 2. Translate a Fortran directory
+### 2. Inspect the codebase first (optional)
+
+```bash
+transjax analyze /path/to/fortran_code
+```
+
+### 3. Translate
 
 ```bash
 transjax convert /path/to/fortran_code -o ./jax_output
-```
-
-### 3. Analyse a Fortran codebase (without translation)
-
-```bash
-transjax-analyze analyze /path/to/fortran_code --template auto
 ```
 
 ---
 
 ## CLI reference
 
-### `transjax`
+All functionality lives under the single `transjax` command:
 
 ```
 Usage: transjax [OPTIONS] COMMAND [ARGS]...
 
-  TransJAX: Automatic translation of Fortran code to JAX.
+  TransJAX — translate Fortran scientific code to JAX.
+
+  Common workflow:
+    transjax analyze /path/to/fortran           # inspect the codebase first
+    transjax convert /path/to/fortran -o ./out  # translate + test + repair
 
 Commands:
-  convert      Convert Fortran code to JAX automatically.
-  show-config  Display current configuration.
-  init         Initialise a new project (.env.template).
+  analyze      Analyse a Fortran codebase without translating it.
+  convert      Translate a Fortran codebase to JAX (full pipeline).
+  init         Create a .env.template file in the current directory.
+  show-config  Print the active configuration (YAML).
 ```
 
 #### `transjax convert`
@@ -90,16 +96,14 @@ Commands:
 | `--temperature` | 0.0 | LLM temperature |
 | `--verbose / -v` | false | Verbose logging |
 
-### `transjax-analyze`
+#### `transjax analyze`
 
-```
-Usage: transjax-analyze [OPTIONS] COMMAND [ARGS]...
-
-Commands:
-  config   Create a configuration file from a template.
-  analyze  Run static analysis on a Fortran project.
-  info     Show detected project type and file list.
-```
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--output / -o` | `<src>/transjax_analysis` | Output directory |
+| `--template / -t` | `auto` | Project template (auto, ctsm, scientific_computing, generic, …) |
+| `--no-graphs` | false | Skip graph visualisation |
+| `--verbose / -v` | false | Verbose logging |
 
 ---
 

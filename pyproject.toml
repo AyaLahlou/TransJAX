@@ -64,7 +64,6 @@ viz = [
 
 [project.scripts]
 transjax = "transjax.agents.cli:main"
-transjax-analyze = "transjax.analyzer.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
