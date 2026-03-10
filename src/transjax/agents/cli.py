@@ -44,7 +44,8 @@ def cli():
               help="Output directory.")
 @click.option("--model", default=None, help="Claude model (default: from config).")
 @click.option("--api-key", default=None, envvar="ANTHROPIC_API_KEY",
-              help="Anthropic API key (default: $ANTHROPIC_API_KEY).")
+              help="Anthropic API key (overrides $ANTHROPIC_API_KEY). "
+                   "Not needed when authenticated via `claude login`.")
 @click.option("--max-repair-iterations", default=5, show_default=True,
               help="Max repair attempts per module.")
 @click.option("--skip-tests", is_flag=True, help="Skip test generation.")
@@ -84,6 +85,14 @@ def convert(
     if api_key:
         os.environ["ANTHROPIC_API_KEY"] = api_key
 
+    # Show which authentication method will be used.
+    if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        auth_display = "[green]Claude subscription (claude login)[/green]"
+    elif os.environ.get("ANTHROPIC_API_KEY"):
+        auth_display = "[green]API key[/green]"
+    else:
+        auth_display = "[yellow]none detected — run `claude login` or set ANTHROPIC_API_KEY[/yellow]"
+
     fortran_path = Path(fortran_directory).resolve()
     output_path = Path(output).resolve()
     module_list = [m.strip() for m in modules.split(",")] if modules else None
@@ -92,6 +101,7 @@ def convert(
         f"[white]Fortran:[/white]        {fortran_path}\n"
         f"[white]Output:[/white]         {output_path}\n"
         f"[white]Model:[/white]          {model or 'from config'}\n"
+        f"[white]Auth:[/white]           {auth_display}\n"
         f"[white]Modules:[/white]        {modules or 'all'}\n"
         f"[white]Max repairs:[/white]    {max_repair_iterations}\n"
         f"[white]Skip tests:[/white]     {skip_tests}\n"
@@ -238,10 +248,18 @@ def show_config(config_file: Optional[str]):
 
 @cli.command()
 def init():
-    """Create a .env.template file in the current directory."""
+    """Create a .env.template file and show authentication options."""
     env_template = (
-        "# Anthropic API key — get yours at https://console.anthropic.com/\n"
-        "ANTHROPIC_API_KEY=your_api_key_here\n"
+        "# ── Authentication ────────────────────────────────────────────────────────\n"
+        "#\n"
+        "# Option 1 (recommended for Claude Pro/Max subscribers):\n"
+        "#   Run `claude login` once — no further configuration needed.\n"
+        "#   TransJAX will automatically pick up CLAUDE_CODE_OAUTH_TOKEN.\n"
+        "#\n"
+        "# Option 2 (pay-per-use API key):\n"
+        "#   Get your key at https://console.anthropic.com/ and paste it below.\n"
+        "#\n"
+        "# ANTHROPIC_API_KEY=your_api_key_here\n"
     )
     target = Path.cwd() / ".env.template"
     if target.exists():
@@ -250,9 +268,15 @@ def init():
         target.write_text(env_template)
         console.print("[green]Created .env.template[/green]")
 
-    console.print("\nNext steps:")
-    console.print("  cp .env.template .env   # add your real key")
-    console.print("  transjax convert /path/to/fortran -o ./jax_output")
+    console.print("\n[bold]Authentication options:[/bold]")
+    console.print()
+    console.print("  [cyan]Option 1 — Claude subscription (Pro/Max):[/cyan]")
+    console.print("    claude login")
+    console.print("    transjax convert /path/to/fortran -o ./jax_output")
+    console.print()
+    console.print("  [cyan]Option 2 — API key:[/cyan]")
+    console.print("    cp .env.template .env   # then fill in ANTHROPIC_API_KEY")
+    console.print("    transjax convert /path/to/fortran -o ./jax_output")
 
 
 # ---------------------------------------------------------------------------
