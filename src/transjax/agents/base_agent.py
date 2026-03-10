@@ -66,15 +66,26 @@ class BaseAgent:
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        # Initialize Anthropic client
+        # Initialize Anthropic client.
+        # Authentication priority:
+        #   1. CLAUDE_CODE_OAUTH_TOKEN — set automatically by `claude login`
+        #      (Claude Pro / Max subscription, no per-token billing)
+        #   2. ANTHROPIC_API_KEY — traditional pay-per-use API key
+        oauth_token = os.getenv("CLAUDE_CODE_OAUTH_TOKEN")
         api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "ANTHROPIC_API_KEY not found in environment. "
-                "Please set it in .env file or environment variables."
-            )
 
-        self.client = anthropic.Anthropic(api_key=api_key)
+        if oauth_token:
+            self.client = anthropic.Anthropic(auth_token=oauth_token)
+            self._auth_method = "subscription"
+        elif api_key:
+            self.client = anthropic.Anthropic(api_key=api_key)
+            self._auth_method = "api_key"
+        else:
+            raise ValueError(
+                "No Claude authentication found. Choose one of:\n"
+                "  • Subscription login: run `claude login` (Claude Pro/Max)\n"
+                "  • API key: set ANTHROPIC_API_KEY in your environment or .env file"
+            )
 
         # Conversation history
         self.conversation_history: List[Dict[str, str]] = []
@@ -87,7 +98,11 @@ class BaseAgent:
         self.log_dir = Path("logs")
         self.log_dir.mkdir(exist_ok=True)
 
-        logger.info(f"[bold green]Initialized {self.name} Agent[/bold green]", extra={"markup": True})
+        logger.info(
+            f"[bold green]Initialized {self.name} Agent[/bold green] "
+            f"[dim](auth: {self._auth_method})[/dim]",
+            extra={"markup": True},
+        )
 
     @retry(
         stop=stop_after_attempt(3),
@@ -296,8 +311,21 @@ class BaseAgent:
         Estimate cost based on token usage.
 
         Returns:
-            Dictionary with cost breakdown
+            Dictionary with cost breakdown.  When authenticated via a Claude
+            subscription (``claude login``) costs are covered by the subscription
+            and the USD figures will be 0.
         """
+        if self._auth_method == "subscription":
+            # Subscription users are not billed per-token.
+            return {
+                "input_tokens": self.total_input_tokens,
+                "output_tokens": self.total_output_tokens,
+                "input_cost_usd": 0.0,
+                "output_cost_usd": 0.0,
+                "total_cost_usd": 0.0,
+                "note": "Covered by Claude subscription (claude login)",
+            }
+
         input_cost = (self.total_input_tokens / 1_000_000) * 3.00
         output_cost = (self.total_output_tokens / 1_000_000) * 15.00
         total_cost = input_cost + output_cost
