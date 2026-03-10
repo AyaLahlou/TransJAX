@@ -39,14 +39,14 @@ pip install -e ".[dev]"
 
 ## Quick start
 
-### 1. Set your Anthropic API key
+### 1. Set your Anthropic API key or Claude OAuth token
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
 # or copy the template and fill it in
 transjax init && cp .env.template .env
 ```
-
+Pro and Max subscribers can generate an OAuth token by running ```claude setup-token``` locally, which produces a ```CLAUDE_CODE_OAUTH_TOKEN```. This token can be used in place of ```ANTHROPIC_API_KEY``` specifically in Claude Code and the ```claude-code-action``` GitHub Action.
 ### 2. Inspect the codebase first (optional)
 
 ```bash
