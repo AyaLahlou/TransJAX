@@ -48,7 +48,8 @@ Pro and Max subscribers can generate an OAuth token by running ```claude setup-t
 ### 2. Inspect the codebase first 
 
 ```bash
-transjax analyze /path/to/fortran_code
+transjax analyze /path/to/fortran_project --output /path/to/output_dir
+
 ```
 
 ### 3. Translate
@@ -69,7 +70,7 @@ Usage: transjax [OPTIONS] COMMAND [ARGS]...
   TransJAX — translate Fortran scientific code to JAX.
 
   Common workflow:
-    transjax analyze /path/to/fortran           # inspect the codebase first
+    transjax analyze /path/to/fortran_project --output /path/to/output_dir        
     transjax convert /path/to/fortran -o ./out  # translate + test + repair
 
 Commands:
