@@ -24,23 +24,22 @@ def test_version_is_string():
 
 def test_version_matches_pyproject():
     """Version in __init__.py must match pyproject.toml."""
-    import tomllib  # Python 3.11+; falls back to tomli below
+    try:
+        import tomllib          # Python 3.11+
+    except ImportError:
+        try:
+            import tomli as tomllib  # type: ignore[no-redef]  # Python 3.9/3.10
+        except ImportError:
+            return  # skip if no toml parser available
+
     from pathlib import Path
 
     pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
     if not pyproject_path.exists():
         return  # skip if running outside the repo
 
-    try:
-        with open(pyproject_path, "rb") as f:
-            data = tomllib.load(f)
-    except ImportError:
-        try:
-            import tomli  # type: ignore
-            with open(pyproject_path, "rb") as f:
-                data = tomli.load(f)
-        except ImportError:
-            return  # skip if no toml parser available
+    with open(pyproject_path, "rb") as f:
+        data = tomllib.load(f)
 
     pyproject_version = data["project"]["version"]
     assert transjax.__version__ == pyproject_version, (
