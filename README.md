@@ -2,7 +2,7 @@
 
 **Translate Fortran scientific code to JAX automatically using LLM agents.**
 
-TransJAX is a unified Python package that combines static Fortran analysis with
+TransJAX is a Python package that combines static Fortran analysis with
 a multi-agent translation pipeline powered by Claude (Anthropic).  It is designed
 for the scientific-computing community who want to modernise legacy Fortran
 numerics into differentiable, GPU-ready JAX code.
@@ -17,8 +17,6 @@ numerics into differentiable, GPU-ready JAX code.
   rules (no Python control-flow inside jitted functions).
 - **Automated tests** — generates `pytest` files for every translated module.
 - **Repair loop** — iteratively fixes test failures using root-cause analysis.
-- **Unified CLI** — two commands cover the full workflow: `transjax` and `transjax-analyze`.
-
 ---
 
 ## Installation
@@ -47,7 +45,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 transjax init && cp .env.template .env
 ```
 Pro and Max subscribers can generate an OAuth token by running ```claude setup-token``` locally, which produces a ```CLAUDE_CODE_OAUTH_TOKEN```. This token can be used in place of ```ANTHROPIC_API_KEY``` specifically in Claude Code and the ```claude-code-action``` GitHub Action.
-### 2. Inspect the codebase first (optional)
+### 2. Inspect the codebase first 
 
 ```bash
 transjax analyze /path/to/fortran_code
