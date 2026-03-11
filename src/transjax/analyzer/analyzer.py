@@ -208,19 +208,24 @@ class FortranAnalyzer:
                     analysis_results
                 )
 
+            elapsed = time.time() - start_time
+
             # Compile results
-            # FINAL ALIGNMENT FOR ORCHESTRATOR
             self.results = {
                 "config": {
                     "project_name": self.config.project_name,
                     "project_root": self.config.project_root,
                     "analysis_timestamp": time.time(),
-                    "analysis_duration": time.time() - start_time,
+                    "analysis_duration": elapsed,
                 },
-                # The Orchestrator MUST find this key at the top level
+                # Top-level "modules" for the Orchestrator / Translator
                 "modules": parsing_results.get("modules", {}),
-
-                # These are kept for reports but ignored by the translator
+                # "parsing" block for reports and get_summary_statistics()
+                "parsing": {
+                    "modules": parsing_results.get("modules", {}),
+                    "files": parsing_results.get("files", {}),
+                    "statistics": parsing_results.get("statistics", {}),
+                },
                 "dependencies": {
                     "module_graph_summary": {
                         "nodes": module_graph.number_of_nodes() if module_graph else 0,
@@ -233,7 +238,7 @@ class FortranAnalyzer:
                     "units": len(translation_units),
                     "statistics": translation_stats,
                     "translation_order": self.call_graph_builder.get_translation_order(),
-                }
+                },
             }
 
             # Save results

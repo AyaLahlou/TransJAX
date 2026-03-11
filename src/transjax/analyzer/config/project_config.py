@@ -190,8 +190,8 @@ class ConfigurationManager:
         },
         "scientific_computing": {
             "project_name": "Scientific Computing Project",
-            "source_dirs": ["src"],
-            "fortran_extensions": [".f90", ".F90"],
+            "source_dirs": ["."],
+            "fortran_extensions": [".f90", ".F90", ".f", ".F", ".f95", ".F95"],
             "system_modules": ["iso_fortran_env", "iso_c_binding"],
             "external_libraries": ["lapack", "blas", "mpi"],
             "preserve_interfaces": True,
@@ -214,9 +214,9 @@ class ConfigurationManager:
         },
         "generic": {
             "project_name": "Generic Fortran Project",
-            "source_dirs": ["src"],
-            "fortran_extensions": [".f90", ".F90"],
-            "system_modules": ["iso_fortran_env"],
+            "source_dirs": ["."],  # search the entire project root
+            "fortran_extensions": [".f90", ".F90", ".f", ".F", ".f95", ".F95"],
+            "system_modules": ["iso_fortran_env", "iso_c_binding"],
             "track_dependencies": True,
         },
     }

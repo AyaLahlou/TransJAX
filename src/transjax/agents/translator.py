@@ -14,8 +14,7 @@ from rich.console import Console
 
 from transjax.agents.base_agent import BaseAgent
 
-# from transjax.agents.prompts.translation_prompts import TRANSLATION_PROMPTS
-from transjax.agents.prompts.translation_prompts_v2 import TRANSLATION_PROMPTS
+from transjax.agents.prompts.translation_prompts import TRANSLATION_PROMPTS
 from transjax.agents.utils.config_loader import get_llm_config
 
 console = Console()
@@ -91,14 +90,10 @@ class TranslationResult:
         saved_files = {}
 
         # Determine source directory mapping
-        if self.source_directory:
-            source_subdir = self.source_directory
-        else:
-            # Fallback to clm_src_main for unknown sources
-            source_subdir = "clm_src_main"
+        source_subdir = self.source_directory  # may be None
 
-        # Save main physics module to src/
-        src_target_dir = project_root / "src" / source_subdir
+        # Save main physics module to src/ (with optional subdirectory)
+        src_target_dir = project_root / "src" / source_subdir if source_subdir else project_root / "src"
         src_target_dir.mkdir(parents=True, exist_ok=True)
         physics_file = src_target_dir / f"{self.module_name}.py"
         with open(physics_file, 'w') as f:
@@ -116,7 +111,7 @@ class TranslationResult:
 
         # Save tests to tests/ with matching directory structure
         if self.test_code:
-            test_target_dir = project_root / "tests" / source_subdir
+            test_target_dir = project_root / "tests" / source_subdir if source_subdir else project_root / "tests"
             test_target_dir.mkdir(parents=True, exist_ok=True)
             test_file = test_target_dir / f"test_{self.module_name}.py"
             with open(test_file, 'w') as f:
@@ -154,7 +149,7 @@ class TranslatorAgent(BaseAgent):
         self,
         analysis_results_path: Optional[Path] = None,
         translation_units_path: Optional[Path] = None,
-        jax_ctsm_dir: Optional[Path] = None,
+        reference_dir: Optional[Path] = None,
         fortran_root: Optional[Path] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
@@ -166,7 +161,7 @@ class TranslatorAgent(BaseAgent):
         Args:
             analysis_results_path: Path to analysis_results.json from static analyzer
             translation_units_path: Path to translation_units.json from static analyzer
-            jax_ctsm_dir: Path to jax-ctsm directory (for reference patterns)
+            reference_dir: Optional path to an existing JAX translation (for reference patterns)
             fortran_root: Path to Fortran source root (overrides paths in JSON)
             model: Claude model to use (defaults to config.yaml)
             temperature: Sampling temperature (defaults to config.yaml)
@@ -183,7 +178,7 @@ class TranslatorAgent(BaseAgent):
             max_tokens=max_tokens or llm_config.get("max_tokens", 48000),
         )
 
-        self.jax_ctsm_dir = jax_ctsm_dir
+        self.reference_dir = reference_dir
         self.fortran_root = fortran_root
         self.reference_patterns = self._load_reference_patterns()
 
@@ -613,13 +608,18 @@ class TranslatorAgent(BaseAgent):
 
         return deps
 
-    def _extract_source_directory(self, file_path: str) -> str:
-        """Extract source directory from file path"""
+    def _extract_source_directory(self, file_path: str) -> Optional[str]:
+        """Extract a meaningful source subdirectory from file path, or None."""
+        if not file_path:
+            return None
+        # Return the immediate parent directory of the file if it looks like a
+        # named subdirectory (i.e. not a generic component like 'src').
+        _generic = {"src", "source", "lib", "include", ""}
         parts = Path(file_path).parts
-        for part in parts:
-            if part.startswith('clm_src_'):
+        for part in reversed(parts[:-1]):
+            if part not in _generic and not part.startswith("/"):
                 return part
-        return 'clm_src_main'  # default
+        return None
 
     def _remap_fortran_path(self, original_path: str) -> Path:
         """
@@ -641,17 +641,15 @@ class TranslatorAgent(BaseAgent):
             # Path exists but we don't have permission - need to remap
             pass
 
-        # If we have a fortran_root override, try to remap relative to it
+        # If we have a fortran_root override, try progressively shorter suffixes
         if self.fortran_root:
-            # Extract relative path
             parts = path_obj.parts
-            for i, part in enumerate(parts):
-                if 'CLM' in part or 'clm' in part:
-                    relative_parts = parts[i+1:]
-                    remapped = self.fortran_root / Path(*relative_parts)
+            for i in range(len(parts)):
+                if parts[i:]:
+                    candidate = self.fortran_root / Path(*parts[i:])
                     try:
-                        if remapped.exists():
-                            return remapped
+                        if candidate.exists():
+                            return candidate
                     except (PermissionError, OSError):
                         pass
 
@@ -772,31 +770,24 @@ class TranslatorAgent(BaseAgent):
 
     def _load_reference_patterns(self) -> Dict[str, str]:
         """
-        Load reference patterns from existing jax code.
+        Load reference patterns from an existing JAX translation directory.
+
+        Scans ``reference_dir`` for Python source files and loads the first
+        few as in-context examples for the translator.
 
         Returns:
-            Dictionary of reference patterns
+            Dictionary mapping file stem to file contents
         """
         patterns = {}
 
-        if self.jax_ctsm_dir and self.jax_ctsm_dir.exists():
-            # Load maintenance respiration as main reference
-            mr_file = self.jax_ctsm_dir / "src/jax_ctsm/physics/maintenance_respiration.py"
-            if mr_file.exists():
-                with open(mr_file, 'r') as f:
-                    patterns["maintenance_respiration"] = f.read()
-
-            # Load parameter example
-            params_file = self.jax_ctsm_dir / "src/jax_ctsm/params/respiration.py"
-            if params_file.exists():
-                with open(params_file, 'r') as f:
-                    patterns["params_example"] = f.read()
-
-            # Load hierarchy example
-            hierarchy_file = self.jax_ctsm_dir / "src/jax_ctsm/core/hierarchy.py"
-            if hierarchy_file.exists():
-                with open(hierarchy_file, 'r') as f:
-                    patterns["hierarchy_example"] = f.read()
+        if self.reference_dir and self.reference_dir.exists():
+            py_files = sorted(self.reference_dir.rglob("*.py"))
+            for py_file in py_files[:5]:  # limit to avoid overloading context
+                try:
+                    with open(py_file, 'r') as f:
+                        patterns[py_file.stem] = f.read()
+                except (IOError, OSError):
+                    pass
 
         return patterns
 
@@ -804,12 +795,15 @@ class TranslatorAgent(BaseAgent):
         """
         Get reference pattern for translation.
 
+        Returns the first loaded reference file (abbreviated) or a fallback
+        description of expected JAX conventions.
+
         Returns:
             Reference pattern code
         """
-        if "maintenance_respiration" in self.reference_patterns:
-            # Return abbreviated version (first 100 lines as example)
-            full_code = self.reference_patterns["maintenance_respiration"]
+        if self.reference_patterns:
+            first_key = next(iter(self.reference_patterns))
+            full_code = self.reference_patterns[first_key]
             lines = full_code.split('\n')[:100]
             return '\n'.join(lines) + "\n\n# ... (abbreviated for context) ..."
         else:
@@ -862,7 +856,7 @@ class TranslatorAgent(BaseAgent):
         return TranslationResult(
             module_name=module_name,
             physics_code=physics_code if physics_code else response,
-            source_directory=self._extract_source_directory(module_info.get('file_path', '')) if module_info else 'clm_src_main',
+            source_directory=self._extract_source_directory(module_info.get('file_path', '')) if module_info else None,
             params_code=params_code,
             test_code=test_code,
             translation_notes=notes,

@@ -94,7 +94,11 @@ class FortranParser:
         if FPARSER_AVAILABLE:
             self.parser = ParserFactory().create(std=config.fortran_standard)
         else:
-            logger.warning("fparser not available, using regex-based parsing")
+            logger.warning(
+                "fparser2 not installed — falling back to regex-based parsing. "
+                "For richer parsing install it: pip install 'transjax[fparser]'  "
+                "(or: pip install fparser2)"
+            )
             self.parser = None
 
     def find_fortran_files(self) -> List[Path]:
@@ -113,11 +117,10 @@ class FortranParser:
                 logger.warning(f"Source directory does not exist: {source_dir}")
                 continue
 
-            # 2. Get all files and filter by suffix (case-insensitive)
-            # We use rglob('*') to find all files recursively if needed,
-            # or just glob('*') for the top level.
+            # 2. Get all files, skipping common build/cache directories
+            _skip_dirs = {'.venv', 'venv', '__pycache__', '.git', 'build', 'dist', 'CMakeFiles', '.cmake'}
             for f in source_path.rglob('*'):
-                if '.venv' in f.parts:
+                if any(part in _skip_dirs for part in f.parts):
                     continue
                 if f.is_file() and f.suffix.lower() in supported:
                     fortran_files.append(f)

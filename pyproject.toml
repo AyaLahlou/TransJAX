@@ -63,6 +63,9 @@ dev = [
 viz = [
     "seaborn>=0.11.0",
 ]
+fparser = [
+    "fparser2>=0.1.3",
+]
 
 [project.scripts]
 transjax = "transjax.agents.cli:main"

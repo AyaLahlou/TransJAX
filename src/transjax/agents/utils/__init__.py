@@ -1,4 +1,4 @@
-"""Utility functions for JAX-CTSM translation agents."""
+"""Utility functions for Fortran-to-JAX translation agents."""
 
 from transjax.agents.utils.config_loader import get_agent_config, get_llm_config, load_config
 

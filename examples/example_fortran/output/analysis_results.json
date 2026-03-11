@@ -1,0 +1,125 @@
+{
+  "config": {
+    "project_name": "Generic Fortran Project",
+    "project_root": "/Users/ayalahlou/TransJAX/examples/example_fortran",
+    "analysis_timestamp": 1773160194.519403,
+    "analysis_duration": 2.0249390602111816
+  },
+  "modules": {
+    "heat_numerics": {
+      "name": "heat_numerics",
+      "file_path": "/Users/ayalahlou/TransJAX/examples/example_fortran/src/heat_numerics.f90",
+      "uses": [],
+      "subroutines": [
+        "tridiag_matvec",
+        "euler_step"
+      ],
+      "functions": [
+        "dot_product_1d"
+      ],
+      "types": [],
+      "variables": [],
+      "interfaces": [],
+      "line_count": 66,
+      "entities": [
+        {
+          "name": "tridiag_matvec",
+          "entity_type": "subroutine",
+          "file_path": "/Users/ayalahlou/TransJAX/examples/example_fortran/src/heat_numerics.f90",
+          "line_start": 34,
+          "line_end": 45,
+          "parent": "heat_numerics",
+          "attributes": {}
+        },
+        {
+          "name": "euler_step",
+          "entity_type": "subroutine",
+          "file_path": "/Users/ayalahlou/TransJAX/examples/example_fortran/src/heat_numerics.f90",
+          "line_start": 51,
+          "line_end": 64,
+          "parent": "heat_numerics",
+          "attributes": {}
+        },
+        {
+          "name": "dot_product_1d",
+          "entity_type": "function",
+          "file_path": "/Users/ayalahlou/TransJAX/examples/example_fortran/src/heat_numerics.f90",
+          "line_start": 17,
+          "line_end": 26,
+          "parent": "heat_numerics",
+          "attributes": {}
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "module_graph_summary": {
+      "nodes": 1,
+      "edges": 0
+    },
+    "analysis": {
+      "circular_dependencies": [],
+      "strongly_connected_components": [],
+      "dependency_levels": {
+        "heat_numerics": 0
+      },
+      "external_dependencies": [],
+      "orphaned_modules": [
+        "heat_numerics"
+      ],
+      "hub_modules": [],
+      "leaf_modules": [
+        "heat_numerics"
+      ]
+    },
+    "metrics": {
+      "module_graph": {
+        "nodes": 1,
+        "edges": 0,
+        "density": 0,
+        "average_degree": 0.0,
+        "is_connected": true,
+        "is_dag": true,
+        "in_degree_centrality": {
+          "heat_numerics": 1
+        },
+        "out_degree_centrality": {
+          "heat_numerics": 1
+        },
+        "betweenness_centrality": {
+          "heat_numerics": 0.0
+        }
+      },
+      "entity_graph": {
+        "nodes": 3,
+        "edges": 0,
+        "density": 0,
+        "is_connected": false
+      }
+    }
+  },
+  "translation": {
+    "units": 4,
+    "statistics": {
+      "total_units": 4,
+      "units_by_type": {
+        "module": 1,
+        "root": 3
+      },
+      "units_by_priority": {
+        "1": 1,
+        "4": 3
+      },
+      "units_by_effort": {
+        "low": 4
+      },
+      "average_lines_per_unit": 12.25,
+      "total_lines": 49,
+      "largest_unit": "heat_numerics_subroutine_euler_step_003",
+      "most_complex_unit": "heat_numerics_subroutine_euler_step_003"
+    },
+    "translation_order": [
+      "heat_numerics"
+    ]
+  }
+}

@@ -60,21 +60,21 @@ class TestGenerationResult:
 
         return saved_files
 
-    def save_structured(self, project_root: Path, source_directory: str) -> Dict[str, Path]:
+    def save_structured(self, project_root: Path, source_directory: Optional[str] = None) -> Dict[str, Path]:
         """
         Save test artifacts to structured project layout.
 
         Args:
             project_root: Root directory of the project
-            source_directory: Source directory name (e.g., 'clm_src_main')
+            source_directory: Optional source subdirectory name for grouping tests
 
         Returns:
             Dictionary mapping artifact type to saved file path
         """
         saved_files = {}
 
-        # Save pytest file to tests/<source_directory>/
-        tests_dir = project_root / "tests" / source_directory
+        # Save pytest file to tests/<source_directory>/ or tests/
+        tests_dir = project_root / "tests" / source_directory if source_directory else project_root / "tests"
         tests_dir.mkdir(parents=True, exist_ok=True)
         pytest_path = tests_dir / f"test_{self.module_name}.py"
         with open(pytest_path, 'w') as f:
@@ -91,8 +91,8 @@ class TestGenerationResult:
         saved_files["test_data"] = test_data_path
         console.print(f"[green]✓ Saved test data to {test_data_path}[/green]")
 
-        # Save test documentation to docs/
-        docs_dir = project_root / "CLM-ml_v1" / "docs" / "test_documentation"
+        # Save test documentation to docs/test_documentation/
+        docs_dir = project_root / "docs" / "test_documentation"
         docs_dir.mkdir(parents=True, exist_ok=True)
         docs_path = docs_dir / f"test_documentation_{self.module_name}.md"
         with open(docs_path, 'w') as f:
@@ -146,7 +146,7 @@ class TestAgent(BaseAgent):
         num_test_cases: int = 10,
         include_edge_cases: bool = True,
         include_performance_tests: bool = False,
-        source_directory: str = None,
+        source_directory: Optional[str] = None,
     ) -> TestGenerationResult:
         """
         Generate comprehensive test suite for a Python/JAX module.
@@ -158,7 +158,7 @@ class TestAgent(BaseAgent):
             num_test_cases: Number of synthetic test cases to generate
             include_edge_cases: Include edge case tests (zeros, negatives, etc.)
             include_performance_tests: Include performance/benchmark tests
-            source_directory: Source directory for imports (e.g., 'clm_src_biogeophys')
+            source_directory: Optional source subdirectory for organizing imports
 
         Returns:
             TestGenerationResult with pytest file, test data, and documentation
@@ -205,7 +205,7 @@ class TestAgent(BaseAgent):
         self, python_code: str, module_name: str
     ) -> Dict[str, Any]:
         """Analyze Python function signature and parameters."""
-        from transjax.agents.prompts.test_prompts_simplified import TEST_PROMPTS
+        from transjax.agents.prompts.test_prompts import TEST_PROMPTS
 
         prompt = TEST_PROMPTS["analyze_python_signature"].format(
             python_code=python_code,
@@ -243,7 +243,7 @@ class TestAgent(BaseAgent):
         include_edge_cases: bool,
     ) -> Dict[str, Any]:
         """Generate comprehensive synthetic test data."""
-        from transjax.agents.prompts.test_prompts_simplified import TEST_PROMPTS
+        from transjax.agents.prompts.test_prompts import TEST_PROMPTS
 
         prompt = TEST_PROMPTS["generate_test_data"].format(
             python_signature=json.dumps(python_sig, indent=2),
@@ -282,14 +282,10 @@ class TestAgent(BaseAgent):
         python_sig: Dict[str, Any],
         test_data: Dict[str, Any],
         include_performance: bool,
-        source_directory: str = None,
+        source_directory: Optional[str] = None,
     ) -> str:
         """Generate comprehensive pytest file."""
-        from transjax.agents.prompts.test_prompts_simplified import TEST_PROMPTS
-
-        # Default source directory if not provided
-        if not source_directory:
-            source_directory = "clm_src_main"  # Default fallback
+        from transjax.agents.prompts.test_prompts import TEST_PROMPTS
 
         prompt = TEST_PROMPTS["generate_pytest"].format(
             module_name=module_name,
@@ -324,7 +320,7 @@ class TestAgent(BaseAgent):
         num_cases: int,
     ) -> str:
         """Generate test documentation."""
-        from transjax.agents.prompts.test_prompts_simplified import TEST_PROMPTS
+        from transjax.agents.prompts.test_prompts import TEST_PROMPTS
 
         prompt = TEST_PROMPTS["generate_documentation"].format(
             module_name=module_name,

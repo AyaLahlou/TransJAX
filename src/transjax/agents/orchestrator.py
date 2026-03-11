@@ -76,6 +76,7 @@ class OrchestratorAgent:
         force_retranslate: bool = False,
         module_list: Optional[List[str]] = None,
         verbose: bool = False,
+        analysis_dir: Optional[Path] = None,
     ):
         self.fortran_dir = fortran_dir
         self.output_dir = output_dir
@@ -83,7 +84,7 @@ class OrchestratorAgent:
         self.skip_tests = skip_tests
         self.skip_repair = skip_repair
         self.force_retranslate = force_retranslate
-        self.module_list = module_list
+        self.module_list = module_list  # preserved exactly as supplied by the user
         self.verbose = verbose
 
         # Create output directories
@@ -91,10 +92,27 @@ class OrchestratorAgent:
         self.tests_dir = output_dir / "tests"
         self.docs_dir = output_dir / "docs"
         self.reports_dir = output_dir / "reports"
-        self.analysis_dir = output_dir / "static_analysis"
+        # Internal analysis dir (used when we run analysis ourselves)
+        self._internal_analysis_dir = output_dir / "static_analysis"
 
-        for d in [self.src_dir, self.tests_dir, self.docs_dir, self.reports_dir, self.analysis_dir]:
+        for d in [self.src_dir, self.tests_dir, self.docs_dir, self.reports_dir, self._internal_analysis_dir]:
             d.mkdir(parents=True, exist_ok=True)
+
+        # Resolve analysis directory:
+        # Priority: explicit --analysis-dir  →  standard `transjax analyze` output
+        #           →  internal output/static_analysis/
+        if analysis_dir is not None:
+            self.analysis_dir = analysis_dir
+        else:
+            std_analyze_dir = fortran_dir / "transjax_analysis"
+            if std_analyze_dir.exists() and (std_analyze_dir / "analysis_results.json").exists():
+                self.analysis_dir = std_analyze_dir
+                console.print(
+                    f"[dim]Found existing analysis at {self.analysis_dir} "
+                    f"(from 'transjax analyze'). Will reuse unless --force is set.[/dim]"
+                )
+            else:
+                self.analysis_dir = self._internal_analysis_dir
 
         # Initialize agents
         llm_config = get_llm_config()
@@ -224,13 +242,15 @@ class OrchestratorAgent:
             test_result = self.test_agent.generate_tests(
                 module_name=module_name,
                 python_code=translation_result.physics_code,
-                source_directory=translation_result.source_directory or "clm_src_main",
+                source_directory=translation_result.source_directory,  # Optional[str]
                 output_dir=self.tests_dir,
             )
             status.tests_generated = True
 
             # Step 3: Run tests
-            test_report = self._run_tests(test_result.test_file_path)
+            # TestGenerationResult.save() writes to <tests_dir>/test_<module>.py
+            test_file_path = self.tests_dir / f"test_{module_name}.py"
+            test_report = self._run_tests(test_file_path)
 
             if "passed" in test_report.lower() and "failed" not in test_report.lower():
                 status.tests_passed = True
@@ -266,62 +286,70 @@ class OrchestratorAgent:
         analysis_file = self.analysis_dir / "analysis_results.json"
         units_file = self.analysis_dir / "translation_units.json"
 
-        # 1. LOAD EXISTING (only if not forcing)
+        # 1. LOAD EXISTING (skip re-analysis unless --force)
         if not self.force_retranslate and analysis_file.exists():
+            console.print(f"[dim]Reusing existing analysis: {analysis_file}[/dim]")
             return {
                 'analysis_results': json.loads(analysis_file.read_text()),
-                'translation_units': json.loads(units_file.read_text()) if units_file.exists() else {}
+                'translation_units': json.loads(units_file.read_text()) if units_file.exists() else {},
             }
 
-        # 2. RUN NEW ANALYSIS
-        console.print("[yellow]Running Fortran Static Analysis...[/yellow]")
-        try:
-            self._execute_full_analysis(analysis_file, units_file)
+        # 2. RUN NEW ANALYSIS — always save into the internal dir so we don't
+        #    overwrite a directory the user manually pointed to.
+        run_dir = self._internal_analysis_dir
+        run_analysis_file = run_dir / "analysis_results.json"
+        run_units_file = run_dir / "translation_units.json"
 
+        console.print("\n[bold]Step 1: Running Fortran Static Analysis[/bold]")
+        console.print(f"[dim]Saving analysis to {run_dir}[/dim]")
+        try:
+            self._execute_full_analysis(run_analysis_file, run_units_file)
         except Exception as e:
             console.print(f"[red]CRITICAL: Static Analysis failed: {e}[/red]")
-            sys.exit(1)  # Stop the pipeline immediately
-
-        # 3. VERIFY FILES EXIST
-        if not analysis_file.exists():
-            console.print(f"[red]ERROR: Analyzer finished but {analysis_file} was not created![/red]")
             sys.exit(1)
 
+        # 3. VERIFY FILES EXIST
+        if not run_analysis_file.exists():
+            console.print(f"[red]ERROR: Analyzer finished but {run_analysis_file} was not created![/red]")
+            sys.exit(1)
+
+        # Update self.analysis_dir to point at where we actually saved
+        self.analysis_dir = run_dir
+
         return {
-            'analysis_results': json.loads(analysis_file.read_text()),
-            'translation_units': json.loads(units_file.read_text()) if units_file.exists() else {}
+            'analysis_results': json.loads(run_analysis_file.read_text()),
+            'translation_units': json.loads(run_units_file.read_text()) if run_units_file.exists() else {},
         }
 
     def _execute_full_analysis(self, analysis_file: Path, units_file: Path) -> None:
-        """Execute the fortran analyzer and write results to disk."""
+        """Execute the Fortran analyzer and write results to disk."""
+        output_dir = str(analysis_file.parent)
         try:
             analyzer = create_analyzer_for_project(
                 str(self.fortran_dir),
-                template="generic",
-                output_dir=str(self.analysis_dir),
-                source_dirs=[str(self.fortran_dir)],
+                template="auto",
+                output_dir=output_dir,
             )
             results = analyzer.analyze(save_results=True)
         except Exception as e:
             raise RuntimeError(f"Static analysis execution failed: {e}")
 
-        # Safety net: if the analyzer did not produce files, write them directly.
-        try:
-            if not analysis_file.exists() and results:
-                with open(analysis_file, "w") as f:
-                    json.dump(results, f, indent=2)
+        # Safety net: write results directly if the analyzer didn't produce the files.
+        if not analysis_file.exists() and results:
+            with open(analysis_file, "w") as f:
+                json.dump(results, f, indent=2, default=str)
 
-            if not units_file.exists():
-                translation_payload = (
-                    results.get("translation", {}).get("units_data")
-                    or results.get("translation_units")
-                    or results.get("translation")
-                )
-                if translation_payload:
-                    with open(units_file, "w") as f:
-                        json.dump(translation_payload, f, indent=2)
-        except Exception:
-            pass
+        if not units_file.exists():
+            # The decomposer saves translation_units.json alongside analysis_results.json.
+            # If it's missing, try to reconstruct a minimal payload from in-memory results.
+            units_data = results.get("translation_units")
+            if not units_data:
+                # Older analyzer shape: units count lives at results["translation"]["units"]
+                # but the actual list is written by the decomposer separately.
+                pass  # Nothing useful to write; leave file absent (handled upstream)
+            if units_data:
+                with open(units_file, "w") as f:
+                    json.dump(units_data, f, indent=2, default=str)
 
     def _determine_translation_order(self, analysis_data: Dict[str, Any]) -> List[str]:
         # 1. Access the correct level

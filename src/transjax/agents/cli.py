@@ -27,10 +27,21 @@ console = Console()
 def cli():
     """TransJAX — translate Fortran scientific code to JAX.
 
+    TransJAX uses Claude to convert Fortran source code into differentiable
+    JAX/Python, preserving physics and applying JAX best practices (pure
+    functions, lax primitives, NamedTuples).
+
     \b
-    Common workflow:
-      transjax analyze /path/to/fortran        # inspect the codebase first
-      transjax convert /path/to/fortran -o ./out  # translate + test + repair
+    Recommended workflow:
+      1. transjax init                           # set up authentication
+      2. transjax analyze /path/to/fortran       # inspect the project first
+      3. transjax convert /path/to/fortran -o ./out  # translate + test + repair
+
+    \b
+    Quick reference:
+      transjax analyze --help    # all analysis options
+      transjax convert --help    # all conversion options
+      transjax show-config       # view/verify your config
     """
 
 
@@ -41,21 +52,42 @@ def cli():
 @cli.command()
 @click.argument("fortran_directory", type=click.Path(exists=True, file_okay=False))
 @click.option("--output", "-o", default="./jax_output", show_default=True,
-              help="Output directory.")
-@click.option("--model", default=None, help="Claude model (default: from config).")
-@click.option("--api-key", default=None, envvar="ANTHROPIC_API_KEY",
-              help="Anthropic API key (overrides $ANTHROPIC_API_KEY). "
-                   "Not needed when authenticated via `claude login`.")
-@click.option("--max-repair-iterations", default=5, show_default=True,
-              help="Max repair attempts per module.")
-@click.option("--skip-tests", is_flag=True, help="Skip test generation.")
-@click.option("--skip-repair", is_flag=True, help="Skip the repair loop.")
-@click.option("--force", is_flag=True, help="Re-translate already-translated files.")
-@click.option("--modules", default=None,
-              help="Comma-separated module filter (default: all).")
-@click.option("--temperature", default=None, type=float,
-              help="LLM temperature (default: 0.0).")
-@click.option("--verbose", "-v", is_flag=True, help="Verbose logging.")
+              help="Directory where translated JAX files, tests, and reports are written.")
+@click.option("--model", default=None, metavar="MODEL",
+              help="Claude model to use for translation, e.g. claude-sonnet-4-6. "
+                   "Defaults to the value in config.yaml.")
+@click.option("--api-key", default=None, envvar="ANTHROPIC_API_KEY", metavar="KEY",
+              help="Anthropic API key.  Reads $ANTHROPIC_API_KEY when omitted.  "
+                   "Not needed if you authenticated with `claude login`.")
+@click.option("--max-repair-iterations", default=5, show_default=True, metavar="N",
+              help="Maximum number of times TransJAX will ask Claude to fix a module "
+                   "whose tests fail.  Set to 0 to disable the repair loop entirely.")
+@click.option("--skip-tests", is_flag=True,
+              help="Do not generate or run pytest tests after translation.  "
+                   "Useful for a quick first pass or when the test infrastructure "
+                   "is not yet set up.")
+@click.option("--skip-repair", is_flag=True,
+              help="Translate every module once and stop, even if tests fail.  "
+                   "Equivalent to --max-repair-iterations 0 but leaves test "
+                   "infrastructure intact.")
+@click.option("--force", is_flag=True,
+              help="Re-translate modules that were already translated in a previous "
+                   "run.  Without this flag, existing output files are skipped.")
+@click.option("--modules", default=None, metavar="MOD1,MOD2,…",
+              help="Comma-separated list of Fortran module names to translate.  "
+                   "All other modules are skipped.  "
+                   "Example: --modules CanopyFluxes,SoilWater")
+@click.option("--temperature", default=None, type=float, metavar="T",
+              help="Sampling temperature for the LLM (0.0–1.0).  "
+                   "Lower values produce more deterministic output.  "
+                   "Default: 0.0 (fully deterministic).")
+@click.option("--analysis-dir", default=None, metavar="DIR",
+              help="Path to an existing analysis directory produced by 'transjax analyze'. "
+                   "When provided, skips re-running analysis. "
+                   "By default TransJAX looks for <fortran_dir>/transjax_analysis/ "
+                   "automatically before running a fresh analysis.")
+@click.option("--verbose", "-v", is_flag=True,
+              help="Print DEBUG-level logs, including full prompts and API responses.")
 def convert(
     fortran_directory: str,
     output: str,
@@ -67,18 +99,42 @@ def convert(
     force: bool,
     modules: Optional[str],
     temperature: Optional[float],
+    analysis_dir: Optional[str],
     verbose: bool,
 ):
     """Translate a Fortran codebase to JAX (full pipeline).
 
-    Runs static analysis, translates each module with Claude, generates pytest
-    tests, and iteratively repairs failures — all in one command.
+    FORTRAN_DIRECTORY is the root of the Fortran source tree to translate.
+
+    TransJAX runs four stages automatically:
+
+    \b
+      1. Analyze   — parse all Fortran files, build dependency graph
+      2. Translate — call Claude to convert each module to JAX
+      3. Test      — generate and run pytest suites (skippable)
+      4. Repair    — ask Claude to fix failing tests (skippable)
+
+    Output structure written to --output:
+
+    \b
+      <output>/src/          translated JAX modules
+      <output>/tests/        generated pytest files
+      <output>/reports/      per-module status and repair logs
+
+    \b
+    Authentication (one of):
+      claude login                        # Claude Pro/Max subscription
+      export ANTHROPIC_API_KEY=sk-ant-…  # pay-per-use API key
 
     \b
     Examples:
       transjax convert ./fortran -o ./jax_output
-      transjax convert ./fortran --modules clm_varctl,SoilStateType
-      transjax convert ./fortran --skip-tests --force
+      transjax convert ./fortran --modules CanopyFluxes,SoilWater
+      transjax convert ./fortran --skip-tests
+      transjax convert ./fortran --force
+      transjax convert ./fortran --model claude-opus-4-6 --temperature 0.2
+      transjax convert ./fortran --skip-repair
+      transjax convert ./fortran --max-repair-iterations 10 --verbose
     """
     from transjax.agents.orchestrator import OrchestratorAgent
 
@@ -122,6 +178,7 @@ def convert(
             force_retranslate=force,
             module_list=module_list,
             verbose=verbose,
+            analysis_dir=Path(analysis_dir).resolve() if analysis_dir else None,
         )
         results = orchestrator.run()
 
@@ -155,12 +212,17 @@ def convert(
 
 @cli.command()
 @click.argument("fortran_directory", type=click.Path(exists=True, file_okay=False))
-@click.option("--output", "-o", default=None,
-              help="Output directory for reports (default: <fortran_dir>/transjax_analysis).")
+@click.option("--output", "-o", default=None, metavar="DIR",
+              help="Directory for analysis reports.  "
+                   "Defaults to <fortran_dir>/transjax_analysis.")
 @click.option("--template", "-t", default="auto", show_default=True,
-              help="Project template: auto, ctsm, scientific_computing, generic, …")
-@click.option("--no-graphs", is_flag=True, help="Skip graph visualisation.")
-@click.option("--verbose", "-v", is_flag=True, help="Verbose logging.")
+              metavar="TEMPLATE",
+              help="Project type template (see command help for choices).")
+@click.option("--no-graphs", is_flag=True,
+              help="Skip generation of GraphML / JSON dependency graph files.  "
+                   "Speeds up analysis on very large codebases.")
+@click.option("--verbose", "-v", is_flag=True,
+              help="Print DEBUG-level logs, including per-file parse details.")
 def analyze(
     fortran_directory: str,
     output: Optional[str],
@@ -170,14 +232,45 @@ def analyze(
 ):
     """Analyse a Fortran codebase without translating it.
 
-    Parses source files, builds dependency graphs, and writes a JSON report and
-    summary to the output directory.  Useful for inspecting a project before
-    running `transjax convert`.
+    FORTRAN_DIRECTORY is the root of the Fortran source tree to inspect.
+
+    Parses all Fortran files, builds a module dependency graph, estimates
+    translation complexity, and writes results to the output directory.
+    Run this before `transjax convert` to understand the project structure
+    and spot potential issues (circular deps, large modules, etc.).
+
+    \b
+    Output files (written to --output, default <fortran_dir>/transjax_analysis):
+      analysis_results.json   full structured results (modules, deps, stats)
+      analysis_summary.txt    human-readable report
+      translation_units.json  per-function breakdown with complexity scores
+      graphs/                 dependency graph in GraphML and JSON formats
+
+    \b
+    Key metrics shown after analysis:
+      Files              total Fortran source files found
+      Lines              total lines of code
+      Modules            Fortran modules (each becomes one JAX file)
+      Translation units  individual functions/subroutines to translate
+      Dependencies       inter-module USE relationships
+      Circular deps      dependency cycles (must resolve before translating)
+
+    \b
+    --template choices:
+      auto                 auto-detect from directory structure (default)
+      generic              search the entire project root recursively
+      scientific_computing HPC / MPI projects
+      numerical_library    standalone Fortran libraries
+      climate_model        projects with src/physics + src/dynamics layout
+      ctsm                 Community Terrestrial Systems Model
 
     \b
     Examples:
       transjax analyze ./fortran
-      transjax analyze ./fortran -o ./analysis --template scientific_computing
+      transjax analyze ./fortran -o ./my_analysis
+      transjax analyze ./fortran --template generic
+      transjax analyze ./fortran --template scientific_computing --no-graphs
+      transjax analyze ./fortran --verbose
     """
     import logging
 
