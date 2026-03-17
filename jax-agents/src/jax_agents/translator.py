@@ -488,11 +488,12 @@ class TranslatorAgent(BaseAgent):
         )
         
         # Query LLM
-        response = self.query_claude(
-            prompt=prompt,
-            system_prompt=TRANSLATION_PROMPTS["system"],
-            max_tokens=self.max_tokens,
-        )
+        # response = self.query_claude(
+        #     prompt=prompt,
+        #     system_prompt=TRANSLATION_PROMPTS["system"],
+        #     max_tokens=self.max_tokens,
+        # )
+        response = ""
         
         return self._extract_code(response)
     

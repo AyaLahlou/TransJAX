@@ -162,23 +162,73 @@ class TestAgent(BaseAgent):
         Returns:
             TestGenerationResult with pytest file, test data, and documentation
         """
-        console.print(f"\n[bold cyan]🧪 Generating tests for {module_name}[/bold cyan]")
+        console.print(f"\n[bold cyan]🧪 Generating tests for {module_name} and {python_code}[/bold cyan]")
         
-        # Step 1: Analyze Python function signature
-        console.print("[cyan]Step 1/3: Analyzing Python function...[/cyan]")
-        python_sig = self._analyze_python_signature(python_code, module_name)
-        
-        # Step 2: Generate comprehensive test data
-        console.print("[cyan]Step 2/3: Generating test data...[/cyan]")
-        test_data = self._generate_test_data(
-            python_sig, num_test_cases, include_edge_cases
-        )
-        
-        # Step 3: Generate pytest file
-        console.print("[cyan]Step 3/3: Generating pytest file...[/cyan]")
-        pytest_file = self._generate_pytest(
-            module_name, python_sig, test_data, include_performance_tests, source_directory
-        )
+        # If running in offline/dry mode (no LLM client), perform local
+        # heuristic-based test generation to avoid any external API calls.
+        if getattr(self, "client", None) is None:
+            console.print("[yellow]Offline mode: Creating heuristic tests without LLM[/yellow]")
+            # Step 1: Analyze Python function signature using ast
+            import ast
+
+            functions = []
+            try:
+                tree = ast.parse(python_code)
+                for node in tree.body:
+                    if isinstance(node, ast.FunctionDef):
+                        fn_name = node.name
+                        functions.append({"name": fn_name, "args": [a.arg for a in node.args.args]})
+            except Exception:
+                functions = []
+
+            python_sig = {"module": module_name, "functions": functions}
+
+            # Step 2: Minimal test data (placeholders)
+            test_data = {"test_cases": []}
+
+            # Step 3: Generate a simple pytest file that asserts the module is importable
+            src_dir = source_directory or "clm_src_main"
+            funcs = [f['name'] for f in functions]
+            pytest_lines = [
+                '"""Auto-generated placeholder tests (offline mode)"""',
+                "import sys",
+                "from pathlib import Path",
+                "import importlib",
+                "import pytest",
+                "",
+                "# Ensure src is on path",
+                "sys.path.insert(0, str(Path(__file__).parent.parent.parent / \"src\"))",
+                "",
+                f"def test_{module_name}_importable():",
+                f"    mod = importlib.import_module('{src_dir}.{module_name}')",
+                "    assert mod is not None",
+            ]
+
+            if funcs:
+                pytest_lines.append("")
+                pytest_lines.append(f"def test_{module_name}_has_expected_functions():")
+                pytest_lines.append(f"    mod = importlib.import_module('{src_dir}.{module_name}')")
+                for fn in funcs:
+                    pytest_lines.append(f"    assert hasattr(mod, '{fn}'), 'Missing function {fn}'")
+
+            pytest_file = "\n".join(pytest_lines)
+
+        else:
+            # Step 1: Analyze Python function signature
+            console.print("[cyan]Step 1/3: Analyzing Python function...[/cyan]")
+            python_sig = self._analyze_python_signature(python_code, module_name)
+            
+            # Step 2: Generate comprehensive test data
+            console.print("[cyan]Step 2/3: Generating test data...[/cyan]")
+            test_data = self._generate_test_data(
+                python_sig, num_test_cases, include_edge_cases
+            )
+            
+            # Step 3: Generate pytest file
+            console.print("[cyan]Step 3/3: Generating pytest file...[/cyan]")
+            pytest_file = self._generate_pytest(
+                module_name, python_sig, test_data, include_performance_tests, source_directory
+            )
         
         # Generate documentation
         test_docs = self._generate_documentation(

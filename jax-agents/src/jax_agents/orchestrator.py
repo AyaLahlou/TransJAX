@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Set
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
@@ -209,10 +210,62 @@ class OrchestratorAgent:
             self.translator.analysis_results = analysis_results
             self.translator.translation_units = analysis_data['translation_units']
             
-            translation_result = self.translator.translate_module(module_name)
-            
-            # Save structured output
-            saved_files = translation_result.save_structured(self.output_dir)
+            # If a translated file already exists in the output tree and we're not
+            # forcing re-translation, prefer to use the existing file rather than
+            # invoking the translator (this lets you run tests/repair on prebuilt outputs).
+            translation_result = None
+
+            module_info = module_info or {}
+            # Determine source subdirectory from the analysis `file_path` in a
+            # robust, flexible way. We try several strategies in order:
+            # 1. If the analyzer provided a path with directory components, use
+            #    the first directory portion (e.g. 'multilayer_canopy/...' -> 'multilayer_canopy').
+            # 2. If the path is absolute and lies under the provided `fortran_dir`,
+            #    use the relative first-part under `fortran_dir`.
+            # 3. Fall back to the translator helper (which looks for clm_src_*)
+            # 4. Final fallback: use 'clm_src_main'.
+            try:
+                fp = module_info.get('file_path', '') or module_info.get('path', '') or ''
+                source_subdir = None
+                if fp:
+                    p = Path(fp)
+                    # If path is absolute and lives under the fortran root, use the
+                    # first path component relative to the fortran root.
+                    try:
+                        if p.is_absolute() and self.fortran_dir and Path(self.fortran_dir) in p.parents:
+                            rel = p.relative_to(self.fortran_dir)
+                            if len(rel.parts) > 0:
+                                source_subdir = rel.parts[0]
+                    except Exception:
+                        source_subdir = None
+
+                    # If still unknown and the path has a parent directory, use
+                    # the immediate parent (e.g. 'multilayer_canopy/ML*.F90') -> 'multilayer_canopy'
+                    if not source_subdir:
+                        if p.parent and str(p.parent) not in ('.', ''):
+                            # For relative paths like 'dir/file.F90' this yields 'dir'
+                            source_subdir = p.parent.parts[0] if len(p.parent.parts) > 0 else p.parent.name
+
+                # Fall back to translator helper (preserves legacy clm_src_* behavior)
+                if not source_subdir:
+                    try:
+                        source_subdir = self.translator._extract_source_directory(fp)
+                    except Exception:
+                        source_subdir = 'clm_src_main'
+            except Exception:
+                source_subdir = 'clm_src_main'
+
+            existing_module_path = self.output_dir / "src" / source_subdir / f"{module_name}.py"
+
+            if existing_module_path.exists() and not self.force_retranslate:
+                console.print(f"[cyan]Using existing translated module at {existing_module_path}[/cyan]")
+                physics_code = existing_module_path.read_text()
+                translation_result = SimpleNamespace(physics_code=physics_code, source_directory=source_subdir)
+                saved_files = {"physics": existing_module_path}
+            else:
+                translation_result = self.translator.translate_module(module_name)
+                # Save structured output
+                saved_files = translation_result.save_structured(self.output_dir)
             status.translated = True
             console.print(f"[green]✓ Translation complete: {module_name}[/green]")
             
@@ -222,16 +275,58 @@ class OrchestratorAgent:
             
             # Step 2: Generate tests
             console.print(f"[cyan]→ Generating tests for {module_name}[/cyan]")
-            test_result = self.test_agent.generate_tests(
-                module_name=module_name,
-                python_code=translation_result.physics_code,
-                source_directory=translation_result.source_directory or "clm_src_main",
-                output_dir=self.tests_dir,
-            )
-            status.tests_generated = True
-            
+
+            # If tests already exist for this module, skip test generation to avoid
+            # unnecessary LLM calls and to preserve existing test suites.
+            source_dir = translation_result.source_directory or ""
+            existing_test_paths = [
+                self.tests_dir / source_dir / f"test_{module_name}.py",
+                self.tests_dir / f"test_{module_name}.py",
+            ]
+
+            test_result = None
+            test_file_path = None
+
+            for p in existing_test_paths:
+                if p.exists():
+                    console.print(f"[cyan]Using existing test file at {p}[/cyan]")
+                    test_file_path = p
+                    status.tests_generated = True
+                    break
+
+            if test_file_path is None:
+                test_result = self.test_agent.generate_tests(
+                    module_name=module_name,
+                    python_code=translation_result.physics_code,
+                    source_directory=translation_result.source_directory or "clm_src_main",
+                    output_dir=self.tests_dir,
+                )
+                status.tests_generated = True
+
+            # Determine test file path. Prefer structured location tests/<source_subdir>/test_<module>.py
+            source_dir = translation_result.source_directory or "clm_src_main"
+            candidate_paths = [
+                self.tests_dir / source_dir / f"test_{module_name}.py",
+                self.tests_dir / f"test_{module_name}.py",
+            ]
+
+            test_file_path = None
+            for p in candidate_paths:
+                if p.exists():
+                    test_file_path = p
+                    break
+
+            # If not found, assume generate_tests wrote to self.tests_dir/test_<module>.py
+            if test_file_path is None:
+                assumed = self.tests_dir / f"test_{module_name}.py"
+                if assumed.exists():
+                    test_file_path = assumed
+
+            if test_file_path is None:
+                raise RuntimeError(f"Test file for {module_name} not found in expected locations: {candidate_paths}")
+
             # Step 3: Run tests
-            test_report = self._run_tests(test_result.test_file_path)
+            test_report = self._run_tests(test_file_path)
             
             if "passed" in test_report.lower() and "failed" not in test_report.lower():
                 status.tests_passed = True
@@ -239,10 +334,53 @@ class OrchestratorAgent:
                 console.print(f"[green]✓ All tests passed: {module_name}[/green]")
                 return
             
-            # Step 4: Repair (simplified for brevity, original logic remains)
+            # Step 4: Repair
             if not self.skip_repair:
-                # Repair logic here...
-                pass
+                console.print(f"[cyan]→ Attempting repair for {module_name}[/cyan]")
+                try:
+                    # Read original Fortran source for context
+                    fortran_code = self._read_fortran_source(module_name, analysis_data)
+
+                    # Ensure test_file_path is a Path
+                    repair_output_dir = self.reports_dir / module_name
+                    repair_output_dir.mkdir(parents=True, exist_ok=True)
+
+                    repair_result = self.repair_agent.repair_translation(
+                        module_name=module_name,
+                        fortran_code=fortran_code,
+                        failed_python_code=translation_result.physics_code,
+                        test_report=test_report,
+                        test_file_path=test_file_path,
+                        output_dir=repair_output_dir,
+                    )
+
+                    # Persist repair artifacts
+                    repair_result.save(repair_output_dir)
+
+                    # Update status
+                    status.repair_attempts = repair_result.iterations
+                    if repair_result.all_tests_passed:
+                        status.tests_passed = True
+                        status.final_status = "success"
+
+                        # Overwrite translated module with corrected code
+                        try:
+                            target_dir = self.output_dir / "src" / (translation_result.source_directory or "clm_src_main")
+                            target_dir.mkdir(parents=True, exist_ok=True)
+                            corrected_path = target_dir / f"{module_name}.py"
+                            with open(corrected_path, 'w') as f:
+                                f.write(repair_result.corrected_python_code)
+                            console.print(f"[green]✓ Wrote corrected code to {corrected_path}[/green]")
+                        except Exception as e:
+                            console.print(f"[yellow]Warning: failed to write corrected code: {e}[/yellow]")
+                    else:
+                        status.final_status = "failed"
+                        console.print(f"[red]✗ Repair failed for {module_name}; see {repair_output_dir}[/red]")
+
+                except Exception as e:
+                    status.final_status = "failed"
+                    status.error_message = str(e)
+                    console.print(f"[red]✗ Repair error for {module_name}: {e}[/red]")
 
         except Exception as e:
             status.final_status = "failed"

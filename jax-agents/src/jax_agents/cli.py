@@ -32,8 +32,8 @@ def cli():
 @click.option(
     '--output', '-o',
     type=click.Path(),
-    default='./jax_output',
-    help='Output directory for translated code (default: ./jax_output)'
+    default='./output',
+    help='Output directory for translated code (default: ./output)'
 )
 @click.option(
     '--model',
@@ -162,7 +162,7 @@ def convert(
         # Display summary
         console.print("\n")
         console.print(Panel.fit(
-            f"[bold green]✓ Translation Complete[/bold green]\n\n"
+            f"[bold green] Translation Complete[/bold green]\n\n"
             f"[white]Modules translated:[/white] {results['translated_count']}\n"
             f"[white]Tests generated:[/white]    {results['tests_generated']}\n"
             f"[white]Tests passed:[/white]       {results['tests_passed']}\n"
@@ -181,7 +181,7 @@ def convert(
             console.print("[yellow]Check repair_logs/ for detailed failure reports.[/yellow]")
             sys.exit(1)
         else:
-            console.print("\n[bold green]🎉 All modules translated successfully![/bold green]")
+            console.print("\n[bold green] All modules translated successfully![/bold green]")
             sys.exit(0)
             
     except KeyboardInterrupt:
@@ -243,7 +243,7 @@ translation:
 
 paths:
   fortran_root: ./fortran_code
-  output_dir: ./jax_output
+  output_dir: ./output
 """
     
     env_template = """# Anthropic API Key
@@ -276,10 +276,10 @@ numpy>=1.24.0
     for filename, content in files.items():
         filepath = cwd / filename
         if filepath.exists():
-            console.print(f"[yellow]⚠ {filename} already exists, skipping[/yellow]")
+            console.print(f"[yellow] {filename} already exists, skipping[/yellow]")
         else:
             filepath.write_text(content)
-            console.print(f"[green]✓ Created {filename}[/green]")
+            console.print(f"[green] Created {filename}[/green]")
     
     console.print("\n[bold cyan]Project initialized![/bold cyan]")
     console.print("\nNext steps:")

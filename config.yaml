@@ -1,0 +1,15 @@
+# Fortran-to-JAX Configuration
+
+llm:
+  model: claude-sonnet-4-5
+  temperature: 0.0
+  max_tokens: 48000
+
+translation:
+  max_repair_iterations: 5
+  skip_tests: false
+  skip_repair: false
+
+paths:
+  fortran_root: ./fortran_code
+  output_dir: ./output

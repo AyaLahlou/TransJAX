@@ -255,13 +255,32 @@ class RepairAgent(BaseAgent):
     ) -> Dict[str, Any]:
         """Analyze test failure and identify root causes."""
         from jax_agents.prompts.repair_prompts import REPAIR_PROMPTS
-        
+        from jax_agents.prompts.repair_prompts import REPAIR_PROMPTS
+
+        # If no LLM client is available, perform a minimal local analysis
+        if getattr(self, "client", None) is None:
+            failed = []
+            try:
+                # Simple parse: look for lines with 'FAILED' or 'failed'
+                for line in (test_report or "").splitlines():
+                    if "FAILED" in line or "failed" in line:
+                        failed.append(line.strip())
+            except Exception:
+                failed = []
+
+            return {
+                "failed_tests": failed or ["unknown"],
+                "error_summary": "Offline failure analysis - inspect test report",
+                "root_causes": [],
+                "required_fixes": ["Manual review required"]
+            }
+
         prompt = REPAIR_PROMPTS["analyze_failure"].format(
             fortran_code=fortran_code,
             python_code=python_code,
             test_report=test_report,
         )
-        
+
         response = self.query_claude(
             prompt=prompt,
             system_prompt=REPAIR_PROMPTS["system"],
@@ -302,19 +321,24 @@ class RepairAgent(BaseAgent):
     ) -> str:
         """Generate corrected Python code."""
         from jax_agents.prompts.repair_prompts import REPAIR_PROMPTS
-        
+        from jax_agents.prompts.repair_prompts import REPAIR_PROMPTS
+
+        # Offline fallback: return the existing python_code unchanged
+        if getattr(self, "client", None) is None:
+            return python_code
+
         prompt = REPAIR_PROMPTS["generate_fix"].format(
             fortran_code=fortran_code,
             python_code=python_code,
             root_cause_analysis=json.dumps(failure_analysis, indent=2),
             test_report=test_report,
         )
-        
+
         response = self.query_claude(
             prompt=prompt,
             system_prompt=REPAIR_PROMPTS["system"],
         )
-        
+
         # Extract Python code
         if "```python" in response:
             start = response.find("```python") + 9
@@ -335,18 +359,27 @@ class RepairAgent(BaseAgent):
     ) -> Dict[str, Any]:
         """Verify if the corrected code addresses all issues."""
         from jax_agents.prompts.repair_prompts import REPAIR_PROMPTS
-        
+        from jax_agents.prompts.repair_prompts import REPAIR_PROMPTS
+
+        # Offline fallback: conservative verification
+        if getattr(self, "client", None) is None:
+            return {
+                "all_issues_addressed": False,
+                "confidence_level": "low",
+                "recommendations": ["Manual review required"]
+            }
+
         prompt = REPAIR_PROMPTS["verify_fix"].format(
             failure_analysis=json.dumps(failure_analysis, indent=2),
             corrected_code=corrected_code,
             required_fixes=json.dumps(required_fixes, indent=2),
         )
-        
+
         response = self.query_claude(
             prompt=prompt,
             system_prompt=REPAIR_PROMPTS["system"],
         )
-        
+
         # Parse JSON response
         try:
             if "```json" in response:
@@ -445,10 +478,18 @@ class RepairAgent(BaseAgent):
             test_results=f"{test_results_summary}\n\nFinal Report:\n{final_test_report}",
         )
         
+        # Offline fallback
+        if getattr(self, "client", None) is None:
+            summary = (
+                f"Root cause analysis (offline):\nFailed tests: {failure_analysis.get('failed_tests', [])}\n"
+                f"Summary: Manual review recommended.\n"
+            )
+            return summary
+
         response = self.query_claude(
             prompt=prompt,
             system_prompt=REPAIR_PROMPTS["system"],
         )
-        
+
         return response
 

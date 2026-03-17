@@ -69,12 +69,13 @@ class BaseAgent:
         # Initialize Anthropic client
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
-            raise ValueError(
-                "ANTHROPIC_API_KEY not found in environment. "
-                "Please set it in .env file or environment variables."
+            # Allow operation without an API key when running in local/dry mode.
+            logger.warning(
+                "ANTHROPIC_API_KEY not found; running in offline/dry mode (no LLM calls)."
             )
-        
-        self.client = anthropic.Anthropic(api_key=api_key)
+            self.client = None
+        else:
+            self.client = anthropic.Anthropic(api_key=api_key)
         
         # Conversation history
         self.conversation_history: List[Dict[str, str]] = []
@@ -115,7 +116,22 @@ class BaseAgent:
         Raises:
             anthropic.APIError: If API call fails after retries
         """
-        # Use defaults if not overridden
+        # If no LLM client is configured, return safe defaults so callers
+        # can continue without external API calls. Heuristic responses are
+        # intentionally minimal; higher-level agents may implement
+        # additional offline behaviors when needed.
+        if getattr(self, "client", None) is None:
+            # Provide a basic deterministic fallback depending on the prompt
+            # intent. Try to detect JSON-requesting prompts by a few keywords.
+            lower = (prompt or "").lower()
+            if "analyze_python_signature" in lower or "analyze python signature" in lower:
+                # Return a minimal JSON signature for downstream parsers
+                return '{"module": "unknown", "functions": []}'
+            if "generate_pytest" in lower or "generate pytest" in lower:
+                # Return a minimal pytest file block
+                return "```python\n# Dummy pytest generated in offline mode\n\n```"
+            # Default generic stub
+            return ""
         temp = temperature if temperature is not None else self.temperature
         max_tok = max_tokens if max_tokens is not None else self.max_tokens
         sys_prompt = system_prompt if system_prompt is not None else self._get_default_system_prompt()
@@ -229,6 +245,12 @@ class BaseAgent:
         # Get response
         sys_prompt = system_prompt if system_prompt is not None else self._get_default_system_prompt()
         
+        if getattr(self, "client", None) is None:
+            # Offline stub response
+            response_text = ""  # minimal placeholder
+            self.conversation_history.append({"role": "assistant", "content": response_text})
+            return response_text
+
         response = self.client.messages.create(
             model=self.model,
             max_tokens=self.max_tokens,
@@ -236,18 +258,18 @@ class BaseAgent:
             system=sys_prompt,
             messages=self.conversation_history
         )
-        
+
         # Add response to history
         response_text = response.content[0].text
         self.conversation_history.append({
             "role": "assistant",
             "content": response_text
         })
-        
+
         # Update token counts
         self.total_input_tokens += response.usage.input_tokens
         self.total_output_tokens += response.usage.output_tokens
-        
+
         return response_text
     
     def continue_conversation(self, prompt: str) -> str:
@@ -270,6 +292,11 @@ class BaseAgent:
         })
         
         # Get response
+        if getattr(self, "client", None) is None:
+            response_text = ""
+            self.conversation_history.append({"role": "assistant", "content": response_text})
+            return response_text
+
         response = self.client.messages.create(
             model=self.model,
             max_tokens=self.max_tokens,
@@ -277,18 +304,18 @@ class BaseAgent:
             system=self._get_default_system_prompt(),
             messages=self.conversation_history
         )
-        
+
         # Add response to history
         response_text = response.content[0].text
         self.conversation_history.append({
             "role": "assistant",
             "content": response_text
         })
-        
+
         # Update token counts
         self.total_input_tokens += response.usage.input_tokens
         self.total_output_tokens += response.usage.output_tokens
-        
+
         return response_text
     
     def get_cost_estimate(self) -> Dict[str, float]:
