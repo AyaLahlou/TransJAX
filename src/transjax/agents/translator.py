@@ -151,6 +151,7 @@ class TranslatorAgent(BaseAgent):
         translation_units_path: Optional[Path] = None,
         reference_dir: Optional[Path] = None,
         fortran_root: Optional[Path] = None,
+        gcm_model_name: Optional[str] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
@@ -180,6 +181,7 @@ class TranslatorAgent(BaseAgent):
 
         self.reference_dir = reference_dir
         self.fortran_root = fortran_root
+        self.gcm_model_name = gcm_model_name or "unspecified"
         self.reference_patterns = self._load_reference_patterns()
 
         # Load static analysis results
@@ -472,6 +474,7 @@ class TranslatorAgent(BaseAgent):
 
         # Build prompt
         prompt = TRANSLATION_PROMPTS["translate_unit"].format(
+            GCM_model_name=self.gcm_model_name,
             module_name=module_name,
             unit_id=unit.get("id", "unknown"),
             unit_type=unit.get("unit_type", "unknown"),
@@ -539,8 +542,9 @@ class TranslatorAgent(BaseAgent):
         output_dir: Optional[Path] = None,
     ) -> TranslationResult:
         """
-        Legacy translation method (translate full module at once).
-        Used as fallback when no translation units available.
+        Legacy translation method used as fallback when no translation units are available.
+        Treats the entire Fortran source as a single translation unit, then assembles,
+        reusing the same two-step flow as the primary path.
 
         Args:
             module_name: Module name
@@ -552,29 +556,43 @@ class TranslatorAgent(BaseAgent):
         Returns:
             TranslationResult
         """
-        # Build enhanced context
-        enhanced_context = self._build_enhanced_context(module_name, module_info)
-
-        # Build translation prompt
-        prompt = TRANSLATION_PROMPTS["translate_module"].format(
-            module_name=module_name,
-            fortran_code=fortran_code,
-            module_info=json.dumps(module_info, indent=2),
-            enhanced_context=json.dumps(enhanced_context, indent=2),
-            reference_pattern=reference_pattern,
-        )
-
         console.print("[cyan]Generating JAX translation (legacy mode)...[/cyan]")
 
-        # Query Claude for translation
-        response = self.query_claude(
-            prompt=prompt,
-            system_prompt=TRANSLATION_PROMPTS["system"],
-            max_tokens=self.max_tokens,
+        fortran_lines = fortran_code.split('\n')
+
+        # Treat the entire module as one synthetic translation unit
+        synthetic_unit = {
+            "id": f"{module_name}_full",
+            "unit_type": "root",
+            "line_start": 1,
+            "line_end": len(fortran_lines),
+            "parent_id": None,
+            "complexity_score": 0,
+            "estimated_effort": "high",
+        }
+
+        translated_code = self._translate_unit(
+            module_name=module_name,
+            unit=synthetic_unit,
+            fortran_lines=fortran_lines,
+            module_info=module_info,
+            reference_pattern=reference_pattern,
+            previously_translated=[],
         )
 
-        # Parse response into code files
-        return self._parse_translation_response(response, module_name)
+        translated_units = [{
+            "unit_id": synthetic_unit["id"],
+            "unit_type": synthetic_unit["unit_type"],
+            "translated_code": translated_code,
+            "original_lines": f"1-{len(fortran_lines)}",
+        }]
+
+        return self._assemble_module(
+            module_name=module_name,
+            translated_units=translated_units,
+            module_info=module_info,
+            reference_pattern=reference_pattern,
+        )
 
     def _get_module_dependencies(self, module_name: str) -> Dict[str, Any]:
         """
@@ -698,75 +716,6 @@ class TranslatorAgent(BaseAgent):
                 return mod_data
 
         return None
-
-    def _build_enhanced_context(self, module_name: str, module_info: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Build enhanced context for translation from JSON files.
-
-        Args:
-            module_name: Name of module being translated
-            module_info: Module information from analysis_results.json
-
-        Returns:
-            Dictionary with enhanced context including dependencies, translation units, etc.
-        """
-        context = {
-            "module_name": module_name,
-            "dependencies": {},
-            "translation_units": [],
-            "complexity_info": {},
-            "recommendations": [],
-        }
-
-        # Extract dependencies (handle multiple possible shapes)
-        if self.analysis_results:
-            deps = self.analysis_results.get("parsing", {}).get("dependencies", {})
-            if not deps:
-                deps = self.analysis_results.get("dependencies", {}).get("analysis", {})
-
-            if isinstance(deps, dict) and module_name in deps:
-                context["dependencies"]["uses"] = deps[module_name]
-            else:
-                context["dependencies"]["uses"] = []
-
-            # Find who uses this module
-            context["dependencies"]["used_by"] = [
-                mod for mod, mod_deps in (deps or {}).items() if module_name in mod_deps
-            ]
-
-        # Extract translation units for this module
-        if self.translation_units:
-            units = self.translation_units.get("translation_units", [])
-            module_units = [
-                unit for unit in units
-                if unit.get("module_name", "").lower() == module_name.lower()
-            ]
-            context["translation_units"] = module_units
-
-            # Calculate complexity summary
-            if module_units:
-                complexities = [u.get("complexity_score", 0) for u in module_units]
-                efforts = [u.get("estimated_effort", "unknown") for u in module_units]
-                context["complexity_info"] = {
-                    "total_units": len(module_units),
-                    "avg_complexity": sum(complexities) / len(complexities) if complexities else 0,
-                    "max_complexity": max(complexities) if complexities else 0,
-                    "effort_breakdown": {
-                        "low": efforts.count("low"),
-                        "medium": efforts.count("medium"),
-                        "high": efforts.count("high"),
-                    },
-                    "has_split_functions": any(u.get("unit_type") == "inner" for u in module_units),
-                }
-
-        # Extract any module-specific recommendations
-        if self.analysis_results:
-            recs = self.analysis_results.get("recommendations", {})
-            context["recommendations"] = [
-                rec for rec in recs.get("translation_strategy", [])
-            ]
-
-        return context
 
     def _load_reference_patterns(self) -> Dict[str, str]:
         """

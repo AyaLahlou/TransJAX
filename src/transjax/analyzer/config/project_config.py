@@ -37,7 +37,7 @@ class FortranProjectConfig:
     exclude_patterns: List[str] = field(default_factory=list)
 
     # Analysis settings
-    max_translation_unit_lines: int = 150
+    max_translation_unit_lines: int = 600
     min_chunk_lines: int = 50
     preserve_interfaces: bool = True
     track_dependencies: bool = True
@@ -202,7 +202,7 @@ class ConfigurationManager:
             "fortran_extensions": [".f90", ".F90", ".f95"],
             "track_dependencies": True,
             "generate_metrics": True,
-            "max_translation_unit_lines": 100,
+            "max_translation_unit_lines": 600,
         },
         "climate_model": {
             "project_name": "Climate Model",

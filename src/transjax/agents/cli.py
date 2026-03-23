@@ -86,6 +86,9 @@ def cli():
                    "When provided, skips re-running analysis. "
                    "By default TransJAX looks for <fortran_dir>/transjax_analysis/ "
                    "automatically before running a fresh analysis.")
+@click.option("--gcm-model", default=None, metavar="NAME",
+              help="Name of the GCM/ESM being translated (e.g. CTSM, CESM, MOM6). "
+                   "Injected into translation prompts to give Claude model-specific context.")
 @click.option("--verbose", "-v", is_flag=True,
               help="Print DEBUG-level logs, including full prompts and API responses.")
 def convert(
@@ -100,6 +103,7 @@ def convert(
     modules: Optional[str],
     temperature: Optional[float],
     analysis_dir: Optional[str],
+    gcm_model: Optional[str],
     verbose: bool,
 ):
     """Translate a Fortran codebase to JAX (full pipeline).
@@ -156,7 +160,8 @@ def convert(
     console.print(Panel.fit(
         f"[white]Fortran:[/white]        {fortran_path}\n"
         f"[white]Output:[/white]         {output_path}\n"
-        f"[white]Model:[/white]          {model or 'from config'}\n"
+        f"[white]LLM model:[/white]      {model or 'from config'}\n"
+        f"[white]GCM model:[/white]      {gcm_model or 'unspecified'}\n"
         f"[white]Auth:[/white]           {auth_display}\n"
         f"[white]Modules:[/white]        {modules or 'all'}\n"
         f"[white]Max repairs:[/white]    {max_repair_iterations}\n"
@@ -177,6 +182,7 @@ def convert(
             skip_repair=skip_repair,
             force_retranslate=force,
             module_list=module_list,
+            gcm_model_name=gcm_model,
             verbose=verbose,
             analysis_dir=Path(analysis_dir).resolve() if analysis_dir else None,
         )
@@ -214,7 +220,7 @@ def convert(
 @click.argument("fortran_directory", type=click.Path(exists=True, file_okay=False))
 @click.option("--output", "-o", default=None, metavar="DIR",
               help="Directory for analysis reports.  "
-                   "Defaults to <fortran_dir>/transjax_analysis.")
+                   "Defaults to <cwd>/transjax_analysis.")
 @click.option("--template", "-t", default="auto", show_default=True,
               metavar="TEMPLATE",
               help="Project type template (see command help for choices).")
@@ -240,7 +246,7 @@ def analyze(
     and spot potential issues (circular deps, large modules, etc.).
 
     \b
-    Output files (written to --output, default <fortran_dir>/transjax_analysis):
+    Output files (written to --output, default <cwd>/transjax_analysis):
       analysis_results.json   full structured results (modules, deps, stats)
       analysis_summary.txt    human-readable report
       translation_units.json  per-function breakdown with complexity scores
@@ -280,7 +286,7 @@ def analyze(
         logging.basicConfig(level=logging.DEBUG)
 
     fortran_path = Path(fortran_directory).resolve()
-    output_dir = output or str(fortran_path / "transjax_analysis")
+    output_dir = output or str(Path.cwd() / "transjax_analysis")
 
     console.print(f"[cyan]Analysing:[/cyan] {fortran_path}")
     console.print(f"[cyan]Template:[/cyan]  {template}")

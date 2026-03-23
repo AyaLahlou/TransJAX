@@ -17,6 +17,7 @@ numerics into differentiable, GPU-ready JAX code.
   rules (no Python control-flow inside jitted functions).
 - **Automated tests** — generates `pytest` files for every translated module.
 - **Repair loop** — iteratively fixes test failures using root-cause analysis.
+
 ---
 
 ## Installation
@@ -37,19 +38,27 @@ pip install -e ".[dev]"
 
 ## Quick start
 
-### 1. Set your Anthropic API key or Claude OAuth token
+### 1. Authenticate
+
+**Option 1 — Claude Pro/Max subscription (recommended):**
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
-# or copy the template and fill it in
-transjax init && cp .env.template .env
+claude login          # one-time setup; no API key needed
 ```
-Pro and Max subscribers can generate an OAuth token by running ```claude setup-token``` locally, which produces a ```CLAUDE_CODE_OAUTH_TOKEN```. This token can be used in place of ```ANTHROPIC_API_KEY``` specifically in Claude Code and the ```claude-code-action``` GitHub Action.
-### 2. Inspect the codebase first 
+
+TransJAX automatically picks up the `CLAUDE_CODE_OAUTH_TOKEN` set by `claude login`.
+
+**Option 2 — Pay-per-use API key:**
+
+```bash
+transjax init                    # creates .env.template in the current directory
+cp .env.template .env            # then open .env and set ANTHROPIC_API_KEY
+```
+
+### 2. Inspect the codebase first
 
 ```bash
 transjax analyze /path/to/fortran_project --output /path/to/output_dir
-
 ```
 
 ### 3. Translate
@@ -69,14 +78,15 @@ Usage: transjax [OPTIONS] COMMAND [ARGS]...
 
   TransJAX — translate Fortran scientific code to JAX.
 
-  Common workflow:
-    transjax analyze /path/to/fortran_project --output /path/to/output_dir        
-    transjax convert /path/to/fortran -o ./out  # translate + test + repair
+  Recommended workflow:
+    1. transjax init                           # set up authentication
+    2. transjax analyze /path/to/fortran       # inspect the project first
+    3. transjax convert /path/to/fortran -o ./out  # translate + test + repair
 
 Commands:
   analyze      Analyse a Fortran codebase without translating it.
   convert      Translate a Fortran codebase to JAX (full pipeline).
-  init         Create a .env.template file in the current directory.
+  init         Create a .env.template file and show authentication options.
   show-config  Print the active configuration (YAML).
 ```
 
@@ -93,15 +103,17 @@ Commands:
 | `--force` | false | Re-translate existing files |
 | `--modules` | all | Comma-separated module filter |
 | `--temperature` | 0.0 | LLM temperature |
+| `--analysis-dir` | auto | Reuse an existing `transjax analyze` output directory instead of re-running analysis |
+| `--gcm-model` | none | GCM/ESM name injected into prompts for model-specific context (e.g. `CTSM`, `MOM6`) |
 | `--verbose / -v` | false | Verbose logging |
 
 #### `transjax analyze`
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--output / -o` | `<src>/transjax_analysis` | Output directory |
-| `--template / -t` | `auto` | Project template (auto, ctsm, scientific_computing, generic, …) |
-| `--no-graphs` | false | Skip graph visualisation |
+| `--output / -o` | `<cwd>/transjax_analysis` | Output directory |
+| `--template / -t` | `auto` | Project template: `auto`, `generic`, `scientific_computing`, `numerical_library`, `climate_model`, `ctsm` |
+| `--no-graphs` | false | Skip GraphML/JSON dependency graph generation |
 | `--verbose / -v` | false | Verbose logging |
 
 ---
