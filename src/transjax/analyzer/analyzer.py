@@ -210,6 +210,12 @@ class FortranAnalyzer:
 
             elapsed = time.time() - start_time
 
+            # Step 5: Build file-level translation order
+            logger.info("Step 5: Computing file-level translation order")
+            file_translation_order = self.call_graph_builder.get_file_translation_order(
+                modules
+            )
+
             # Compile results
             self.results = {
                 "config": {
@@ -238,6 +244,7 @@ class FortranAnalyzer:
                     "units": len(translation_units),
                     "statistics": translation_stats,
                     "translation_order": self.call_graph_builder.get_translation_order(),
+                    "file_translation_order": file_translation_order,
                 },
             }
 
@@ -246,6 +253,7 @@ class FortranAnalyzer:
                 self._save_analysis_results()
                 self._export_graphs()
                 self._export_translation_units(translation_units)
+                self._export_file_translation_order(file_translation_order)
 
             elapsed_time = time.time() - start_time
             logger.info(f"Analysis completed in {elapsed_time:.2f} seconds")
@@ -393,6 +401,29 @@ class FortranAnalyzer:
             )
             f.write(f"  Hub Modules: {len(analysis.get('hub_modules', []))}\n\n")
 
+            # File translation order
+            file_order = (
+                self.results.get("translation", {}).get("file_translation_order", [])
+            )
+            if file_order:
+                max_depth = max(e["depth"] for e in file_order)
+                n_circ = sum(1 for e in file_order if e["circular_dep_involved"])
+                f.write("File Translation Order:\n")
+                f.write(f"  Total files:          {len(file_order)}\n")
+                f.write(f"  Dependency depth:     0 – {max_depth}\n")
+                f.write(f"  Circular dep files:   {n_circ}\n")
+                f.write(f"  Is strict DAG:        {'yes' if n_circ == 0 else 'no (see circular_dep_involved flag)'}\n\n")
+
+                f.write(f"  {'Rank':<6} {'Depth':<6} {'Deps':<5} {'Subs':<5} {'File'}\n")
+                f.write(f"  {'-'*6} {'-'*6} {'-'*5} {'-'*5} {'-'*50}\n")
+                for entry in file_order:
+                    f.write(
+                        f"  {entry['rank']:<6} {entry['depth']:<6} "
+                        f"{entry['n_internal_deps']:<5} {entry['n_subroutines']:<5} "
+                        f"{entry['file']}\n"
+                    )
+                f.write("\n")
+
             # Recommendations
             recommendations = self.results.get("recommendations", {})
 
@@ -436,6 +467,46 @@ class FortranAnalyzer:
             logger.info(f"Translation units exported to {units_file}")
         except Exception as e:
             logger.error(f"Failed to export translation units: {e}")
+
+    def _export_file_translation_order(
+        self, file_translation_order: List[Dict[str, Any]]
+    ) -> None:
+        """Write translation_order.json — the authoritative file-level translation plan."""
+        if not file_translation_order:
+            return
+
+        order_file = self.output_dir / "translation_order.json"
+
+        n_files = len(file_translation_order)
+        max_depth = max((e["depth"] for e in file_translation_order), default=0)
+        n_circular = sum(1 for e in file_translation_order if e["circular_dep_involved"])
+
+        output = {
+            "description": (
+                "Fortran files in topological translation order. "
+                "Translate rank-1 files first (depth 0 = no internal dependencies), "
+                "then proceed to higher ranks.  Files at the same depth are independent "
+                "of each other and may be translated in parallel."
+            ),
+            "summary": {
+                "total_files": n_files,
+                "max_depth": max_depth,
+                "depth_groups": {
+                    str(d): sum(
+                        1 for e in file_translation_order if e["depth"] == d
+                    )
+                    for d in range(max_depth + 1)
+                },
+                "files_with_circular_deps": n_circular,
+                "is_dag": n_circular == 0,
+            },
+            "files": file_translation_order,
+        }
+
+        with open(order_file, "w") as f:
+            json.dump(output, f, indent=2)
+
+        logger.info(f"File translation order saved to {order_file}")
 
     def _make_serializable(self, obj) -> Union[Dict, List, str, int, float, bool, None]:
         """Convert objects to JSON-serializable format."""
@@ -484,6 +555,31 @@ class FortranAnalyzer:
             >>> print(f"Start by translating: {order[0]}")
         """
         return self.call_graph_builder.get_translation_order()
+
+    def get_file_translation_order(self) -> List[Dict[str, Any]]:
+        """
+        Return Fortran files ordered from fewest to most internal dependencies.
+
+        Each entry is a dict with: rank, depth, file, modules,
+        n_internal_deps, depends_on_files, n_dependents, depended_by_files,
+        n_subroutines, n_functions, n_types, line_count, circular_dep_involved.
+
+        Depth 0 = no internal dependencies (translate first).
+        Files at the same depth are mutually independent and can be translated
+        in parallel.
+
+        Returns:
+            List[Dict[str, Any]]: Ordered file list (empty if analyze() not yet called).
+
+        Example:
+            >>> analyzer = create_analyzer_for_project('/path/to/project')
+            >>> results = analyzer.analyze()
+            >>> for entry in analyzer.get_file_translation_order():
+            ...     print(f"[{entry['depth']}] {entry['file']}")
+        """
+        return (
+            self.results.get("translation", {}).get("file_translation_order", [])
+        )
 
     def get_summary_statistics(self) -> Dict[str, Any]:
         """

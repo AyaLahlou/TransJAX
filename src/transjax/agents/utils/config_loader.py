@@ -16,7 +16,7 @@ except Exception:
         return Path(__file__).parent / "default_config.yaml"
 
 _DEFAULT_LLM_CONFIG: Dict[str, Any] = {
-    "model": "claude-sonnet-4-5",
+    "model": "claude-sonnet-4-6",
     "temperature": 0.0,
     "max_tokens": 48000,
     "timeout": 600,

@@ -5,7 +5,7 @@
 
 # LLM Configuration
 llm:
-  model: "claude-sonnet-4-5"
+  model: "claude-sonnet-4-6"
   temperature: 0.0        # Deterministic for code generation
   max_tokens: 48000
   timeout: 600            # seconds

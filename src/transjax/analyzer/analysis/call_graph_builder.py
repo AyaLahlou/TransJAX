@@ -131,13 +131,9 @@ class CallGraphBuilder:
                 ) as f:
                     content = f.read()
 
-                # Find CALL statements using regex
-                import re
-
-                call_pattern = r"call\s+(\w+)(?:\s*\(|$)"
-                re.findall(call_pattern, content, re.IGNORECASE)
-
                 # For each entity in this module, check if it makes calls
+                import re
+                call_pattern = r"call\s+(\w+)(?:\s*\(|$)"
                 for entity in module_info.entities:
                     if entity.entity_type in ["subroutine", "function"]:
                         caller_id = f"{module_name}::{entity.name}"
@@ -237,7 +233,10 @@ class CallGraphBuilder:
         except:
             logger.warning("Could not find strongly connected components")
 
-        # Calculate dependency levels (topological sort)
+        # Calculate dependency levels (topological sort).
+        # Edge direction: A -> B means "A depends on B".
+        # Level 0 = no internal dependencies (translate first).
+        # Level N = depends on files at max level N-1.
         try:
             # Remove external nodes for topological sort
             internal_graph = self.module_graph.subgraph(
@@ -249,12 +248,14 @@ class CallGraphBuilder:
             )
 
             if nx.is_directed_acyclic_graph(internal_graph):
-                topo_order = list(nx.topological_sort(internal_graph))
-                levels = {}
-                for i, node in enumerate(topo_order):
-                    levels[node] = i
+                # Reverse topological order: dependencies (out_degree=0) come first.
+                topo_order = list(reversed(list(nx.topological_sort(internal_graph))))
+                levels: Dict[str, int] = {}
+                for node in topo_order:
+                    deps = [s for s in internal_graph.successors(node)]
+                    levels[node] = (max(levels[d] for d in deps) + 1) if deps else 0
                 analysis["dependency_levels"] = levels
-        except:
+        except Exception:
             logger.warning("Could not calculate dependency levels")
 
         # Find external dependencies
@@ -398,6 +399,175 @@ class CallGraphBuilder:
                 remaining.remove(chosen)
 
             return order
+
+    def get_file_translation_order(
+        self, modules: Dict[str, "ModuleInfo"]
+    ) -> List[Dict[str, Any]]:
+        """
+        Return Fortran files ordered from fewest to most internal dependencies.
+
+        Produces a file-level topological ordering that tells a translation agent
+        exactly which files to translate first (depth 0 — no internal deps) and
+        which to translate last (highest depth — most transitive dependents).
+
+        Edge semantics: A → B means "A depends on B".
+        Depth semantics: depth 0 = no outgoing edges (translate first).
+
+        Args:
+            modules: Parsed module info dict (output of FortranParser.parse_project).
+
+        Returns:
+            List of dicts, one per Fortran file, in translation order::
+
+                {
+                  "rank":               int,   # 1-based position (1 = first to translate)
+                  "depth":              int,   # 0 = no internal deps
+                  "file":               str,   # absolute file path
+                  "modules":            list,  # module names defined in this file
+                  "n_internal_deps":    int,   # # of internal files this file depends on
+                  "depends_on_files":   list,  # internal files this file needs first
+                  "n_dependents":       int,   # # of internal files that need this file
+                  "depended_by_files":  list,  # files that depend on this file
+                  "n_subroutines":      int,
+                  "n_functions":        int,
+                  "n_types":            int,
+                  "line_count":         int,
+                  "circular_dep_involved": bool,
+                }
+        """
+        if not modules:
+            return []
+
+        # ------------------------------------------------------------------ #
+        # 1. Build module → file mapping and per-file metadata                #
+        # ------------------------------------------------------------------ #
+        module_to_file: Dict[str, str] = {}
+        file_meta: Dict[str, Dict[str, Any]] = {}
+
+        for mod_name, mod_info in modules.items():
+            fp = str(mod_info.file_path)
+            module_to_file[mod_name] = fp
+            if fp not in file_meta:
+                file_meta[fp] = {
+                    "modules": [],
+                    "line_count": 0,
+                    "subroutines": 0,
+                    "functions": 0,
+                    "types": 0,
+                }
+            file_meta[fp]["modules"].append(mod_name)
+            file_meta[fp]["line_count"] += mod_info.line_count
+            file_meta[fp]["subroutines"] += len(mod_info.subroutines)
+            file_meta[fp]["functions"] += len(mod_info.functions)
+            file_meta[fp]["types"] += len(mod_info.types)
+
+        # ------------------------------------------------------------------ #
+        # 2. Build file-level dependency graph (X → Y: X depends on Y)       #
+        # ------------------------------------------------------------------ #
+        file_graph: nx.DiGraph = nx.DiGraph()
+        file_graph.add_nodes_from(file_meta.keys())
+
+        for mod_name, mod_info in modules.items():
+            src_file = str(mod_info.file_path)
+            for use in mod_info.uses:
+                dep_mod = use["module"] if isinstance(use, dict) else use
+                if not isinstance(dep_mod, str):
+                    continue
+                if dep_mod not in module_to_file:
+                    continue  # external dependency — skip
+                dep_file = module_to_file[dep_mod]
+                if dep_file != src_file:
+                    file_graph.add_edge(src_file, dep_file)
+
+        # ------------------------------------------------------------------ #
+        # 3. Identify files involved in circular dependencies                 #
+        # ------------------------------------------------------------------ #
+        files_in_cycles: set = set()
+        try:
+            for cycle in nx.simple_cycles(file_graph):
+                files_in_cycles.update(cycle)
+        except Exception:
+            pass
+
+        # ------------------------------------------------------------------ #
+        # 4. Compute depth levels and translation order                       #
+        # ------------------------------------------------------------------ #
+        depth: Dict[str, int] = {}
+
+        if nx.is_directed_acyclic_graph(file_graph):
+            # Reverse topological order: dependencies (no outgoing edges) first.
+            topo = list(reversed(list(nx.topological_sort(file_graph))))
+            for fp in topo:
+                deps = list(file_graph.successors(fp))  # files fp depends on
+                depth[fp] = (max(depth[d] for d in deps) + 1) if deps else 0
+            ordered = sorted(file_meta.keys(), key=lambda fp: (depth.get(fp, 0), fp))
+
+        else:
+            # Cyclic graph — use Kahn-style heuristic (process min-out-degree first).
+            remaining: set = set(file_meta.keys())
+            ordered = []
+            approx_depth = 0
+
+            while remaining:
+                # Nodes whose dependencies are all already scheduled
+                candidates = [
+                    fp for fp in remaining
+                    if all(s not in remaining for s in file_graph.successors(fp))
+                ]
+                if not candidates:
+                    # Break cycle: pick file with fewest unresolved deps
+                    candidates = [
+                        min(
+                            remaining,
+                            key=lambda fp: sum(
+                                1 for s in file_graph.successors(fp) if s in remaining
+                            ),
+                        )
+                    ]
+                    approx_depth += 1
+
+                # Among candidates, prefer files depended-on by more others
+                candidates.sort(
+                    key=lambda fp: (
+                        -sum(1 for p in file_graph.predecessors(fp) if p in remaining),
+                        fp,
+                    )
+                )
+
+                for fp in candidates:
+                    depth[fp] = approx_depth
+                    ordered.append(fp)
+                    remaining.remove(fp)
+
+                approx_depth += 1
+
+        # ------------------------------------------------------------------ #
+        # 5. Build final annotated list                                        #
+        # ------------------------------------------------------------------ #
+        result: List[Dict[str, Any]] = []
+        for rank, fp in enumerate(ordered, start=1):
+            meta = file_meta[fp]
+            dep_files = sorted(file_graph.successors(fp))
+            by_files = sorted(file_graph.predecessors(fp))
+            result.append(
+                {
+                    "rank": rank,
+                    "depth": depth.get(fp, 0),
+                    "file": fp,
+                    "modules": sorted(meta["modules"]),
+                    "n_internal_deps": len(dep_files),
+                    "depends_on_files": dep_files,
+                    "n_dependents": len(by_files),
+                    "depended_by_files": by_files,
+                    "n_subroutines": meta["subroutines"],
+                    "n_functions": meta["functions"],
+                    "n_types": meta["types"],
+                    "line_count": meta["line_count"],
+                    "circular_dep_involved": fp in files_in_cycles,
+                }
+            )
+
+        return result
 
     def export_graphs(
         self, output_dir: Path, formats: List[str] = ["graphml", "gexf"]

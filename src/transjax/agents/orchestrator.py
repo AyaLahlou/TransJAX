@@ -20,6 +20,7 @@ from transjax.agents.repair_agent import RepairAgent
 from transjax.agents.test_agent import TestAgent
 from transjax.agents.translator import TranslatorAgent
 from transjax.agents.utils.config_loader import get_llm_config
+from transjax.agents.utils.translation_state import TranslationStateManager
 from transjax.analyzer.analyzer import create_analyzer_for_project
 
 console = Console()
@@ -78,6 +79,7 @@ class OrchestratorAgent:
         gcm_model_name: Optional[str] = None,
         verbose: bool = False,
         analysis_dir: Optional[Path] = None,
+        translation_mode: str = "units",
     ):
         self.fortran_dir = fortran_dir
         self.output_dir = output_dir
@@ -88,6 +90,7 @@ class OrchestratorAgent:
         self.module_list = module_list  # preserved exactly as supplied by the user
         self.gcm_model_name = gcm_model_name or "unspecified"
         self.verbose = verbose
+        self.translation_mode = translation_mode  # "units" | "whole"
 
         # Create output directories
         self.src_dir = output_dir / "src"
@@ -123,6 +126,7 @@ class OrchestratorAgent:
             temperature=temperature if temperature is not None else llm_config.get("temperature"),
             fortran_root=fortran_dir,
             gcm_model_name=self.gcm_model_name,
+            translation_mode=self.translation_mode,
         )
 
         if not skip_tests:
@@ -138,9 +142,12 @@ class OrchestratorAgent:
                 max_repair_iterations=max_repair_iterations,
             )
 
-        # State tracking
+        # In-session state (ModuleStatus objects populated during this run)
         self.completed_modules: Set[str] = set()
         self.module_statuses: Dict[str, ModuleStatus] = {}
+
+        # Persistent state manager — loaded lazily in run() once analysis_dir is resolved
+        self.state_manager: Optional[TranslationStateManager] = None
 
     def run(self) -> Dict[str, Any]:
         """Execute the complete translation pipeline."""
@@ -149,21 +156,31 @@ class OrchestratorAgent:
         # Step 1: Static Analysis
         analysis_data = self._run_static_analysis()
 
-        # Step 2: Determine translation order
-        console.print("\n[bold]Step 2: Determining Translation Order[/bold]")
+        # Step 2: Load / initialise persistent state
+        console.print("\n[bold]Step 2: Loading Translation State[/bold]")
+        self._init_state_manager(analysis_data)
+
+        # Step 3: Determine which modules to translate this run
+        console.print("\n[bold]Step 3: Determining Translation Order[/bold]")
         modules_to_translate = self._determine_translation_order(analysis_data)
 
         if not modules_to_translate:
-            console.print("[yellow]No modules to translate.[/yellow]")
-            return PipelineResults(0, 0, 0, 0, 0, 0).to_dict()
+            console.print("[yellow]No modules to translate — all done or no modules found.[/yellow]")
+            if self.state_manager:
+                self.state_manager.save()
+            return {**PipelineResults(0, 0, 0, 0, 0, 0).to_dict(),
+                    "state_file": str(self.state_manager.state_path) if self.state_manager else ""}
 
-        console.print(f"[green]Found {len(modules_to_translate)} modules to translate[/green]")
+        console.print(f"[green]{len(modules_to_translate)} module(s) selected for this run[/green]")
 
         for module_name in modules_to_translate:
             self.module_statuses[module_name] = ModuleStatus(name=module_name)
+            # If force-retranslating, reset state so we don't skip it
+            if self.force_retranslate:
+                self.state_manager.reset_module(module_name)
 
-        # Step 3: Translate modules
-        console.print("\n[bold]Step 3: Translating Modules[/bold]")
+        # Step 4: Translate modules
+        console.print("\n[bold]Step 4: Translating Modules[/bold]")
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -179,9 +196,115 @@ class OrchestratorAgent:
             for module_name in modules_to_translate:
                 progress.update(task, description=f"[cyan]Translating {module_name}...")
                 self._process_module(module_name, analysis_data)
+                # Persist progress after every module so partial runs are recoverable
+                self.state_manager.save()
                 progress.advance(task)
 
-        return self._generate_summary().to_dict()
+        summary = self._generate_summary()
+        self.state_manager.save()
+
+        return {
+            **summary.to_dict(),
+            "state_file": str(self.state_manager.state_path),
+            "state_summary": self.state_manager.get_summary(),
+        }
+
+    def _init_state_manager(self, analysis_data: Dict[str, Any]) -> None:
+        """
+        Load or create the persistent TranslationStateManager.
+
+        Attempts to initialise the ordered module list from:
+          1. ``translation_order.json`` written by ``transjax analyze``
+          2. Inline ``file_translation_order`` inside ``analysis_results.json``
+          3. Fallback: ``dependency_levels`` dict from ``analysis_results.json``
+        """
+        self.state_manager = TranslationStateManager(
+            output_dir=self.output_dir,
+            fortran_dir=self.fortran_dir,
+            analysis_dir=self.analysis_dir,
+        )
+        self.state_manager.load()
+
+        added = 0
+
+        # 1. Try translation_order.json (written by transjax analyze / our new code)
+        order_file = self.analysis_dir / "translation_order.json"
+        if not order_file.exists():
+            # Also check internal analysis dir in case convert ran its own analysis
+            order_file = self._internal_analysis_dir / "translation_order.json"
+
+        if order_file.exists():
+            try:
+                order_data = json.loads(order_file.read_text())
+                file_order = order_data.get("files", [])
+                added = self.state_manager.initialize_from_order(file_order)
+                if added:
+                    console.print(
+                        f"[dim]Initialised state from {order_file} "
+                        f"({added} modules)[/dim]"
+                    )
+            except Exception as exc:
+                logger.warning("Could not load translation_order.json: %s", exc)
+
+        # 2. Inline file_translation_order in analysis_results
+        if not added:
+            results = analysis_data.get("analysis_results", {})
+            file_order = (
+                results.get("translation", {}).get("file_translation_order", [])
+            )
+            if file_order:
+                added = self.state_manager.initialize_from_order(file_order)
+                if added:
+                    console.print(
+                        f"[dim]Initialised state from inline file_translation_order "
+                        f"({added} modules)[/dim]"
+                    )
+
+        # 3. Fallback: dependency_levels
+        if not added:
+            results = analysis_data.get("analysis_results", {})
+            dep_levels = (
+                results.get("dependencies", {})
+                .get("analysis", {})
+                .get("dependency_levels", {})
+            )
+            all_modules = list(
+                (results.get("modules") or
+                 results.get("parsing", {}).get("modules", {})).keys()
+            )
+            if all_modules:
+                added = self.state_manager.initialize_from_module_list(
+                    all_modules, dependency_levels=dep_levels
+                )
+                if added:
+                    console.print(
+                        f"[dim]Initialised state from dependency_levels "
+                        f"({added} modules)[/dim]"
+                    )
+
+        # 4. Infer already-done modules from existing output files (sync)
+        synced = self.state_manager.sync_from_output(self.src_dir)
+        if synced:
+            console.print(
+                f"[dim]Detected {synced} already-translated module(s) "
+                "from output directory.[/dim]"
+            )
+
+        state_summary = self.state_manager.get_summary()
+        console.print(
+            f"[cyan]State:[/cyan] "
+            f"{state_summary['translated']}/{state_summary['total']} translated "
+            f"({state_summary['percent_done']}%), "
+            f"{state_summary['pending']} pending, "
+            f"{state_summary['failed']} failed"
+        )
+        if state_summary["next_suggested"]:
+            console.print(
+                f"[cyan]Next suggested:[/cyan] "
+                f"[bold]{state_summary['next_suggested']}[/bold] "
+                f"(depth {state_summary['next_depth']})"
+            )
+        self.state_manager.save()
 
     def _get_module_info(self, module_name: str, analysis_results: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
@@ -261,15 +384,58 @@ class OrchestratorAgent:
                 console.print(f"[green]All tests passed: {module_name}[/green]")
                 return
 
-            # Step 4: Repair (simplified for brevity, original logic remains)
+            # Step 4: Repair
             if not self.skip_repair:
-                # Repair logic here...
-                pass
+                try:
+                    fortran_code = self._read_fortran_source(module_name, analysis_data)
+                except Exception:
+                    fortran_code = "(Fortran source not available)"
+
+                repair_result = self.repair_agent.repair_translation(
+                    module_name=module_name,
+                    fortran_code=fortran_code,
+                    failed_python_code=translation_result.physics_code,
+                    test_report=test_report,
+                    test_file_path=test_file_path,
+                    output_dir=self.reports_dir,
+                )
+                status.repair_attempts = repair_result.iterations
+
+                if repair_result.all_tests_passed:
+                    # Overwrite the saved JAX file with the repaired code
+                    source_subdir = translation_result.source_directory
+                    corrected_path = (
+                        self.src_dir / source_subdir / f"{module_name}.py"
+                        if source_subdir else self.src_dir / f"{module_name}.py"
+                    )
+                    corrected_path.write_text(repair_result.corrected_python_code)
+                    status.tests_passed = True
+                    status.final_status = "success"
+                    console.print(f"[green]Repair successful: {module_name}[/green]")
+                else:
+                    status.final_status = "failed"
+                    status.error_message = (
+                        f"Repair did not converge after {repair_result.iterations} iteration(s)"
+                    )
+                    console.print(f"[red]Repair failed after {repair_result.iterations} iteration(s): {module_name}[/red]")
+            else:
+                status.final_status = "failed"
 
         except Exception as e:
             status.final_status = "failed"
             status.error_message = str(e)
             console.print(f"[red]Error processing {module_name}: {e}[/red]")
+
+        finally:
+            # Always persist module outcome to the state manager
+            if self.state_manager:
+                self.state_manager.mark_module(
+                    module_name,
+                    status="success" if status.final_status == "success" else "failed",
+                    tests_passed=status.tests_passed,
+                    repair_attempts=status.repair_attempts,
+                    error_message=status.error_message,
+                )
 
     def _read_fortran_source(self, module_name: str, analysis_data: Dict[str, Any]) -> str:
         """Read original Fortran source for a module using robust lookup."""
@@ -355,32 +521,73 @@ class OrchestratorAgent:
                     json.dump(units_data, f, indent=2, default=str)
 
     def _determine_translation_order(self, analysis_data: Dict[str, Any]) -> List[str]:
-        # 1. Access the correct level
-        results = analysis_data.get('analysis_results', analysis_data)
+        """
+        Determine the ordered list of modules to translate in this run.
 
-        # 2. Use .get(..., {}) to prevent NoneType attribute errors
-        deps_data = results.get('dependencies') or {}
-
-        # 3. Check for the 'analysis' -> 'dependency_levels' structure
-        if isinstance(deps_data, dict) and 'analysis' in deps_data:
-            analysis_section = deps_data.get('analysis') or {}
-            dependency_levels = analysis_section.get('dependency_levels', {})
-            ordered = sorted(dependency_levels.keys(), key=lambda k: dependency_levels[k])
-        else:
-            # Fallback: use module keys
-            modules = results.get('modules') or {}
-            ordered = sorted(modules.keys())
-
-        # 4. Filter by manual list if provided
+        Priority:
+          1. If ``--modules`` was given explicitly, honour that list exactly
+             (filtered through the dependency order for correctness).
+          2. Otherwise, use the persistent state manager's pending module list
+             (which is already in dependency order).
+          3. Unless ``--force``, skip modules already marked ``success``.
+        """
+        # --- Case 1: explicit module list from the user ---
         if self.module_list:
-            ordered = [m for m in ordered if m in self.module_list]
+            # Preserve dependency order for the requested subset
+            if self.state_manager and self.state_manager.get_ordered_modules():
+                state_order = [
+                    e["module"]
+                    for e in self.state_manager.get_ordered_modules()
+                    if e["module"] in self.module_list
+                ]
+                # Append any explicitly requested modules not in state (edge case)
+                in_state = set(state_order)
+                extras = [m for m in self.module_list if m not in in_state]
+                ordered = state_order + extras
+            else:
+                ordered = list(self.module_list)
 
-        return ordered
+            if not self.force_retranslate and self.state_manager:
+                skipped = [m for m in ordered if self.state_manager.is_translated(m)]
+                if skipped:
+                    console.print(
+                        f"[dim]Skipping {len(skipped)} already-translated module(s) "
+                        f"(use --force to re-translate): "
+                        f"{', '.join(skipped[:5])}"
+                        f"{'…' if len(skipped) > 5 else ''}[/dim]"
+                    )
+                ordered = [m for m in ordered if not self.state_manager.is_translated(m)]
+
+            return ordered
+
+        # --- Case 2: state-driven automatic order ---
+        if self.state_manager and self.state_manager.get_ordered_modules():
+            if self.force_retranslate:
+                # Re-translate everything in order
+                return [e["module"] for e in self.state_manager.get_ordered_modules()]
+            else:
+                pending = self.state_manager.get_pending_modules()
+                failed = [
+                    e["module"]
+                    for e in self.state_manager.get_ordered_modules()
+                    if e["status"] == "failed"
+                ]
+                # Pending first (in order), then failed (retry), then done = skip
+                return pending + [m for m in failed if m not in pending]
+
+        # --- Case 3: no state, fall back to raw analysis ---
+        results = analysis_data.get('analysis_results', analysis_data)
+        deps_data = results.get('dependencies') or {}
+        if isinstance(deps_data, dict) and 'analysis' in deps_data:
+            dep_levels = (deps_data.get('analysis') or {}).get('dependency_levels', {})
+            return sorted(dep_levels.keys(), key=lambda k: dep_levels[k])
+        modules = results.get('modules') or {}
+        return sorted(modules.keys())
 
     def _run_tests(self, test_file: Path) -> str:
         try:
             result = subprocess.run(
-                ["pytest", str(test_file), "-v", "--tb=short"],
+                [sys.executable, "-m", "pytest", str(test_file), "-v", "--tb=short"],
                 capture_output=True, text=True, timeout=300
             )
             return result.stdout + "\n" + result.stderr

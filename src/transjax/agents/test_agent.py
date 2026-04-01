@@ -133,7 +133,7 @@ class TestAgent(BaseAgent):
         super().__init__(
             name="TestAgent",
             role="JAX test generator",
-            model=model or llm_config.get("model", "claude-sonnet-4-5"),
+            model=model or llm_config.get("model", "claude-sonnet-4-6"),
             temperature=temperature if temperature is not None else llm_config.get("temperature", 0.0),
             max_tokens=max_tokens or llm_config.get("max_tokens", 32000),
         )
