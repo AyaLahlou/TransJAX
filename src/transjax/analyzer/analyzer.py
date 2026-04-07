@@ -254,6 +254,7 @@ class FortranAnalyzer:
                 self._export_graphs()
                 self._export_translation_units(translation_units)
                 self._export_file_translation_order(file_translation_order)
+                self._generate_design_md()
 
             elapsed_time = time.time() - start_time
             logger.info(f"Analysis completed in {elapsed_time:.2f} seconds")
@@ -471,7 +472,7 @@ class FortranAnalyzer:
     def _export_file_translation_order(
         self, file_translation_order: List[Dict[str, Any]]
     ) -> None:
-        """Write translation_order.json — the authoritative file-level translation plan."""
+        """Write translation_order.json and translation_order.md."""
         if not file_translation_order:
             return
 
@@ -507,6 +508,34 @@ class FortranAnalyzer:
             json.dump(output, f, indent=2)
 
         logger.info(f"File translation order saved to {order_file}")
+
+        # Write a human-readable ordered list of module names
+        md_file = self.output_dir / "translation_order.md"
+        lines = ["# Translation Order\n",
+                 f"Modules ordered from fewest to most internal dependencies "
+                 f"({n_files} file(s), max depth {max_depth}).\n"]
+        for entry in file_translation_order:
+            for module in entry.get("modules", []):
+                lines.append(f"- {module}")
+        md_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        logger.info(f"Translation order (markdown) saved to {md_file}")
+
+    def _generate_design_md(self) -> None:
+        """Generate DESIGN.md in the output directory using ProjectDocGenerator."""
+        try:
+            from transjax.agents.utils.doc_generator import ProjectDocGenerator
+
+            gen = ProjectDocGenerator(
+                analysis_dir=self.output_dir,
+                output_dir=self.output_dir,
+                fortran_dir=Path(self.config.project_root),
+                gcm_model_name=self.config.project_name,
+            )
+            design_path = self.output_dir / "DESIGN.md"
+            design_path.write_text(gen.generate_design_md(), encoding="utf-8")
+            logger.info(f"DESIGN.md saved to {design_path}")
+        except Exception as exc:
+            logger.warning(f"Could not generate DESIGN.md: {exc}")
 
     def _make_serializable(self, obj) -> Union[Dict, List, str, int, float, bool, None]:
         """Convert objects to JSON-serializable format."""
@@ -770,3 +799,12 @@ def quick_analyze(
 
     analyzer = create_analyzer_for_project(project_root, template, **config_overrides)
     return analyzer.analyze()
+
+
+if __name__ == "__main__":
+    import subprocess
+    import sys
+    # Relative imports require the package context; delegate to `python -m`.
+    sys.exit(subprocess.call(
+        [sys.executable, "-m", "transjax.analyzer.analyzer"] + sys.argv[1:]
+    ))

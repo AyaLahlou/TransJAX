@@ -10,6 +10,17 @@ llm:
   max_tokens: 48000
   timeout: 600            # seconds
 
+  # Tmux CLI mode — route all claude calls through `claude` CLI in a tmux session.
+  # Recommended for HPC / long-running jobs. Requires `tmux` and `claude` on PATH.
+  use_tmux: false
+  tmux_poll_interval: 2   # seconds between output-file polls
+  tmux_timeout: 900       # max seconds to wait per claude call
+
+# Pipeline Configuration
+pipeline:
+  auto_git_commit: false          # commit output files to git after each successful module
+  git_commit_outputs_only: true   # only stage files under output_dir
+
 # Agent Configuration
 agents:
   orchestrator:

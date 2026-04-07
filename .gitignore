@@ -113,3 +113,17 @@ dmypy.json
 Thumbs.db
 *.err
 *.out
+
+# TransJAX runtime output (generated — never commit these)
+logs/
+jax_output/
+analysis/
+examples/**/output/
+examples/**/example_analysis/
+examples/**/src/
+
+# Claude Code local settings
+.claude/
+
+# Convenience wrapper (use `python -m transjax.analyzer` instead)
+analyze.py

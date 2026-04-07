@@ -14,7 +14,8 @@ import json
 import logging
 import subprocess
 import tempfile
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -25,6 +26,19 @@ from transjax.agents.utils.config_loader import get_llm_config
 
 console = Console()
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class RalphIteration:
+    """Structured log entry for one RALPH iteration."""
+    iteration: int
+    stage: str                          # run | assess | patch | halt
+    elapsed_s: float = 0.0
+    passed: int = 0
+    failed: int = 0
+    root_causes: List[str] = field(default_factory=list)
+    lines_changed: int = 0
+    halt_reason: str = ""               # filled only on halt stage
 
 
 @dataclass
@@ -126,7 +140,9 @@ class RepairAgent(BaseAgent):
         output_dir: Optional[Path] = None,
     ) -> RepairResult:
         """
-        Repair a failed Python/JAX translation.
+        Repair a failed Python/JAX translation using the RALPH loop.
+
+        RALPH: Run → Assess → Loop → Patch → Halt
 
         Args:
             module_name: Name of the module being repaired
@@ -139,85 +155,73 @@ class RepairAgent(BaseAgent):
         Returns:
             RepairResult with corrected code and analysis
         """
-        console.print(f"\n[bold cyan]🔧 Repairing {module_name}[/bold cyan]")
+        console.print(f"\n[bold cyan]🔧 RALPH loop — repairing {module_name}[/bold cyan]")
 
         current_python_code = failed_python_code
         iteration = 0
         all_tests_passed = False
+        ralph_log: List[RalphIteration] = []
+        test_results_history: List[Dict[str, Any]] = [{"iteration": 0, "report": test_report}]
 
-        # Step 1: Initial failure analysis
-        console.print("[cyan]Step 1: Analyzing test failures...[/cyan]")
-        failure_analysis = self._analyze_failure(
-            fortran_code, current_python_code, test_report, module_name
+        # Initial assess before first patch
+        failure_analysis = self._ralph_assess(
+            fortran_code, current_python_code, test_report, module_name,
+            ralph_log=ralph_log, iteration=0,
         )
-        console.print(f"[yellow]Found {len(failure_analysis.get('root_causes', []))} root cause(s)[/yellow]")
 
-        # Step 2: Iterative repair loop
-        test_results_history = [{"iteration": 0, "report": test_report}]
-
-        while iteration < self.max_repair_iterations and not all_tests_passed:
+        while not self._ralph_halt(
+            iteration, self.max_repair_iterations, all_tests_passed, ralph_log
+        ):
             iteration += 1
-            console.print(f"\n[bold cyan]Iteration {iteration}/{self.max_repair_iterations}[/bold cyan]")
-
-            # Generate fix
-            console.print(f"[cyan]Generating fix for iteration {iteration}...[/cyan]")
-            corrected_code = self._generate_fix(
-                fortran_code,
-                current_python_code,
-                failure_analysis,
-                test_report,
-                module_name,
+            console.print(
+                f"\n[bold cyan]RALPH iteration {iteration}/{self.max_repair_iterations}[/bold cyan]"
             )
 
-            # Verify fix conceptually
-            console.print("[cyan]Verifying fix...[/cyan]")
-            verification = self._verify_fix(
-                failure_analysis,
-                corrected_code,
-                failure_analysis.get("required_fixes", []),
+            # ── Patch ──────────────────────────────────────────────────
+            corrected_code = self._ralph_patch(
+                fortran_code, current_python_code, failure_analysis, test_report,
+                module_name, ralph_log=ralph_log, iteration=iteration,
             )
 
-            if verification.get("confidence_level") == "low":
-                console.print("[yellow]⚠ Low confidence in fix, but proceeding with testing[/yellow]")
-
-            # Run tests if test file is provided
             if test_file_path:
-                console.print("[cyan]Running tests...[/cyan]")
-                test_success, new_test_report = self._run_tests(
-                    corrected_code, test_file_path, module_name
+                # ── Run ────────────────────────────────────────────────
+                test_success, new_test_report = self._ralph_run(
+                    corrected_code, test_file_path, module_name,
+                    ralph_log=ralph_log, iteration=iteration,
                 )
-
-                test_results_history.append({
-                    "iteration": iteration,
-                    "report": new_test_report
-                })
+                test_results_history.append({"iteration": iteration, "report": new_test_report})
 
                 if test_success:
-                    console.print(f"[green]✓ All tests passed on iteration {iteration}![/green]")
                     all_tests_passed = True
                     current_python_code = corrected_code
                     test_report = new_test_report
-                    break
-                else:
-                    console.print("[yellow]Tests still failing, analyzing new failures...[/yellow]")
-                    # Re-analyze with new test report
-                    failure_analysis = self._analyze_failure(
-                        fortran_code, corrected_code, new_test_report, module_name
+                    self._ralph_halt(
+                        iteration, self.max_repair_iterations, True, ralph_log
                     )
-                    current_python_code = corrected_code
-                    test_report = new_test_report
+                    break
+
+                # ── Assess ─────────────────────────────────────────────
+                failure_analysis = self._ralph_assess(
+                    fortran_code, corrected_code, new_test_report, module_name,
+                    ralph_log=ralph_log, iteration=iteration,
+                )
+                current_python_code = corrected_code
+                test_report = new_test_report
             else:
-                # No test file, just accept the fix
-                console.print("[yellow]⚠ No test file provided, accepting fix without verification[/yellow]")
+                console.print("[yellow]⚠ No test file — accepting patch without verification[/yellow]")
                 current_python_code = corrected_code
                 all_tests_passed = True
                 break
 
         if not all_tests_passed:
-            console.print(f"[red]⚠ Maximum iterations ({self.max_repair_iterations}) reached[/red]")
-            console.print("[yellow]Some tests may still be failing[/yellow]")
+            console.print(f"[red]⚠ RALPH: max iterations ({self.max_repair_iterations}) reached[/red]")
+            ralph_log.append(RalphIteration(
+                iteration=iteration,
+                stage="halt",
+                halt_reason="max_iterations_reached",
+            ))
 
-        # Step 3: Generate comprehensive root cause analysis report
+        # Generate RCA report
         console.print("[cyan]Generating root cause analysis report...[/cyan]")
         rca_report = self._generate_root_cause_report(
             fortran_code,
@@ -240,12 +244,144 @@ class RepairAgent(BaseAgent):
             all_tests_passed=all_tests_passed,
         )
 
-        console.print("[green]✓ Repair process complete![/green]")
+        console.print("[green]✓ RALPH repair complete![/green]")
 
         if output_dir:
             result.save(output_dir)
+            self._save_ralph_log(module_name, ralph_log, output_dir)
 
         return result
+
+    # ------------------------------------------------------------------
+    # RALPH stage methods
+    # ------------------------------------------------------------------
+
+    def _ralph_run(
+        self,
+        python_code: str,
+        test_file_path: Path,
+        module_name: str,
+        ralph_log: List[RalphIteration],
+        iteration: int,
+    ) -> Tuple[bool, str]:
+        """RALPH stage R — Run tests and record outcome."""
+        console.print("[cyan][R] Run tests...[/cyan]")
+        t0 = time.monotonic()
+        success, test_report = self._run_tests(python_code, test_file_path, module_name)
+        elapsed = time.monotonic() - t0
+
+        passed_count = test_report.count(" passed")
+        failed_count = test_report.count(" failed")
+
+        ralph_log.append(RalphIteration(
+            iteration=iteration,
+            stage="run",
+            elapsed_s=round(elapsed, 2),
+            passed=passed_count,
+            failed=failed_count,
+        ))
+        icon = "[green]✓[/green]" if success else "[red]✗[/red]"
+        console.print(
+            f"  {icon} tests in {elapsed:.1f}s — "
+            f"passed={passed_count} failed={failed_count}"
+        )
+        return success, test_report
+
+    def _ralph_assess(
+        self,
+        fortran_code: str,
+        python_code: str,
+        test_report: str,
+        module_name: str,
+        ralph_log: List[RalphIteration],
+        iteration: int,
+    ) -> Dict[str, Any]:
+        """RALPH stage A — Assess failures with claude."""
+        console.print("[cyan][A] Assess failures...[/cyan]")
+        failure_analysis = self._analyze_failure(
+            fortran_code, python_code, test_report, module_name
+        )
+        root_causes = failure_analysis.get("root_causes", [])
+        console.print(f"  Found {len(root_causes)} root cause(s)")
+        ralph_log.append(RalphIteration(
+            iteration=iteration,
+            stage="assess",
+            root_causes=[str(rc) for rc in root_causes],
+        ))
+        return failure_analysis
+
+    def _ralph_patch(
+        self,
+        fortran_code: str,
+        python_code: str,
+        failure_analysis: Dict[str, Any],
+        test_report: str,
+        module_name: str,
+        ralph_log: List[RalphIteration],
+        iteration: int,
+    ) -> str:
+        """RALPH stage P — Patch the code with claude."""
+        console.print("[cyan][P] Patch code...[/cyan]")
+        corrected_code = self._generate_fix(
+            fortran_code, python_code, failure_analysis, test_report, module_name
+        )
+        lines_changed = abs(len(corrected_code.splitlines()) - len(python_code.splitlines()))
+        ralph_log.append(RalphIteration(
+            iteration=iteration,
+            stage="patch",
+            lines_changed=lines_changed,
+        ))
+        console.print(f"  Patch applied (~{lines_changed} lines changed)")
+        return corrected_code
+
+    def _ralph_halt(
+        self,
+        iteration: int,
+        max_iterations: int,
+        all_tests_passed: bool,
+        ralph_log: List[RalphIteration],
+    ) -> bool:
+        """RALPH stage H — check halt conditions."""
+        if all_tests_passed:
+            ralph_log.append(RalphIteration(
+                iteration=iteration,
+                stage="halt",
+                halt_reason="all_passed",
+            ))
+            console.print(f"[green][H] Halt — all tests passed (iteration {iteration})[/green]")
+            return True
+        if iteration >= max_iterations:
+            # The main loop will append halt log entry
+            return True
+        return False
+
+    def _save_ralph_log(
+        self,
+        module_name: str,
+        ralph_log: List[RalphIteration],
+        output_dir: Path,
+    ) -> None:
+        """Write ralph_log.json alongside other repair artifacts."""
+        log_path = output_dir / f"{module_name}_ralph_log.json"
+        data = {
+            "module": module_name,
+            "iterations": [
+                {
+                    "iteration": e.iteration,
+                    "stage": e.stage,
+                    "elapsed_s": e.elapsed_s,
+                    "passed": e.passed,
+                    "failed": e.failed,
+                    "root_causes": e.root_causes,
+                    "lines_changed": e.lines_changed,
+                    "halt_reason": e.halt_reason,
+                }
+                for e in ralph_log
+            ],
+        }
+        with open(log_path, "w") as f:
+            json.dump(data, f, indent=2)
+        console.print(f"[green]✓ Saved RALPH log → {log_path}[/green]")
 
     def _analyze_failure(
         self,

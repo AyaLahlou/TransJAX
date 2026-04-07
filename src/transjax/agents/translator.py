@@ -1,10 +1,13 @@
 """
 Translator Agent for converting Fortran to JAX.
 
-Translates Fortran subroutines/functions to JAX by:
-1. Pre-parsing the Fortran interface (no hallucination of argument counts/types)
-2. Translating each unit with a structured interface contract
-3. Assembling the module (skipped for single-unit modules)
+Translates a complete Fortran module to JAX in one pass by:
+1. Pre-parsing all subroutine/function interfaces (no hallucinated args/dtypes)
+2. Building a structured interface summary for the prompt
+3. Either:
+   a. SDK path: sending the full source + interface summary in one LLM call
+   b. Tmux path: writing a task file and running a full Claude Code agentic
+      session (--dangerously-skip-permissions) that reads/writes files itself
 4. Validating the output with ast.parse + heuristic checks
 """
 
@@ -12,6 +15,8 @@ import ast
 import json
 import logging
 import re
+import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -20,10 +25,9 @@ from rich.console import Console
 
 from transjax.agents.base_agent import BaseAgent
 from transjax.agents.prompts.translation_prompts import (
-    MODULE_ASSEMBLY_PROMPT,
+    MODULE_TASK_PROMPT,
+    MODULE_TRANSLATION_PROMPT,
     TRANSLATOR_SYSTEM_PROMPT,
-    UNIT_TRANSLATION_PROMPT,
-    WHOLE_MODULE_PROMPT,
 )
 from transjax.agents.utils.config_loader import get_llm_config
 
@@ -152,50 +156,53 @@ class TranslationResult:
 
 class TranslatorAgent(BaseAgent):
     """
-    Translates Fortran ESM code to JAX/Python.
+    Translates a complete Fortran ESM module to JAX/Python.
 
-    Key improvements over legacy translator:
-    - Pre-parses Fortran interface before sending to Claude (eliminates
-      argument-count / intent / dtype hallucinations).
-    - Uses structured UNIT_TRANSLATION_PROMPT with interface contract.
-    - Passes full previously-translated code as context (not 200-char snippets).
-    - Validates output with ast.parse + heuristic checks.
-    - Skips assembly LLM call for single-unit modules.
+    Always translates the full module in one pass (no unit-by-unit splitting).
+
+    Two execution paths:
+    - SDK path (default): one LLM call via Anthropic SDK with the full Fortran
+      source + pre-parsed interface contracts embedded in the prompt.
+    - Tmux path (use_tmux=True): writes a task file and launches a full Claude
+      Code agentic session (--dangerously-skip-permissions) that uses Read/
+      Write/Bash tools to translate, validate, and signal completion.
     """
 
     def __init__(
         self,
-        analysis_results_path: Optional[Path] = None,
-        translation_units_path: Optional[Path] = None,
-        reference_dir: Optional[Path] = None,
         fortran_root: Optional[Path] = None,
         gcm_model_name: Optional[str] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
-        translation_mode: str = "units",
+        use_tmux: bool = False,
+        tmux_poll_interval: float = 2.0,
+        tmux_timeout: float = 900.0,
     ):
         llm_config = get_llm_config()
         super().__init__(
             name="Translator",
             role="Fortran to JAX code translator",
-            model=model or llm_config.get("model", "claude-sonnet-4-5"),
+            model=model or llm_config.get("model", "claude-sonnet-4-6"),
             temperature=temperature if temperature is not None else llm_config.get("temperature", 0.0),
             max_tokens=max_tokens or llm_config.get("max_tokens", 48000),
+            use_tmux=use_tmux,
+            tmux_poll_interval=tmux_poll_interval,
+            tmux_timeout=tmux_timeout,
         )
 
-        self.reference_dir = reference_dir
         self.fortran_root = fortran_root
         self.gcm_model_name = gcm_model_name or "unspecified"
-        self.translation_mode = translation_mode  # "units" | "whole"
-        self.reference_patterns = self._load_reference_patterns()
-
-        self.analysis_results = self._load_json(analysis_results_path) if analysis_results_path else None
-        self.translation_units = self._load_json(translation_units_path) if translation_units_path else None
+        self.analysis_results: Optional[Dict[str, Any]] = None
 
     # ------------------------------------------------------------------ #
     # Public API                                                           #
     # ------------------------------------------------------------------ #
+
+    def load_analysis(self, analysis_results_path: Path) -> None:
+        """Load analysis results for module info lookup (file paths, etc.)."""
+        with open(analysis_results_path) as f:
+            self.analysis_results = json.load(f)
 
     def translate_module(
         self,
@@ -206,58 +213,43 @@ class TranslatorAgent(BaseAgent):
     ) -> TranslationResult:
         """Translate a complete Fortran module to JAX.
 
-        Dispatches to ``translate_module_whole`` when ``translation_mode == 'whole'``
-        or to the unit-by-unit pipeline when ``translation_mode == 'units'``.
+        Uses a full Claude Code agentic session when ``use_tmux=True``,
+        otherwise sends one SDK call with the full source embedded.
         """
-        if self.translation_mode == "whole":
-            return self.translate_module_whole(
-                module_name, fortran_file=fortran_file, output_dir=output_dir
-            )
+        console.print(f"\n[bold cyan]Translating {module_name} to JAX[/bold cyan]")
 
-        console.print(f"\n[bold cyan]🔄 Translating {module_name} to JAX[/bold cyan]")
-
-        module_info = self._extract_module_info(module_name)
-        if not module_info:
-            raise ValueError(f"Module '{module_name}' not found in analysis results")
-
-        fortran_path = fortran_file or self._remap_fortran_path(module_info["file_path"])
+        fortran_path = self._resolve_fortran_path(module_name, fortran_file)
         console.print(f"[dim]Reading from: {fortran_path}[/dim]")
         fortran_code = Path(fortran_path).read_text()
-        fortran_lines = fortran_code.split("\n")
 
-        module_units = self._get_module_units(module_name)
+        all_ifaces = self._parse_all_interfaces(fortran_code)
+        n_routines = len(all_ifaces)
+        console.print(f"[dim]Found {n_routines} routine(s) to translate[/dim]")
+        interface_summary = self._format_interface_summary(all_ifaces)
 
-        if not module_units:
-            console.print("[yellow]⚠ No translation units found — using full-module fallback[/yellow]")
-            return self._translate_module_legacy(module_name, fortran_code, module_info, output_dir)
+        module_info = self._extract_module_info(module_name)
 
-        console.print(f"[cyan]Found {len(module_units)} translation units[/cyan]")
-
-        translated_units: List[Dict[str, Any]] = []
-        for i, unit in enumerate(module_units, 1):
-            unit_id = unit.get("id", "unknown")
-            console.print(
-                f"[cyan]Translating unit {i}/{len(module_units)}: "
-                f"{unit_id} ({unit.get('unit_type', 'unknown')})[/cyan]"
-            )
-            translated_code = self._translate_unit(
+        if self.use_tmux:
+            result = self._translate_via_tmux(
                 module_name=module_name,
-                unit=unit,
-                fortran_lines=fortran_lines,
-                module_info=module_info,
-                previously_translated=translated_units,
+                fortran_path=fortran_path,
+                interface_summary=interface_summary,
+                n_routines=n_routines,
+                output_dir=output_dir,
             )
-            translated_units.append(
-                {
-                    "unit_id": unit_id,
-                    "unit_type": unit.get("unit_type", "unknown"),
-                    "translated_code": translated_code,
-                    "original_lines": f"{unit.get('line_start', 0)}-{unit.get('line_end', 0)}",
-                }
+        else:
+            result = self._translate_via_sdk(
+                module_name=module_name,
+                fortran_code=fortran_code,
+                interface_summary=interface_summary,
+                n_routines=n_routines,
+                module_info=module_info,
+                all_ifaces=all_ifaces,
             )
 
-        result = self._assemble_module(module_name, translated_units, module_info)
-        result.source_directory = self._extract_source_directory(module_info.get("file_path", ""))
+        result.source_directory = self._extract_source_directory(
+            module_info.get("file_path", "") if module_info else ""
+        )
         console.print("[green]✓ Translation complete![/green]")
 
         if output_dir:
@@ -265,49 +257,23 @@ class TranslatorAgent(BaseAgent):
         return result
 
     # ------------------------------------------------------------------ #
-    # Whole-module translation (--mode whole)                             #
+    # SDK translation path                                                 #
     # ------------------------------------------------------------------ #
 
-    def translate_module_whole(
+    def _translate_via_sdk(
         self,
         module_name: str,
-        fortran_file: Optional[Path] = None,
-        output_dir: Optional[Path] = None,
+        fortran_code: str,
+        interface_summary: str,
+        n_routines: int,
+        module_info: Optional[Dict[str, Any]],
+        all_ifaces: List[Dict[str, Any]],
     ) -> TranslationResult:
-        """
-        Translate a complete Fortran module in a single LLM call.
-
-        Sends the full Fortran source together with pre-parsed interface
-        contracts for every subroutine/function in the file.  Produces one
-        Python module with all routines translated.
-
-        Use when:
-        - The module is small-to-medium (< ~800 lines of Fortran).
-        - You want a single coherent translation instead of unit-by-unit assembly.
-        - Context between subroutines matters (shared locals, SAVE vars, etc.).
-        """
-        console.print(f"\n[bold cyan]🔄 Translating {module_name} to JAX (whole-module mode)[/bold cyan]")
-
-        module_info = self._extract_module_info(module_name)
-        if not module_info:
-            raise ValueError(f"Module '{module_name}' not found in analysis results")
-
-        fortran_path = fortran_file or self._remap_fortran_path(module_info["file_path"])
-        console.print(f"[dim]Reading from: {fortran_path}[/dim]")
-        fortran_code = Path(fortran_path).read_text()
-
-        # Pre-parse every subroutine/function in the file
-        all_ifaces = self._parse_all_interfaces(fortran_code)
-        n_routines = len(all_ifaces)
-        console.print(f"[dim]Found {n_routines} routine(s) to translate[/dim]")
-
-        # Build the interface summary block for the prompt
-        interface_summary = self._format_interface_summary(all_ifaces)
-
-        prompt = WHOLE_MODULE_PROMPT.format(
+        """One-shot LLM call with full Fortran source embedded in prompt."""
+        prompt = MODULE_TRANSLATION_PROMPT.format(
             gcm_model_name=self.gcm_model_name,
             module_name=module_name,
-            source_file=module_info.get("file_path", "unknown"),
+            source_file=module_info.get("file_path", "unknown") if module_info else "unknown",
             n_routines=n_routines,
             interface_summary=interface_summary,
             fortran_code=fortran_code,
@@ -320,38 +286,106 @@ class TranslatorAgent(BaseAgent):
         )
         code = self._extract_code(response)
 
-        # Validate each parsed routine name is present
         for iface in all_ifaces:
             name = iface.get("subroutine_name", "")
             if name:
-                warnings = self._validate_translation(code, name)
-                for w in warnings:
+                for w in self._validate_translation(code, name):
                     console.print(f"[yellow]  ⚠ [{name}] {w}[/yellow]")
 
-        result = TranslationResult(
+        notes = ""
+        if "```" in response:
+            notes = response[: response.find("```")].strip()
+
+        return TranslationResult(
             module_name=module_name,
             physics_code=code if code else response,
-            source_directory=self._extract_source_directory(module_info.get("file_path", "")),
+            translation_notes=notes,
         )
-        console.print("[green]✓ Whole-module translation complete![/green]")
 
+    # ------------------------------------------------------------------ #
+    # Tmux / agentic translation path                                      #
+    # ------------------------------------------------------------------ #
+
+    def _translate_via_tmux(
+        self,
+        module_name: str,
+        fortran_path: Path,
+        interface_summary: str,
+        n_routines: int,
+        output_dir: Optional[Path],
+    ) -> TranslationResult:
+        """
+        Launch a full Claude Code agentic session to translate the module.
+
+        Claude reads the Fortran file itself using its Read tool, writes the
+        translated Python to ``output_file``, validates syntax, then writes
+        ``DONE`` (or ``FAILED: <reason>``) to ``sentinel_file``.
+        """
+        if not self._tmux_runner:
+            raise RuntimeError(
+                "use_tmux=True but no tmux session set. "
+                "Call set_tmux_session() before translate_module()."
+            )
+
+        # Determine output and sentinel file paths
         if output_dir:
-            result.save(output_dir)
-        return result
+            output_dir.mkdir(parents=True, exist_ok=True)
+            work = output_dir
+        else:
+            work = self.tmux_work_dir or Path(tempfile.mkdtemp(prefix=f"transjax_{module_name}_"))
+
+        output_file = work / f"{module_name}.py"
+        sentinel_file = work / f"{module_name}.sentinel"
+        task_file = work / f"{module_name}.task.md"
+
+        # Clean stale files from a previous attempt
+        output_file.unlink(missing_ok=True)
+        sentinel_file.unlink(missing_ok=True)
+
+        task = MODULE_TASK_PROMPT.format(
+            gcm_model_name=self.gcm_model_name,
+            module_name=module_name,
+            fortran_file=str(fortran_path),
+            output_file=str(output_file),
+            sentinel_file=str(sentinel_file),
+            interface_summary=interface_summary,
+            n_routines=n_routines,
+        )
+        task_file.write_text(task, encoding="utf-8")
+
+        console.print(
+            f"[dim]Starting Claude Code session "
+            f"(sentinel: {sentinel_file.name})[/dim]"
+        )
+        self._tmux_runner.run_task(task_file, sentinel_file)
+
+        if not output_file.exists():
+            raise RuntimeError(
+                f"Translation task signalled DONE but output file not found: {output_file}"
+            )
+
+        code = output_file.read_text(encoding="utf-8")
+        # Clean task file; keep output and sentinel for debugging
+        task_file.unlink(missing_ok=True)
+
+        return TranslationResult(
+            module_name=module_name,
+            physics_code=code,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Interface pre-parser                                                 #
+    # ------------------------------------------------------------------ #
 
     def _parse_all_interfaces(self, fortran_code: str) -> List[Dict[str, Any]]:
         """
         Find every subroutine/function in *fortran_code* and parse its interface.
-
-        Uses the balanced-depth approach to isolate each routine's body, then
-        calls ``_parse_fortran_interface`` on each one.
 
         Returns a list of interface dicts (one per routine) in source order.
         """
         ifaces: List[Dict[str, Any]] = []
         lines = fortran_code.split("\n")
 
-        # Patterns to detect routine start / end
         start_re = re.compile(
             r"^\s*(?:(?:pure|elemental|recursive)\s+)*"
             r"(?:subroutine|(?:[\w\s\*()]+?\s+)?function)\s+\w+\s*\(",
@@ -373,10 +407,9 @@ class TranslatorAgent(BaseAgent):
                         elif end_re.match(lines[i]):
                             depth -= 1
                     i += 1
-                # lines[start:i] is the complete routine body
                 routine_src = "\n".join(lines[start:i])
                 iface = self._parse_fortran_interface(routine_src)
-                if iface["subroutine_name"]:  # skip if parse found nothing
+                if iface["subroutine_name"]:
                     ifaces.append(iface)
             else:
                 i += 1
@@ -396,26 +429,15 @@ class TranslatorAgent(BaseAgent):
             parts.append(f"Python signature: {iface['python_signature']}")
             if iface["return_fields"].strip() and "no output" not in iface["return_fields"]:
                 parts.append(f"Return fields:\n{iface['return_fields']}")
-            parts.append("")  # blank line between routines
+            parts.append("")
         return "\n".join(parts)
-
-    # ------------------------------------------------------------------ #
-    # Interface pre-parser                                                 #
-    # ------------------------------------------------------------------ #
 
     def _parse_fortran_interface(self, fortran_code: str) -> Dict[str, Any]:
         """
         Extract the subroutine/function interface from Fortran source.
 
-        Processes source line-by-line (after joining Fortran continuation
-        lines) to avoid cross-line regex contamination.
-
-        Returns a dict with:
-          subroutine_name, arg_names (ordered), args (name→{intent,
-          fortran_type, jax_type, shape, is_array}), inputs, inouts, outputs,
-          interface_table (str), python_signature (str), return_fields (str).
-
-        Falls back gracefully on parse failures.
+        Returns a dict with: subroutine_name, arg_names, args, inputs, inouts,
+        outputs, interface_table, python_signature, return_fields.
         """
         def _jax_type(fortran_type: str) -> str:
             for pat, jax in _FORTRAN_TO_JAX:
@@ -423,7 +445,7 @@ class TranslatorAgent(BaseAgent):
                     return jax
             return "jnp.float64"
 
-        # ── join Fortran continuation lines ──────────────────────────────
+        # Join Fortran continuation lines
         raw_lines = fortran_code.split("\n")
         joined: List[str] = []
         i = 0
@@ -437,7 +459,7 @@ class TranslatorAgent(BaseAgent):
             joined.append(line)
             i += 1
 
-        # ── find subroutine / function declaration ────────────────────────
+        # Find subroutine / function declaration
         name = ""
         arg_names: List[str] = []
         for line in joined:
@@ -453,7 +475,6 @@ class TranslatorAgent(BaseAgent):
                 arg_names = [a.strip().lower() for a in raw_args.split(",") if a.strip()]
                 break
 
-        # ── initialise arg metadata ───────────────────────────────────────
         args: Dict[str, Dict[str, Any]] = {
             a: {"intent": "in", "fortran_type": "real(r8)",
                 "jax_type": "jnp.float64", "shape": "", "is_array": False}
@@ -461,7 +482,6 @@ class TranslatorAgent(BaseAgent):
         }
 
         def _split_vars(var_part: str) -> List[str]:
-            """Split a variable list at top-level commas (ignoring those inside parens)."""
             result: List[str] = []
             depth = 0
             current: List[str] = []
@@ -481,7 +501,6 @@ class TranslatorAgent(BaseAgent):
                 result.append("".join(current).strip())
             return [v for v in result if v]
 
-        # ── parse declaration lines (must contain `::`) ───────────────────
         for line in joined:
             stripped = line.strip()
             if stripped.startswith("!") or "::" not in line:
@@ -491,23 +510,19 @@ class TranslatorAgent(BaseAgent):
             type_part = type_part.strip()
             var_part  = var_part.strip()
 
-            # Extract intent
             intent_m = _RE_INTENT.search(type_part)
             intent = intent_m.group(1).lower() if intent_m else "in"
 
-            # Extract dimension attribute (e.g. dimension(n,m))
             dim_m = _RE_DIMENSION.search(type_part)
             global_shape = dim_m.group(1) if dim_m else ""
 
-            # Clean type spec: strip attribute keywords after the first comma
-            # e.g. "real(r8), intent(in), dimension(n)" → "real(r8)"
-            type_clean = re.split(r",\s*(?:intent|dimension|allocatable|pointer|target|optional)\b",
-                                   type_part, maxsplit=1, flags=re.I)[0].strip()
+            type_clean = re.split(
+                r",\s*(?:intent|dimension|allocatable|pointer|target|optional)\b",
+                type_part, maxsplit=1, flags=re.I,
+            )[0].strip()
 
             jtype = _jax_type(type_clean)
 
-            # Process each variable on this declaration line
-            # (split at top-level commas only — array shapes can contain commas)
             for var_expr in _split_vars(var_part):
                 if not var_expr:
                     continue
@@ -531,12 +546,10 @@ class TranslatorAgent(BaseAgent):
                     "is_array": is_arr,
                 }
 
-        # ── categorise ───────────────────────────────────────────────────
         inputs  = [a for a in arg_names if args[a]["intent"] == "in"]
         inouts  = [a for a in arg_names if args[a]["intent"] == "inout"]
         outputs = [a for a in arg_names if args[a]["intent"] == "out"]
 
-        # ── interface table ───────────────────────────────────────────────
         rows = [
             "  {:<20} {:<10} {:<22} {:<16} {}".format(
                 "Name", "Intent", "Fortran type", "JAX type", "Shape"),
@@ -550,7 +563,6 @@ class TranslatorAgent(BaseAgent):
             ))
         interface_table = "\n".join(rows)
 
-        # ── python signature ──────────────────────────────────────────────
         py_args = [
             "{}: {}".format(a, "jax.Array" if args[a]["is_array"] else args[a]["jax_type"])
             for a in arg_names if args[a]["intent"] in ("in", "inout")
@@ -558,7 +570,6 @@ class TranslatorAgent(BaseAgent):
         ret_name = (name.capitalize() if name else "Unknown") + "Result"
         python_signature = f"def {name or 'unknown'}({', '.join(py_args)}) -> {ret_name}:"
 
-        # ── return fields ─────────────────────────────────────────────────
         out_fields = inouts + outputs
         if out_fields:
             return_fields = "\n".join(
@@ -581,202 +592,43 @@ class TranslatorAgent(BaseAgent):
         }
 
     # ------------------------------------------------------------------ #
-    # Translation helpers                                                  #
-    # ------------------------------------------------------------------ #
-
-    def _translate_unit(
-        self,
-        module_name: str,
-        unit: Dict[str, Any],
-        fortran_lines: List[str],
-        module_info: Dict[str, Any],
-        previously_translated: List[Dict[str, Any]],
-    ) -> str:
-        """Translate a single translation unit with interface pre-parsing."""
-        line_start = unit.get("line_start", 1) - 1
-        line_end   = unit.get("line_end", len(fortran_lines))
-        unit_fortran = "\n".join(fortran_lines[line_start:line_end])
-
-        # Pre-parse the Fortran interface to ground the prompt
-        iface = self._parse_fortran_interface(unit_fortran)
-
-        # Build "already translated" context — full signatures, not truncated snippets
-        if previously_translated:
-            already_parts = []
-            for prev in previously_translated:
-                code = prev["translated_code"]
-                # Extract just the function definition lines (up to first blank line after def)
-                sig_lines = []
-                in_sig = False
-                for line in code.split("\n"):
-                    if line.strip().startswith("def ") or line.strip().startswith("@"):
-                        in_sig = True
-                    if in_sig:
-                        sig_lines.append(line)
-                        if line.strip() == "" and len(sig_lines) > 2:
-                            break
-                already_parts.append(
-                    f"# --- {prev['unit_id']} ({prev['unit_type']}) ---\n"
-                    + ("\n".join(sig_lines) if sig_lines else f"# (full code: {len(code)} chars)")
-                )
-            already_translated_str = "\n\n".join(already_parts)
-        else:
-            already_translated_str = "(none — this is the first unit)"
-
-        complexity = unit.get("complexity_score", "unknown")
-
-        prompt = UNIT_TRANSLATION_PROMPT.format(
-            gcm_model_name=self.gcm_model_name,
-            module_name=module_name,
-            source_file=module_info.get("file_path", "unknown"),
-            line_start=unit.get("line_start", 1),
-            line_end=unit.get("line_end", len(fortran_lines)),
-            complexity=complexity,
-            subroutine_name=iface["subroutine_name"] or unit.get("id", "unknown"),
-            interface_table=iface["interface_table"],
-            python_signature=iface["python_signature"],
-            return_fields=iface["return_fields"],
-            fortran_code=unit_fortran,
-            already_translated=already_translated_str,
-        )
-
-        response = self.query_claude(
-            prompt=prompt,
-            system_prompt=TRANSLATOR_SYSTEM_PROMPT,
-            max_tokens=self.max_tokens,
-        )
-        code = self._extract_code(response)
-
-        # Validate and warn — don't raise, let the user see the output
-        warnings = self._validate_translation(code, iface["subroutine_name"] or module_name)
-        for w in warnings:
-            console.print(f"[yellow]  ⚠ {w}[/yellow]")
-
-        return code
-
-    def _assemble_module(
-        self,
-        module_name: str,
-        translated_units: List[Dict[str, Any]],
-        module_info: Dict[str, Any],
-    ) -> TranslationResult:
-        """
-        Assemble translated units into a complete module.
-
-        If there is only one unit, skip the LLM assembly call (avoids
-        structural regressions introduced by a second pass).
-        """
-        if len(translated_units) == 1:
-            # Single unit: just return the code as-is with a minimal header guard
-            code = translated_units[0]["translated_code"]
-            return TranslationResult(
-                module_name=module_name,
-                physics_code=code,
-                source_directory=self._extract_source_directory(module_info.get("file_path", "")),
-            )
-
-        # Multiple units: ask Claude to deduplicate and order them
-        public_api = [u["unit_id"] for u in translated_units]
-        all_units_source = "\n\n".join(
-            f"# ════ Unit: {u['unit_id']} (lines {u['original_lines']}) ════\n"
-            + u["translated_code"]
-            for u in translated_units
-        )
-
-        prompt = MODULE_ASSEMBLY_PROMPT.format(
-            n_units=len(translated_units),
-            module_name=module_name,
-            gcm_model_name=self.gcm_model_name,
-            original_file=module_info.get("file_path", "unknown"),
-            public_api=json.dumps(public_api),
-            all_units_source=all_units_source,
-        )
-
-        response = self.query_claude(
-            prompt=prompt,
-            system_prompt=TRANSLATOR_SYSTEM_PROMPT,
-            max_tokens=self.max_tokens,
-        )
-        return self._parse_translation_response(response, module_name, module_info)
-
-    def _translate_module_legacy(
-        self,
-        module_name: str,
-        fortran_code: str,
-        module_info: Dict[str, Any],
-        output_dir: Optional[Path] = None,
-    ) -> TranslationResult:
-        """Fallback: treat entire file as one translation unit."""
-        console.print("[cyan]Generating JAX translation (legacy/full-module mode)...[/cyan]")
-        fortran_lines = fortran_code.split("\n")
-        synthetic_unit = {
-            "id": f"{module_name}_full",
-            "unit_type": "root",
-            "line_start": 1,
-            "line_end": len(fortran_lines),
-            "parent_id": None,
-            "complexity_score": "high",
-        }
-        translated_code = self._translate_unit(
-            module_name=module_name,
-            unit=synthetic_unit,
-            fortran_lines=fortran_lines,
-            module_info=module_info,
-            previously_translated=[],
-        )
-        translated_units = [{
-            "unit_id": synthetic_unit["id"],
-            "unit_type": synthetic_unit["unit_type"],
-            "translated_code": translated_code,
-            "original_lines": f"1-{len(fortran_lines)}",
-        }]
-        # Single synthetic unit — assembly is skipped
-        return self._assemble_module(module_name, translated_units, module_info)
-
-    # ------------------------------------------------------------------ #
     # Translation validation                                               #
     # ------------------------------------------------------------------ #
 
     def _validate_translation(self, code: str, expected_name: str) -> List[str]:
         """
-        Run lightweight sanity checks on the translated code.
+        Lightweight sanity checks on translated code.
 
         Returns a list of warning strings (empty = all clear).
-        Does NOT raise — callers log the warnings and continue.
+        Does NOT raise — callers log warnings and continue.
         """
         warnings: List[str] = []
 
-        # 1. Syntax check
         try:
             ast.parse(code)
         except SyntaxError as exc:
             warnings.append(f"Syntax error in translated code: {exc}")
 
-        # 2. Expected function name present
-        if expected_name and f"def {expected_name}" not in code.lower():
-            # Try case-insensitive
-            if not re.search(rf"\bdef\s+{re.escape(expected_name)}\b", code, re.I):
-                warnings.append(
-                    f"Function '{expected_name}' not found in translation — "
-                    "name may have been altered by the model"
-                )
+        if expected_name and not re.search(rf"\bdef\s+{re.escape(expected_name)}\b", code, re.I):
+            warnings.append(
+                f"Function '{expected_name}' not found in translation — "
+                "name may have been altered by the model"
+            )
 
-        # 3. JAX config present
         if "jax_enable_x64" not in code:
-            warnings.append("jax.config.update('jax_enable_x64', True) not found — float64 may not work on GPU")
+            warnings.append(
+                "jax.config.update('jax_enable_x64', True) not found — float64 may not work on GPU"
+            )
 
-        # 4. Bare numpy import
         if re.search(r"^\s*import\s+numpy\b", code, re.M):
             warnings.append("'import numpy' found — use 'import jax.numpy as jnp' only")
 
-        # 5. In-place mutation
         if re.search(r"\w+\[\w.*\]\s*=", code):
             warnings.append(
                 "Possible in-place array mutation detected (arr[i] = v) — "
                 "use arr.at[i].set(v) for JIT compatibility"
             )
 
-        # 6. Python for-loop in function body
         if re.search(r"^\s+for\s+\w+\s+in\s+range\s*\(", code, re.M):
             warnings.append(
                 "Python for-loop detected inside function body — "
@@ -786,36 +638,21 @@ class TranslatorAgent(BaseAgent):
         return warnings
 
     # ------------------------------------------------------------------ #
-    # Module / unit helpers                                                #
-    # ------------------------------------------------------------------ #
-
-    def _get_module_units(self, module_name: str) -> List[Dict[str, Any]]:
-        if not self.translation_units:
-            return []
-        units = self.translation_units.get("translation_units", [])
-        module_units = [
-            u for u in units
-            if u.get("module_name", "").lower() == module_name.lower()
-        ]
-        module_units.sort(key=lambda u: u.get("line_start", 0))
-        return module_units
-
-    def _get_module_dependencies(self, module_name: str) -> Dict[str, Any]:
-        deps: Dict[str, Any] = {"uses": [], "used_by": []}
-        if not self.analysis_results:
-            return deps
-        all_deps = self.analysis_results.get("parsing", {}).get("dependencies", {})
-        if not all_deps:
-            all_deps = self.analysis_results.get("dependencies", {}).get("analysis", {})
-        if isinstance(all_deps, dict):
-            if module_name in all_deps:
-                deps["uses"] = all_deps[module_name]
-            deps["used_by"] = [m for m, md in all_deps.items() if module_name in md]
-        return deps
-
-    # ------------------------------------------------------------------ #
     # Path / file helpers                                                  #
     # ------------------------------------------------------------------ #
+
+    def _resolve_fortran_path(
+        self, module_name: str, fortran_file: Optional[Path]
+    ) -> Path:
+        """Return the Fortran source path, remapping via analysis results if needed."""
+        if fortran_file:
+            return fortran_file
+        module_info = self._extract_module_info(module_name)
+        if module_info:
+            return self._remap_fortran_path(module_info["file_path"])
+        raise ValueError(
+            f"Module '{module_name}' not found in analysis results and no fortran_file provided"
+        )
 
     def _extract_source_directory(self, file_path: str) -> Optional[str]:
         if not file_path:
@@ -849,10 +686,6 @@ class TranslatorAgent(BaseAgent):
                 return filename_path
         return path_obj
 
-    def _load_json(self, json_path: Path) -> Dict[str, Any]:
-        with open(json_path) as f:
-            return json.load(f)
-
     def _extract_module_info(self, module_name: str) -> Optional[Dict[str, Any]]:
         if not self.analysis_results:
             return None
@@ -864,49 +697,9 @@ class TranslatorAgent(BaseAgent):
                 return mod_data
         return None
 
-    def _load_reference_patterns(self) -> Dict[str, str]:
-        patterns: Dict[str, str] = {}
-        if self.reference_dir and self.reference_dir.exists():
-            for py_file in sorted(self.reference_dir.rglob("*.py"))[:5]:
-                try:
-                    patterns[py_file.stem] = py_file.read_text()
-                except (IOError, OSError):
-                    pass
-        return patterns
-
-    def _get_reference_pattern(self) -> str:
-        if self.reference_patterns:
-            first_key = next(iter(self.reference_patterns))
-            lines = self.reference_patterns[first_key].split("\n")[:100]
-            return "\n".join(lines) + "\n\n# ... (abbreviated for context) ..."
-        return (
-            "# Reference pattern not available.\n"
-            "# Apply JAX best practices: pure functions, NamedTuples, jnp ops.\n"
-        )
-
     # ------------------------------------------------------------------ #
     # Response parsing                                                     #
     # ------------------------------------------------------------------ #
-
-    def _parse_translation_response(
-        self,
-        response: str,
-        module_name: str,
-        module_info: Optional[Dict[str, Any]] = None,
-    ) -> TranslationResult:
-        physics_code = self._extract_code(response)
-        notes = ""
-        if "```" in response:
-            notes = response[: response.find("```")].strip()
-        return TranslationResult(
-            module_name=module_name,
-            physics_code=physics_code if physics_code else response,
-            source_directory=(
-                self._extract_source_directory(module_info.get("file_path", ""))
-                if module_info else None
-            ),
-            translation_notes=notes,
-        )
 
     def _extract_code(self, response: str) -> str:
         if "```python" in response:

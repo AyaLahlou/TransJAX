@@ -49,6 +49,7 @@ from transjax.agents.golden_agent import GoldenAgent
 from transjax.agents.parity_repair_agent import ParityRepairAgent
 from transjax.agents.translator import TranslatorAgent
 from transjax.agents.utils.config_loader import get_llm_config
+from transjax.agents.utils.git_coordinator import GitCoordinator
 from transjax.agents.utils.translation_state import TranslationStateManager
 
 logger = logging.getLogger(__name__)
@@ -213,7 +214,6 @@ class PipelineRunner:
         gcm_model_name: str = "generic ESM",
         model: Optional[str] = None,
         temperature: Optional[float] = None,
-        translation_mode: str = "units",
         ftest_build_dir: Optional[Path] = None,
         ftest_compiler: str = "nvfortran",
         ftest_netcdf_inc: Optional[str] = None,
@@ -232,13 +232,14 @@ class PipelineRunner:
         skip_golden: bool = False,
         run_integrate: bool = False,
         max_integration_repair_iterations: int = 5,
+        use_tmux: bool = False,
+        auto_git_commit: bool = False,
         verbose: bool = False,
     ) -> None:
         self.fortran_dir    = Path(fortran_dir).resolve()
         self.analysis_dir   = Path(analysis_dir).resolve()
         self.output_dir     = Path(output_dir).resolve()
         self.gcm_model_name = gcm_model_name
-        self.translation_mode = translation_mode
 
         # Sub-directories
         self.ftest_base_dir  = self.output_dir / "ftest"
@@ -270,7 +271,15 @@ class PipelineRunner:
         self.skip_golden     = skip_golden
         self.run_integrate   = run_integrate
         self.max_integration_repair_iterations = max_integration_repair_iterations
+        self.use_tmux        = use_tmux
         self.verbose         = verbose
+
+        # Git coordination — auto-commit after each successful module
+        self.git_coordinator = GitCoordinator(
+            repo_root=Path(".").resolve(),
+            output_dir=self.output_dir,
+            auto_commit=auto_git_commit,
+        )
 
         # LLM config
         llm_cfg = get_llm_config()
@@ -306,7 +315,6 @@ class PipelineRunner:
                 f"[white]Analysis dir: [/white]  {self.analysis_dir}\n"
                 f"[white]Output dir:   [/white]  {self.output_dir}\n"
                 f"[white]ESM model:    [/white]  {self.gcm_model_name}\n"
-                f"[white]Trans. mode:  [/white]  {self.translation_mode}\n"
                 f"[white]Modules:      [/white]  {len(order)} in translation order\n"
                 f"[white]Tolerances:   [/white]  rtol={self.parity_rtol}, atol={self.parity_atol}",
                 title="[bold cyan]TransJAX Full Pipeline[/bold cyan]",
@@ -441,13 +449,33 @@ class PipelineRunner:
 
         # ── Update translation state ──────────────────────────────────────
         overall_ok = translate_ok and parity_ok
+        status_str = "success" if overall_ok else "failed"
         self.state_mgr.mark_module(
             module_name,
-            status="success" if overall_ok else "failed",
+            status=status_str,
             tests_passed=parity_ok,
             repair_attempts=_count_repair_attempts(ms),
             error_message=_collect_errors(ms) or None,
         )
+
+        # ── Git coordination ──────────────────────────────────────────────
+        if overall_ok:
+            parity_str = "PASS" if parity_ok else "FAIL"
+            self.git_coordinator.append_changelog(
+                module_name, status_str,
+                notes=f"parity={parity_str}",
+            )
+            self.git_coordinator.commit_module(
+                module_name,
+                status=status_str,
+                parity_result=parity_str,
+                jax_src_dir=self.jax_src_dir,
+                reports_dir=self.output_dir / "reports",
+            )
+
+        # ── Tmux cleanup ──────────────────────────────────────────────────
+        if self.use_tmux:
+            _close_tmux_session(module_name)
 
         icon = "[green]✓[/green]" if overall_ok else "[red]✗[/red]"
         console.print(
@@ -485,7 +513,8 @@ class PipelineRunner:
 
         ms.ftest.start()
         try:
-            agent = FtestAgent(model=self.model, temperature=self.temperature)
+            agent = FtestAgent(model=self.model, temperature=self.temperature, use_tmux=self.use_tmux)
+            _attach_tmux(agent, module_name, self.output_dir, self.use_tmux)
             agent.run(
                 fortran_dir=self.fortran_dir,
                 output_dir=module_ftest_dir,
@@ -546,7 +575,8 @@ class PipelineRunner:
 
         ms.golden.start()
         try:
-            agent = GoldenAgent(model=self.model, temperature=self.temperature)
+            agent = GoldenAgent(model=self.model, temperature=self.temperature, use_tmux=self.use_tmux)
+            _attach_tmux(agent, module_name, self.output_dir, self.use_tmux)
             result = agent.run(
                 ftest_output_dir=module_ftest_dir,
                 n_cases=self.golden_n_cases,
@@ -586,19 +616,17 @@ class PipelineRunner:
 
         ms.translate.start()
         try:
-            # Load analysis results if available
             analysis_path = self.analysis_dir / "analysis_results.json"
-            units_path    = self.analysis_dir / "translation_units.json"
-
             agent = TranslatorAgent(
-                analysis_results_path=analysis_path if analysis_path.exists() else None,
-                translation_units_path=units_path if units_path.exists() else None,
                 fortran_root=self.fortran_dir,
                 gcm_model_name=self.gcm_model_name,
                 model=self.model,
                 temperature=self.temperature,
-                translation_mode=self.translation_mode,
+                use_tmux=self.use_tmux,
             )
+            if analysis_path.exists():
+                agent.load_analysis(analysis_path)
+            _attach_tmux(agent, module_name, self.output_dir, self.use_tmux)
             result = agent.translate_module(
                 module_name=module_name,
                 fortran_file=fortran_file,
@@ -663,7 +691,8 @@ class PipelineRunner:
 
         ms.parity.start()
         try:
-            agent = ParityRepairAgent(model=self.model, temperature=self.temperature)
+            agent = ParityRepairAgent(model=self.model, temperature=self.temperature, use_tmux=self.use_tmux)
+            _attach_tmux(agent, module_name, self.output_dir, self.use_tmux)
             result = agent.run(
                 python_file=jax_python_file,
                 fortran_file=fortran_file,
@@ -829,3 +858,23 @@ def _collect_errors(ms: ModulePipelineState) -> str:
         if step.error:
             errors.append(f"{step_name}: {step.error}")
     return "; ".join(errors)
+
+
+def _attach_tmux(agent: Any, module_name: str, output_dir: Path, use_tmux: bool) -> None:
+    """Set the tmux session on an agent if tmux mode is enabled."""
+    if not use_tmux:
+        return
+    session_name = f"transjax-{module_name}"
+    work_dir = output_dir / "tmux_work" / module_name
+    work_dir.mkdir(parents=True, exist_ok=True)
+    agent.set_tmux_session(session_name=session_name, work_dir=work_dir)
+
+
+def _close_tmux_session(module_name: str) -> None:
+    """Kill the tmux session for a module (best-effort, no error on failure)."""
+    import subprocess
+    session_name = f"transjax-{module_name}"
+    subprocess.run(
+        ["tmux", "kill-session", "-t", session_name],
+        capture_output=True,
+    )

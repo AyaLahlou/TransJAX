@@ -79,7 +79,6 @@ class OrchestratorAgent:
         gcm_model_name: Optional[str] = None,
         verbose: bool = False,
         analysis_dir: Optional[Path] = None,
-        translation_mode: str = "units",
     ):
         self.fortran_dir = fortran_dir
         self.output_dir = output_dir
@@ -90,7 +89,6 @@ class OrchestratorAgent:
         self.module_list = module_list  # preserved exactly as supplied by the user
         self.gcm_model_name = gcm_model_name or "unspecified"
         self.verbose = verbose
-        self.translation_mode = translation_mode  # "units" | "whole"
 
         # Create output directories
         self.src_dir = output_dir / "src"
@@ -126,7 +124,6 @@ class OrchestratorAgent:
             temperature=temperature if temperature is not None else llm_config.get("temperature"),
             fortran_root=fortran_dir,
             gcm_model_name=self.gcm_model_name,
-            translation_mode=self.translation_mode,
         )
 
         if not skip_tests:

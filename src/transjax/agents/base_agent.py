@@ -16,6 +16,8 @@ from rich.console import Console
 from rich.logging import RichHandler
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from transjax.agents.utils.tmux_runner import TmuxClaudeRunner
+
 # Load environment variables
 load_dotenv()
 
@@ -49,6 +51,9 @@ class BaseAgent:
         model: str = "claude-sonnet-4-6",
         temperature: float = 0.0,
         max_tokens: int = 48000,
+        use_tmux: bool = False,
+        tmux_poll_interval: float = 2.0,
+        tmux_timeout: float = 900.0,
     ):
         """
         Initialize base agent.
@@ -59,14 +64,27 @@ class BaseAgent:
             model: Claude model to use
             temperature: Sampling temperature (0.0 = deterministic)
             max_tokens: Maximum tokens in response
+            use_tmux: If True, route all claude calls through a tmux session
+                      running the ``claude`` CLI instead of the Anthropic SDK.
+                      Recommended for HPC / long-running jobs.
+            tmux_poll_interval: Seconds between output-file polls (tmux mode only).
+            tmux_timeout: Max seconds to wait for a single claude call (tmux mode).
         """
         self.name = name
         self.role = role
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.use_tmux = use_tmux
+        self.tmux_poll_interval = tmux_poll_interval
+        self.tmux_timeout = tmux_timeout
 
-        # Initialize Anthropic client.
+        # Set by the pipeline/orchestrator before processing each module
+        self.tmux_session_name: Optional[str] = None
+        self.tmux_work_dir: Optional[Path] = None
+        self._tmux_runner: Optional[TmuxClaudeRunner] = None
+
+        # Initialize Anthropic client (used when use_tmux=False).
         # Authentication priority:
         #   1. CLAUDE_CODE_OAUTH_TOKEN — set automatically by `claude login`
         #      (Claude Pro / Max subscription, no per-token billing)
@@ -74,7 +92,12 @@ class BaseAgent:
         oauth_token = os.getenv("CLAUDE_CODE_OAUTH_TOKEN")
         api_key = os.getenv("ANTHROPIC_API_KEY")
 
-        if oauth_token:
+        if use_tmux:
+            # In tmux mode the claude CLI handles authentication itself.
+            # We still initialise a lightweight client for fallback / cost tracking.
+            self.client = None
+            self._auth_method = "tmux_cli"
+        elif oauth_token:
             self.client = anthropic.Anthropic(auth_token=oauth_token)
             self._auth_method = "subscription"
         elif api_key:
@@ -84,7 +107,8 @@ class BaseAgent:
             raise ValueError(
                 "No Claude authentication found. Choose one of:\n"
                 "  • Subscription login: run `claude login` (Claude Pro/Max)\n"
-                "  • API key: set ANTHROPIC_API_KEY in your environment or .env file"
+                "  • API key: set ANTHROPIC_API_KEY in your environment or .env file\n"
+                "  • Tmux CLI mode: set use_tmux=True (uses `claude` CLI auth)"
             )
 
         # Conversation history
@@ -103,6 +127,28 @@ class BaseAgent:
             f"[dim](auth: {self._auth_method})[/dim]",
             extra={"markup": True},
         )
+
+    def set_tmux_session(self, session_name: str, work_dir: Path) -> None:
+        """
+        Attach this agent to a named tmux session for the current module.
+
+        Called by PipelineRunner / OrchestratorAgent before processing each module
+        when ``use_tmux=True``.
+
+        Args:
+            session_name: Tmux session name (e.g. ``transjax-clm_varcon``).
+            work_dir:     Directory used for prompt/output temp files.
+        """
+        self.tmux_session_name = session_name
+        self.tmux_work_dir = Path(work_dir)
+        self._tmux_runner = TmuxClaudeRunner(
+            session_name=session_name,
+            work_dir=self.tmux_work_dir,
+            poll_interval=self.tmux_poll_interval,
+            timeout=self.tmux_timeout,
+            verbose=False,
+        )
+        logger.info("%s attached to tmux session: %s", self.name, session_name)
 
     @retry(
         stop=stop_after_attempt(3),
@@ -138,6 +184,23 @@ class BaseAgent:
         # Log the query
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self._log_interaction(f"PROMPT_{timestamp}", prompt, sys_prompt)
+
+        # ── Tmux CLI path ──────────────────────────────────────────────────
+        if self.use_tmux and self._tmux_runner is not None:
+            console.print(f"[cyan]🖥  {self.name} → tmux session '{self.tmux_session_name}'[/cyan]")
+            response_text = self._tmux_runner.run_query(
+                prompt=prompt,
+                system_prompt=sys_prompt,
+            )
+            self._log_interaction(f"RESPONSE_{timestamp}", response_text)
+            # Token counts unavailable in tmux mode
+            return response_text
+
+        if self.use_tmux and self._tmux_runner is None:
+            raise RuntimeError(
+                f"{self.name}: use_tmux=True but no tmux session set. "
+                "Call set_tmux_session() before querying."
+            )
 
         try:
             # Make API call
@@ -315,6 +378,17 @@ class BaseAgent:
             subscription (``claude login``) costs are covered by the subscription
             and the USD figures will be 0.
         """
+        if self._auth_method == "tmux_cli":
+            # Token counts not available from claude CLI; cost is subscription-based.
+            return {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "input_cost_usd": 0.0,
+                "output_cost_usd": 0.0,
+                "total_cost_usd": 0.0,
+                "note": "Running via claude CLI in tmux (token counts unavailable)",
+            }
+
         if self._auth_method == "subscription":
             # Subscription users are not billed per-token.
             return {

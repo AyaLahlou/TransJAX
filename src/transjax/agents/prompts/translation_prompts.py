@@ -3,12 +3,10 @@ Translation prompts for the Fortran → JAX translator.
 
 Design principles
 -----------------
-1. Concrete rules beat vague principles.  Tell Claude *exactly* what to produce.
-2. Pre-parsed interface contracts eliminate the #1 source of hallucinations
-   (wrong argument count / intent / dtype).
-3. Explicit JAX anti-pattern table prevents the most common JIT-incompatibility bugs.
-4. Single-responsibility: one prompt per concern, no catch-all mega-prompts.
-5. Assembly uses full source text (not JSON blobs) so Claude preserves exact code.
+1. Concrete rules beat vague principles — tell Claude exactly what to produce.
+2. Pre-parsed interface contracts ground the translation (no hallucinated args).
+3. Explicit JAX anti-pattern table prevents JIT-incompatibility bugs.
+4. One prompt per concern; the translator sends one call per module.
 """
 
 
@@ -97,86 +95,12 @@ Output ONLY valid Python — no prose outside code blocks.
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# UNIT TRANSLATION PROMPT
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Required .format() keys: gcm_model_name, module_name, source_file, line_start,
-#   line_end, complexity, subroutine_name, interface_table, python_signature,
-#   return_fields, fortran_code, already_translated
-UNIT_TRANSLATION_PROMPT = """\
-## TASK
-Translate one Fortran subroutine/function to JAX/Python.
-Mirror the interface EXACTLY — same argument order, all outputs returned.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CONTEXT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ESM model  : {gcm_model_name}
-Module     : {module_name}
-Source file: {source_file}
-Lines      : {line_start}–{line_end}
-Complexity : {complexity}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRE-PARSED FORTRAN INTERFACE CONTRACT
-(extracted by static analysis — reproduce this interface exactly)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Subroutine name : {subroutine_name}
-
-Arguments (in calling order):
-{interface_table}
-
-Required Python signature:
-{python_signature}
-
-Return NamedTuple fields (intent out + inout):
-{return_fields}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FULL FORTRAN SOURCE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```fortran
-{fortran_code}
-```
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALREADY TRANSLATED IN THIS MODULE (use these, do not redefine)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{already_translated}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TRANSLATION CHECKLIST — verify every point before outputting
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ Function name exactly matches subroutine name (snake_case is fine but consistent)
-□ Argument list matches the "Required Python signature" above exactly
-□ Every intent(out)/intent(inout) field appears in the return NamedTuple
-□ No Python for-loops inside the function body (use jnp ops / jax.vmap / jax.lax)
-□ No in-place mutation: arr[i]=v → arr.at[i].set(v)
-□ No bare `if cond:` on arrays: use jnp.where or jax.lax.cond
-□ All array literals use dtype=jnp.float64
-□ No `import numpy` — only `import jax.numpy as jnp`
-□ Division and sqrt/log are guarded against invalid inputs
-□ Fortran 1-based indices converted to 0-based (DO i=1,n → range(n), arr[i-1])
-□ Module constants reproduced with same numerical value (comment source line)
-□ @partial(jax.jit) decorator added (static_argnames for any integer-shape arg)
-□ NamedTuple for return values is defined above the function
-□ Module header: jax.config.update("jax_enable_x64", True)
-
-Output a single ```python ... ``` block containing:
-  1. NamedTuple definition for return type (if any outputs)
-  2. The translated function with @partial(jax.jit, ...) decorator
-  3. Inline # comments for non-obvious translations (indexing, math equivalences)
-  4. # NOTE: tags for any assumptions or deviations from the Fortran
-"""
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# WHOLE-MODULE PROMPT  (--mode whole: single LLM call for the entire file)
+# MODULE TRANSLATION PROMPT  (one call per module)
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Required .format() keys: gcm_model_name, module_name, source_file,
 #   n_routines, interface_summary, fortran_code
-WHOLE_MODULE_PROMPT = """\
+MODULE_TRANSLATION_PROMPT = """\
 ## TASK
 Translate a complete Fortran module to a single JAX/Python file in one pass.
 Every subroutine and function in the file must appear in the output.
@@ -252,91 +176,71 @@ TRANSLATION CHECKLIST — verify every point before outputting
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# MODULE ASSEMBLY PROMPT
+# TASK FILE PROMPT  (used when running as a Claude Code session in tmux)
+#
+# Instead of embedding the Fortran source in the prompt, we tell Claude to
+# read the file using its Read tool — this keeps the initial message short
+# and lets Claude validate its own output using Bash.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Required .format() keys: n_units, module_name, gcm_model_name, original_file,
-#   public_api, all_units_source
-MODULE_ASSEMBLY_PROMPT = """\
-## TASK
-Assemble {n_units} individually translated JAX units into one coherent Python module.
-Do NOT change the physics or function signatures — only reorganise and deduplicate.
+# Required .format() keys: gcm_model_name, module_name, fortran_file,
+#   output_file, sentinel_file, interface_summary, n_routines
+MODULE_TASK_PROMPT = """\
+## Translation Task
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MODULE METADATA
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Module name   : {module_name}
-ESM model     : {gcm_model_name}
-Original file : {original_file}
-Public API    : {public_api}
+You are translating a Fortran ESM module to JAX/Python.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TRANSLATED UNITS (full source, in translation order)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{all_units_source}
+### Inputs
+- **ESM model**: {gcm_model_name}
+- **Module**: `{module_name}`
+- **Fortran source**: `{fortran_file}`  ← read this file
+- **Routines**: {n_routines} subroutine(s)/function(s)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ASSEMBLY RULES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. MODULE HEADER (exactly once at top):
-     import jax
-     import jax.numpy as jnp
-     from functools import partial
-     from typing import NamedTuple, Tuple
-     jax.config.update("jax_enable_x64", True)
+### Pre-parsed interface contracts
+These were extracted by static analysis.
+Reproduce every interface **exactly** — same argument order, same intents.
 
-2. ORDER:  imports → NamedTuples/types → constants → helper functions → main functions
+{interface_summary}
 
-3. DEDUPLICATION:
-   • Merge identical imports into one block.
-   • If two units define the same NamedTuple, keep one definition only.
-   • If two units define the same constant with the same value, keep one.
-   • If two units define the same helper function, keep one.
+### Translation rules
+Apply the full JAX translation rules (dtype mapping, anti-patterns, JIT
+compatibility, NamedTuple returns) as described in your system prompt.
 
-4. DO NOT change any function body, signature, decorator, or docstring.
-   The only allowed edits are removing duplicates and reordering.
+### Steps to complete
+1. **Read** `{fortran_file}` using the Read tool.
+2. **Translate** the entire module following the checklist:
+   - MODULE HEADER (import jax, jnp, NamedTuple, jax_enable_x64)
+   - MODULE DOCSTRING with original file reference
+   - One NamedTuple + one function per subroutine/function (source order)
+   - __all__ listing all public functions
+3. **Write** the complete translated Python module to `{output_file}`.
+4. **Validate** syntax:
+   ```bash
+   python -c "import ast, pathlib; ast.parse(pathlib.Path('{output_file}').read_text())"
+   ```
+   Fix any syntax errors before finishing.
+5. **Signal completion** by writing the single word `DONE` to `{sentinel_file}`.
+   If translation failed, write `FAILED: <reason>` instead.
 
-5. Add a module docstring:
-   \"\"\"
-   {module_name}: [one-line physics description inferred from the code]
-
-   Translated from Fortran ESM source.
-   Original: {original_file}
-   \"\"\"
-
-6. Add at the bottom:
-   __all__ = {public_api}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ASSEMBLY CHECKLIST
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ jax.config.update("jax_enable_x64", True) appears exactly once
-□ No `import numpy` — only jax.numpy
-□ All function signatures unchanged from unit translations
-□ All NamedTuples defined before first use
-□ callees appear before callers
-□ __all__ lists all public functions
-
-Output a single ```python ... ``` block containing the complete assembled module.
+Do not stop until `{sentinel_file}` has been written.
 """
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LEGACY COMPAT — kept so existing call sites that reference the old dict
-# do not crash.  New code should use the named constants above.
+# Backward-compat aliases — kept so any external code that imports the old
+# names does not crash.  New code should import MODULE_TRANSLATION_PROMPT.
 # ─────────────────────────────────────────────────────────────────────────────
 
+WHOLE_MODULE_PROMPT = MODULE_TRANSLATION_PROMPT   # renamed
+UNIT_TRANSLATION_PROMPT = ""                      # removed — not used
+MODULE_ASSEMBLY_PROMPT = ""                       # removed — not used
+
 TRANSLATION_PROMPTS = {
-    "system":           TRANSLATOR_SYSTEM_PROMPT,
-    "translate_unit":   UNIT_TRANSLATION_PROMPT,
-    "assemble_module":  MODULE_ASSEMBLY_PROMPT,
-    "whole_module":     WHOLE_MODULE_PROMPT,
-    # These sub-tasks are handled inline by translator.py rather than via
-    # dedicated prompts.  The keys are kept so legacy call sites don't crash.
-    "translate_module":       "# handled by translate_module() in translator.py",
-    "translate_function":     "# handled by translate_module() in translator.py",
-    "convert_data_structure": "# handled inline by translator",
-    "vectorize_loop":         "# handled inline by translator",
-    "handle_conditional":     "# handled inline by translator",
-    "create_parameters":      "# handled inline by translator",
+    "system":          TRANSLATOR_SYSTEM_PROMPT,
+    "whole_module":    MODULE_TRANSLATION_PROMPT,
+    "task_prompt":     MODULE_TASK_PROMPT,
+    # Legacy keys kept for any import that references them
+    "translate_unit":   "",
+    "assemble_module":  "",
+    "translate_module": "# handled by translate_module() in translator.py",
 }

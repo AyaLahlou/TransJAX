@@ -104,12 +104,6 @@ def cli():
               help="Path to an existing analysis directory produced by 'transjax analyze'.")
 @click.option("--gcm-model", default=None, metavar="NAME",
               help="Name of the GCM/ESM being translated (e.g. CTSM, CESM, MOM6).")
-@click.option("--mode", default="units", show_default=True,
-              type=click.Choice(["units", "whole"], case_sensitive=False),
-              help="Translation strategy.  'units' translates each subroutine separately "
-                   "then assembles (better for large modules, more granular repair). "
-                   "'whole' sends the full Fortran source in one call (faster, lower "
-                   "overhead, better for small-to-medium modules).")
 @click.option("--verbose", "-v", is_flag=True,
               help="Print DEBUG-level logs.")
 def convert(
@@ -127,7 +121,6 @@ def convert(
     temperature: Optional[float],
     analysis_dir: Optional[str],
     gcm_model: Optional[str],
-    mode: str,
     verbose: bool,
 ):
     """Translate a Fortran codebase to JAX (full pipeline).
@@ -280,7 +273,6 @@ def convert(
             gcm_model_name=gcm_model,
             verbose=verbose,
             analysis_dir=Path(analysis_dir).resolve() if analysis_dir else None,
-            translation_mode=mode,
         )
         results = orchestrator.run()
 
@@ -1284,10 +1276,6 @@ def init():
 @click.option("--gcm-model-name", default="generic ESM", show_default=True, metavar="NAME",
               help="Earth system model name (e.g. CTSM, MOM6). Injected into prompts "
                    "so Claude can apply model-specific physical domain knowledge.")
-@click.option("--mode", default="units", show_default=True,
-              type=click.Choice(["units", "whole"]),
-              help="Translation mode. 'units' translates subroutine-by-subroutine then "
-                   "assembles; 'whole' sends the full Fortran module in one LLM call.")
 @click.option("--ftest-build-dir", default=None, metavar="DIR",
               help="Fortran model build directory containing .o / .mod files that "
                    "Ftest drivers link against (required for Ftest compilation).")
@@ -1332,6 +1320,12 @@ def init():
               type=int, metavar="N",
               help="Maximum IntegrationRepairAgent iterations if the initial "
                    "integration test fails (only relevant with --integrate).")
+@click.option("--use-tmux", is_flag=True,
+              help="Run all claude calls inside a named tmux session instead of the SDK. "
+                   "One session per module (transjax-{module}). Recommended for HPC / Slurm jobs. "
+                   "Requires tmux and the claude CLI on PATH.")
+@click.option("--auto-git-commit", is_flag=True,
+              help="Auto-commit translated output files to git after each successful module.")
 @click.option("--verbose", "-v", is_flag=True,
               help="Print DEBUG logs and full subprocess/pytest output.")
 def pipeline(
@@ -1339,7 +1333,6 @@ def pipeline(
     analysis_dir: str,
     output: str,
     gcm_model_name: str,
-    mode: str,
     ftest_build_dir: Optional[str],
     ftest_compiler: str,
     ftest_netcdf_inc: Optional[str],
@@ -1360,6 +1353,8 @@ def pipeline(
     max_integration_repair_iterations: int,
     model: Optional[str],
     api_key: Optional[str],
+    use_tmux: bool,
+    auto_git_commit: bool,
     verbose: bool,
 ):
     """Run the full end-to-end pipeline for every module in translation order.
@@ -1439,7 +1434,6 @@ def pipeline(
             output_dir=Path(output).resolve(),
             gcm_model_name=gcm_model_name,
             model=model,
-            translation_mode=mode,
             ftest_build_dir=Path(ftest_build_dir).resolve() if ftest_build_dir else None,
             ftest_compiler=ftest_compiler,
             ftest_netcdf_inc=ftest_netcdf_inc,
@@ -1458,6 +1452,8 @@ def pipeline(
             skip_golden=skip_golden,
             run_integrate=run_integrate,
             max_integration_repair_iterations=max_integration_repair_iterations,
+            use_tmux=use_tmux,
+            auto_git_commit=auto_git_commit,
             verbose=verbose,
         )
         summary = runner.run()
@@ -1590,6 +1586,186 @@ def integrate(
         console.print(f"\n[red]Integration error: {exc}[/red]")
         if verbose:
             console.print_exception()
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# transjax slurm-submit
+# ---------------------------------------------------------------------------
+
+@cli.command("slurm-submit")
+@click.argument("fortran_dir", type=click.Path(exists=True, file_okay=False))
+@click.option("--analysis-dir", required=True, metavar="DIR",
+              help="Directory produced by 'transjax analyze'.")
+@click.option("--output", "-o", required=True, metavar="DIR",
+              help="Root pipeline output directory.")
+@click.option("--partition", required=True, metavar="NAME",
+              help="Slurm partition name (e.g. gpu, cpu, regular).")
+@click.option("--time", "time_limit", default="2:00:00", show_default=True, metavar="H:MM:SS",
+              help="Slurm wall-clock time limit per job.")
+@click.option("--mem", default="16G", show_default=True, metavar="SIZE",
+              help="Memory per Slurm node (e.g. 16G, 32G).")
+@click.option("--cpus", default=4, show_default=True, type=int, metavar="N",
+              help="CPUs per Slurm task.")
+@click.option("--gcm-model-name", default="generic ESM", show_default=True, metavar="NAME",
+              help="GCM model name passed to transjax pipeline.")
+@click.option("--modules", default=None, metavar="MOD1,MOD2,...",
+              help="Comma-separated module list. Defaults to all pending modules "
+                   "(reads translation_state.json).")
+@click.option("--dry-run", is_flag=True,
+              help="Generate .sbatch files only — do not call sbatch.")
+@click.option("--submit", "do_submit", is_flag=True,
+              help="Generate AND submit .sbatch files to the Slurm scheduler.")
+def slurm_submit(
+    fortran_dir: str,
+    analysis_dir: str,
+    output: str,
+    partition: str,
+    time_limit: str,
+    mem: str,
+    cpus: int,
+    gcm_model_name: str,
+    modules: Optional[str],
+    dry_run: bool,
+    do_submit: bool,
+) -> None:
+    """Generate (and optionally submit) one Slurm job per module.
+
+    FORTRAN_DIR is the Fortran source root (same as passed to 'transjax analyze').
+
+    Each Slurm job creates a tmux session named ``transjax-{module}`` on the
+    compute node and runs ``transjax pipeline --modules {module} --use-tmux``.
+
+    \b
+    Examples:
+      # Generate sbatch files only
+      transjax slurm-submit ./fortran --analysis-dir ./analysis \\
+          --output ./pipeline_out --partition cpu --dry-run
+
+      # Generate and submit
+      transjax slurm-submit ./fortran --analysis-dir ./analysis \\
+          --output ./pipeline_out --partition gpu --submit
+    """
+    from transjax.agents.utils.slurm_runner import SlurmRunner
+    from transjax.agents.utils.translation_state import TranslationStateManager
+
+    output_path = Path(output).resolve()
+
+    # Determine module list
+    if modules:
+        module_list = [m.strip() for m in modules.split(",") if m.strip()]
+    else:
+        # Read pending modules from state
+        state_mgr = TranslationStateManager(
+            output_dir=output_path,
+            fortran_dir=Path(fortran_dir).resolve(),
+            analysis_dir=Path(analysis_dir).resolve(),
+        )
+        state_mgr.load()
+        module_list = state_mgr.get_pending_modules()
+        if not module_list:
+            console.print("[yellow]No pending modules found in translation_state.json. "
+                          "Use --modules to specify explicitly.[/yellow]")
+            return
+
+    console.print(
+        f"[bold cyan]Slurm submit — {len(module_list)} module(s)[/bold cyan]\n"
+        f"  Partition: {partition}  Time: {time_limit}  Mem: {mem}  CPUs: {cpus}"
+    )
+
+    runner = SlurmRunner(
+        output_dir=output_path,
+        fortran_dir=Path(fortran_dir).resolve(),
+        analysis_dir=Path(analysis_dir).resolve(),
+        partition=partition,
+        time_limit=time_limit,
+        mem=mem,
+        cpus=cpus,
+        gcm_model_name=gcm_model_name,
+    )
+
+    if dry_run or not do_submit:
+        paths = runner.generate_all(module_list)
+        console.print(
+            f"\n[green]Generated {len(paths)} sbatch script(s).[/green]\n"
+            f"  Scripts: {runner._scripts_dir}\n"
+            f"  Submit with:  sbatch <script>.sbatch\n"
+            f"  Or re-run with --submit to submit automatically."
+        )
+    else:
+        job_ids = runner.submit_all(module_list)
+        errors = [m for m, jid in job_ids.items() if jid == "ERROR"]
+        if errors:
+            console.print(f"[red]✗ Failed to submit: {', '.join(errors)}[/red]")
+            sys.exit(1)
+        else:
+            console.print(f"[green]✓ Submitted {len(job_ids)} job(s) to partition '{partition}'[/green]")
+
+
+# ---------------------------------------------------------------------------
+# transjax generate-docs
+# ---------------------------------------------------------------------------
+
+@cli.command("generate-docs")
+@click.argument("fortran_dir", type=click.Path(exists=True, file_okay=False))
+@click.option("--analysis-dir", required=True, metavar="DIR",
+              help="Directory produced by 'transjax analyze'.")
+@click.option("--output", "-o", required=True, metavar="DIR",
+              help="Pipeline output directory (contains translation_state.json).")
+@click.option("--dest", default=None, metavar="DIR",
+              help="Where to write docs. Defaults to <output>/docs.")
+@click.option("--gcm-model-name", default="ESM", show_default=True, metavar="NAME",
+              help="GCM model name used in document headings.")
+@click.option("--rtol", default=1e-10, show_default=True, type=float, metavar="F",
+              help="Parity rtol shown in DESIGN.md.")
+@click.option("--atol", default=1e-12, show_default=True, type=float, metavar="F",
+              help="Parity atol shown in DESIGN.md.")
+def generate_docs(
+    fortran_dir: str,
+    analysis_dir: str,
+    output: str,
+    dest: Optional[str],
+    gcm_model_name: str,
+    rtol: float,
+    atol: float,
+) -> None:
+    """Generate DESIGN.md and CLAUDE.md from analyzer output.
+
+    Reads analysis_results.json, translation_order.json, and
+    translation_state.json to produce clax-style project documentation
+    tailored to the target ESM codebase.
+
+    \b
+    Outputs:
+      <dest>/DESIGN.md          Architecture, module table, data flow
+      <output>/CLAUDE.md        Agent guide (HPC rules, module order, conventions)
+      <output>/CHANGELOG.md     Created if it does not exist yet
+
+    \b
+    Example:
+      transjax generate-docs ./fortran \\
+          --analysis-dir ./analysis \\
+          --output ./pipeline_out \\
+          --gcm-model-name CTSM
+    """
+    from transjax.agents.utils.doc_generator import ProjectDocGenerator
+
+    gen = ProjectDocGenerator(
+        analysis_dir=Path(analysis_dir).resolve(),
+        output_dir=Path(output).resolve(),
+        fortran_dir=Path(fortran_dir).resolve(),
+        gcm_model_name=gcm_model_name,
+        parity_rtol=rtol,
+        parity_atol=atol,
+    )
+
+    dest_path = Path(dest).resolve() if dest else None
+    try:
+        paths = gen.write_all(dest_dir=dest_path)
+        for name, path in paths.items():
+            console.print(f"[green]✓[/green] {name} → {path}")
+    except Exception as exc:
+        console.print(f"[red]generate-docs error: {exc}[/red]")
         sys.exit(1)
 
 
